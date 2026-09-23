@@ -1,0 +1,117 @@
+# ============================================================
+# Home Assistant micro-service monorepo
+#   android/  - Expo / React Native app
+#   backend/  - Laravel (PHP) API
+#   llm/      - Python LLM service (zypher)
+# Sub-folders keep their own .gitignore; this file covers
+# repo-wide junk plus anything those miss.
+# ============================================================
+
+# ---------- Secrets / env ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.jks
+*.p8
+*.p12
+*.keystore
+!debug.keystore
+*.mobileprovision
+auth.json
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/
+
+# ---------- Editors / IDE / AI tooling ----------
+.idea/
+.vscode/
+.fleet/
+.nova/
+.zed/
+*.swp
+*.swo
+*~
+.claude/settings.local.json
+
+# ---------- Logs ----------
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ============================================================
+# android/ (Expo / React Native)
+# ============================================================
+android/node_modules/
+android/.expo/
+android/dist/
+android/web-build/
+android/expo-env.d.ts
+android/.metro-health-check*
+android/*.tsbuildinfo
+android/.kotlin/
+# generated native projects (expo prebuild)
+android/ios/
+android/android/
+# empty placeholder folder
+android/astral-ai/
+
+# ============================================================
+# backend/ (Laravel)
+# ============================================================
+backend/vendor/
+backend/node_modules/
+backend/public/build/
+backend/public/hot/
+backend/public/storage
+backend/storage/*.key
+backend/storage/pail/
+backend/storage/logs/*
+backend/storage/framework/cache/data/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/storage/framework/testing/*
+!backend/storage/**/.gitignore
+backend/bootstrap/cache/*.php
+backend/database/*.sqlite
+backend/database/*.sqlite-journal
+backend/.phpunit.cache/
+backend/.phpunit.result.cache
+backend/.phpactor.json
+backend/Homestead.json
+backend/Homestead.yaml
+
+# ============================================================
+# llm/ (Python)
+# ============================================================
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+llm/.memory/
+# local model weights / HF cache if ever stored in repo
+llm/models/
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.onnx
+*.npy
+# scratch test page
+llm/test.html
