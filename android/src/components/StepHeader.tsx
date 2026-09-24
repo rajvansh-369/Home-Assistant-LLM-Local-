@@ -87,7 +87,7 @@ function Segment({ filled }: { filled: boolean }) {
 const styles = StyleSheet.create({
   row: {
     height: sizes.header,
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.headerX,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

@@ -9,6 +9,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { bootFirstRun } from '@/features/first-run/actions';
+import { useFirstRunStore } from '@/features/first-run/store';
 import { colors } from '@/theme/colors';
 import { fontAssets } from '@/theme/fonts';
 
@@ -17,7 +19,13 @@ SystemUI.setBackgroundColorAsync(colors.bg);
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(fontAssets);
-  const ready = fontsLoaded || fontError != null;
+  const booted = useFirstRunStore((state) => state.booted);
+  const ready = (fontsLoaded || fontError != null) && booted;
+
+  useEffect(() => {
+    // If storage can't be read, start as a fresh install rather than hang on the splash screen.
+    bootFirstRun().catch(() => useFirstRunStore.getState().set({ booted: true }));
+  }, []);
 
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
@@ -31,8 +39,18 @@ export default function RootLayout() {
         <KeyboardProvider>
           <StatusBar style="light" />
           <Stack
-            screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}
-          />
+            screenOptions={{
+              headerShown: false,
+              animation: 'slide_from_right',
+              contentStyle: { backgroundColor: colors.bg },
+            }}
+          >
+            {/* index only resolves launch routing and replaces itself (plan §5). */}
+            <Stack.Screen name="index" options={{ animation: 'none' }} />
+            <Stack.Screen name="(first-run)" />
+            <Stack.Screen name="home" />
+            <Stack.Screen name="dev/gallery" />
+          </Stack>
         </KeyboardProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

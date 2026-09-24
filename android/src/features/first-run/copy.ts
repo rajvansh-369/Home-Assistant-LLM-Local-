@@ -1,5 +1,5 @@
 // All first-run screen text (plan §4). Canvas strings are exact; (proposed) ones follow §4.
-// Screens are filled in from Phase 3; Phase 1 adds what the shared components and gallery need.
+// Strings marked (proposed) cover states the canvas doesn't draw.
 
 export const common = {
   brand: 'Aster',
@@ -32,14 +32,22 @@ export const signIn = {
   serverLabel: 'Server address',
   serverPlaceholder: 'https://aster.yourdomain.com',
   emailLabel: 'Email',
-  emailPlaceholder: 'you@example.com',
+  emailPlaceholder: 'you@example.com', // (proposed)
   passwordLabel: 'Password',
   submit: 'Sign in',
   registerLink: 'First time? Create the household account',
-  checking: 'Checking…',
+  checking: 'Checking…', // (proposed)
   reachable: (ms: number) => `Reachable · HTTPS · ${ms} ms`,
-  needsHttps: 'Use an https:// address',
-  unreachable: "Can't reach this server",
+  needsHttps: 'Use an https:// address', // (proposed)
+  unreachable: "Can't reach this server", // (proposed)
+  wrongCredentials: 'Email or password is wrong.', // (proposed)
+  tooManyTries: (seconds: number) => `Too many tries. Try again in ${seconds} s.`, // (proposed)
+  signInAgain: 'Please sign in again.', // (proposed)
+  // Register mode (all proposed).
+  registerTitle: 'Create the household account',
+  registerSubmit: 'Continue',
+  signInLink: 'Already set up? Sign in',
+  passwordHelper: 'At least 8 characters',
 } as const;
 
 export const createOwner = {
@@ -47,7 +55,7 @@ export const createOwner = {
   subtitle:
     "The Owner sets up other profiles and is the only one who can see this phone's messages and location.",
   nameLabel: 'Name',
-  namePlaceholder: 'Your name',
+  namePlaceholder: 'Your name', // (proposed)
   pinLabel: '6-digit PIN',
   pinHelper:
     "You'll enter this each time you open your profile. Your server keeps only a scrambled copy.",
@@ -55,17 +63,50 @@ export const createOwner = {
   lockWhenLeave: 'Lock when I leave',
   lockWhenLeaveSubtitle: 'After 2 minutes in the background',
   submit: 'Create profile',
+  noFingerprint: 'Set up a fingerprint in Android settings first', // (proposed)
+  // Returning to 1.3 after the Owner exists (proposed).
+  save: 'Save profile',
+  pinLocked: 'Change your PIN later in Settings.',
+} as const;
+
+export const unlock = {
+  ownerBadge: 'Owner',
+  prompt: 'Enter your PIN',
+  fingerprintHint: 'Or touch the fingerprint sensor',
+  accepted: 'PIN accepted',
+  fingerprintKey: 'Unlock with fingerprint',
+  deleteKey: 'Delete last digit',
+  lockNote: '5 wrong tries lock this profile for 30 seconds.',
+  wrongPin: 'Wrong PIN', // (proposed)
+  locked: (seconds: number) => `Locked. Try again in ${seconds} s`, // (proposed)
 } as const;
 
 export const setHome = {
   title: 'Where is home?',
   subtitle: 'Aster switches on when your phone gets here.',
+  mapLabel: 'Map with your home and the area around it',
+  searchLabel: 'Search for your address',
+  locateLabel: 'Use my current location',
+  withinRadius: (m: number) => `Aster turns on within ${m} m of here`,
+  noPoint: 'Search for your address or use your location', // (proposed)
+  locationOff: 'Location is off. Search for your address instead.', // (proposed)
+  noMatch: (query: string) => `No match for “${query}”`, // (proposed)
   homeArea: 'Home area',
   radii: [100, 150, 300, 500] as const,
   radiusLabel: (m: number) => `${m} m`,
+  wifiLabel: 'Home Wi-Fi (optional)',
+  wifiPlaceholder: 'Your Wi-Fi name', // (proposed)
+  wifiHelper: 'Confirms you’re really home before the assistant turns on.',
   llmLabel: 'Home LLM server',
   llmPlaceholder: 'http://192.168.1.20:8000',
   testHint: 'Test works only on home Wi-Fi',
+  publicLlm: 'This looks like a public address. Keep zypherLL on your home network.', // (proposed)
+  // Test results (all proposed).
+  llmReady: (model: string, ms: number) => `Ready · ${model} · ${ms} ms`,
+  llmLoading: 'Model is loading. Try again in a minute.',
+  llmFailed: (error: string) => `Model failed to load: ${error}`,
+  llmNoReply: 'No reply in 3 s. Are you on home Wi-Fi?',
+  llmBlocked: (host: string) => `This build only allows plain HTTP to ${host}.`,
   submit: 'Save home',
 } as const;
 
@@ -94,4 +135,37 @@ export const permissions = {
   },
   finish: 'Finish setup',
   skip: 'Skip for now',
+} as const;
+
+// 3.1 Home placeholder (Phase 2). Replaced when row 2 builds the real Home.
+export const homePlaceholder = {
+  title: 'Home',
+  subtitle: 'This screen stands in for 3.1 Home.',
+  savedFacts: 'Saved first-run facts',
+  none: '—',
+  reset: 'Reset first run',
+  gallery: 'Component gallery',
+  facts: {
+    server: 'Server',
+    email: 'Email',
+    owner: 'Owner',
+    home: 'Home',
+    wifi: 'Home Wi-Fi',
+    llm: 'Home LLM',
+    fingerprint: 'Fingerprint unlock',
+    lockWhenLeave: 'Lock when I leave',
+    permissionsDone: 'Permissions step done',
+  },
+  yes: 'On',
+  no: 'Off',
+} as const;
+
+// Temporary controls on the Phase 2 placeholder screens. Phases 3–6 remove them.
+export const placeholder = {
+  next: 'Next',
+  pinLabel: 'PIN',
+  addressLabel: 'Address',
+  latLabel: 'Latitude',
+  lngLabel: 'Longitude',
+  somethingWrong: 'Something went wrong. Try again.',
 } as const;

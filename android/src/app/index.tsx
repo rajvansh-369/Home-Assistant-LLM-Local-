@@ -1,31 +1,14 @@
-// Temporary font check (Phase 0). Replaced by launch routing in Phase 2.
-// In dev builds, long-press the wordmark to open the component gallery.
-import { router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+// Launch routing (plan §5): resolve where first run stands and replace this route with it.
+import { Redirect } from 'expo-router';
 
-import { Text } from '@/components';
-import { common } from '@/features/first-run/copy';
-import { colors } from '@/theme';
+import { resolveFirstRunRoute } from '@/features/first-run/routing';
+import { firstRunFacts, useFirstRunStore } from '@/features/first-run/store';
 
 export default function Index() {
-  return (
-    <View style={styles.container}>
-      <Pressable onLongPress={__DEV__ ? () => router.push('/dev/gallery') : undefined}>
-        <Text variant="display">{common.brand}</Text>
-      </Pressable>
-      <Text variant="body" tone="secondary">
-        Fonts are loaded.
-      </Text>
-    </View>
+  const route = useFirstRunStore((state) =>
+    state.booted ? resolveFirstRunRoute(firstRunFacts(state)) : null,
   );
+  // The root layout keeps the splash screen up until the store has booted.
+  if (!route) return null;
+  return <Redirect href={route} />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: colors.bg,
-  },
-});

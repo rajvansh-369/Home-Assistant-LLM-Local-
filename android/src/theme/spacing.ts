@@ -1,6 +1,8 @@
 // Plan §2 Spacing, sizes and radii.
 export const spacing = {
   screenX: 20,
+  /** StepHeader and the 2.2 back row. */
+  headerX: 8,
   welcomeX: 24,
   contentTop: 20,
   contentBottom: 24,
