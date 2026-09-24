@@ -9,6 +9,7 @@
 //   Sign in, no household yet                 creates a household with no profiles (goes to 1.3)
 //   Sign in, email starting with "owner"      ... and also an Owner "Test Owner" with PIN 123456 (goes to 2.2)
 //   Register, email starting with "exists"    403 household exists (also once any household exists)
+//   Register, email starting with "taken"     422 on email (already taken)
 //   Register, password shorter than 8         422 on password
 //   Unlock, wrong PIN                         422; the 5th wrong try locks for 30 s, then 429 with retry_after
 //   LLM address containing "loading"          health: model loading
@@ -163,6 +164,7 @@ export const mockApi: AsterApi = {
     if (state.household || email.startsWith('exists')) {
       throw new ApiError(403, 'The household account already exists.');
     }
+    if (email.startsWith('taken')) throw invalid('email', 'The email has already been taken.');
     if (password.length < 8) {
       throw invalid('password', 'The password field must be at least 8 characters.');
     }

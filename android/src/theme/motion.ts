@@ -8,4 +8,9 @@ export const motion = {
   orbCoreScale: 1.05,
   progressFillMs: 200,
   switchKnobMs: 150,
+  /** 2.2 wrong-PIN shake (proposed: the canvas names the shake, not its timing). */
+  shakeDistance: 10,
+  shakeStepMs: 50,
+  /** 2.2 "PIN accepted" pause before moving on. */
+  unlockContinueMs: 600,
 } as const;

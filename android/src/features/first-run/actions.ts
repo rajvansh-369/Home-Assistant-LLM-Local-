@@ -50,6 +50,17 @@ async function withDeviceToken<T>(call: (token: string) => Promise<T>): Promise<
   }
 }
 
+/**
+ * 1.3 register step failed with a 422 on email or password, or the household already exists.
+ * The store's `signInReturn` says how 1.2 should look; the screen should go back to /sign-in.
+ */
+export class RegisterRejectedError extends Error {
+  constructor() {
+    super('Register rejected');
+    this.name = 'RegisterRejectedError';
+  }
+}
+
 /** Thrown after a 401 has signed the phone out; the screen should replace with /sign-in. */
 export class SignedOutError extends Error {
   constructor() {
@@ -145,12 +156,17 @@ export async function createOwner(input: OwnerInput): Promise<FirstRunRoute> {
   if (!state.hasDeviceToken) {
     const pending = state.pendingRegistration;
     if (!pending) return '/sign-in';
-    const { token } = await api.register(server, {
-      name: input.name.trim(),
-      email: pending.email,
-      password: pending.password,
-      device_name: deviceName(),
-    });
+    let token: string;
+    try {
+      ({ token } = await api.register(server, {
+        name: input.name.trim(),
+        email: pending.email,
+        password: pending.password,
+        device_name: deviceName(),
+      }));
+    } catch (error) {
+      throw registerFailure(error);
+    }
     await secure.setDeviceToken(token);
     store().set({ hasDeviceToken: true, pendingRegistration: null });
   }
@@ -186,6 +202,27 @@ export async function createOwner(input: OwnerInput): Promise<FirstRunRoute> {
   }
   store().set({ fingerprintEnabled: fingerprint });
   return nextRoute();
+}
+
+/** Plan Phase 4: which register failures send the user back to 1.2, and how. */
+function registerFailure(error: unknown): unknown {
+  if (!(error instanceof ApiError)) return error;
+  if (error.status === 403 || error.status === 409) {
+    store().set({
+      pendingRegistration: null,
+      signInNotice: signInCopy.householdExists,
+      signInReturn: { mode: 'signIn' },
+    });
+    return new RegisterRejectedError();
+  }
+  if (error.status === 422) {
+    const field = (['email', 'password'] as const).find((f) => error.fieldErrors[f]?.length);
+    // A name error stays on 1.3; email or password errors are fixed on 1.2.
+    if (!field) return error;
+    store().set({ signInReturn: { mode: 'register', field, message: error.messageFor(field) } });
+    return new RegisterRejectedError();
+  }
+  return error;
 }
 
 /** 1.3 after the Owner exists: PATCH name, colour and lock (the PIN can't change here). */

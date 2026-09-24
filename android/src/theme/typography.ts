@@ -39,6 +39,12 @@ export const typography = {
   helper: style(fonts.body400, 13, 18),
   status: style(fonts.body600, 13, 18),
   button: style(fonts.body700, 16, 22),
+  /** 2.2 "Enter your PIN": Manrope 16 (weight not given on the canvas; 400 assumed). */
+  prompt: style(fonts.body400, 16, 22),
+  /** 2.2 message line when the PIN is accepted. */
+  statusStrong: style(fonts.body700, 13, 20),
+  /** 2.2 message line while typing (20 px line). */
+  hint: style(fonts.body400, 13, 20),
   link: style(fonts.body700, 14, 20),
   chip: style(fonts.body700, 13, 18),
   mono: style(fonts.mono400, 15, 22),

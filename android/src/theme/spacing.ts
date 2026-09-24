@@ -24,6 +24,19 @@ export const spacing = {
   featureRowGap: 14,
   featureRowsApart: 10,
   permissionRowsApart: 10,
+  // 1.3 avatar row, 2.2 column (§4.3, §4.6).
+  avatarRowGap: 20,
+  swatchColumnGap: 12,
+  unlockX: 28,
+  unlockTop: 4,
+  unlockBottom: 28,
+  unlockNameTop: 14,
+  unlockBadgeTop: 6,
+  unlockPromptTop: 28,
+  unlockDotsTop: 16,
+  unlockLineTop: 14,
+  unlockKeypadTop: 22,
+  badgeX: 7,
 } as const;
 
 export const sizes = {
@@ -57,6 +70,14 @@ export const sizes = {
   orbCore: 87,
   orbPulseBorder: 2,
   brandOrb: 22,
+  // 2.2 Unlock (§4.6).
+  badgeHeight: 20,
+  pinDot: 14,
+  pinDotBorder: 1.5,
+  pinDotGap: 16,
+  keyHeight: 64,
+  keyGap: 12,
+  unlockLine: 20,
 } as const;
 
 export const iconSizes = {
@@ -68,6 +89,8 @@ export const iconSizes = {
   status: 16,
   pill: 14,
   chip: 15,
+  keyFingerprint: 28,
+  keyDelete: 24,
 } as const;
 
 export const strokes = {
@@ -88,6 +111,7 @@ export const radii = {
   tileSmall: 11,
   tileLarge: 12,
   badge: 6,
+  key: 20,
   pill: 999,
 } as const;
 

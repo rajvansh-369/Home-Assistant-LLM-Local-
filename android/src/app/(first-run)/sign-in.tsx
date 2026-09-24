@@ -1,7 +1,7 @@
 // 1.2 Sign in, and register mode on the same layout (plan §4.2).
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Cloud } from 'lucide-react-native';
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { TextInput } from 'react-native';
 
 import {
@@ -51,9 +51,22 @@ export default function SignIn() {
   const [server, setServer] = useState(saved.serverUrl ?? devServer);
   const [email, setEmail] = useState(saved.email ?? '');
   const [password, setPassword] = useState('');
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const { check, checkNow, markFailed } = useServerCheck(server);
+
+  // 1.3 may send the user back here after the register call fails (plan Phase 4).
+  useFocusEffect(
+    useCallback(() => {
+      const { signInReturn, set } = useFirstRunStore.getState();
+      if (!signInReturn) return;
+      set({ signInReturn: null });
+      setRegister(signInReturn.mode === 'register');
+      setEmailError(signInReturn.field === 'email' ? (signInReturn.message ?? null) : null);
+      setPasswordError(signInReturn.field === 'password' ? (signInReturn.message ?? null) : null);
+    }, []),
+  );
 
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
@@ -71,7 +84,9 @@ export default function SignIn() {
 
   async function submit() {
     if (!canSubmit || busy || check.kind !== 'ok') return;
+    setEmailError(null);
     setPasswordError(null);
+    useFirstRunStore.getState().set({ signInNotice: null });
     const credentials = { server: check.url, email: trimmedEmail, password };
 
     if (register) {
@@ -104,6 +119,7 @@ export default function SignIn() {
 
   function toggleMode() {
     setRegister(!register);
+    setEmailError(null);
     setPasswordError(null);
   }
 
@@ -152,7 +168,11 @@ export default function SignIn() {
         label={copy.emailLabel}
         placeholder={copy.emailPlaceholder}
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(text) => {
+          setEmail(text);
+          setEmailError(null);
+        }}
+        error={emailError ?? undefined}
         keyboardType="email-address"
         autoComplete="email"
         autoCapitalize="none"

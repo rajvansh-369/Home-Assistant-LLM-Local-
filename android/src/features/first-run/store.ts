@@ -37,8 +37,16 @@ export type MemoryFirstRun = {
   session: Session | null;
   /** 2.2 prefill for 1.4, from GET /places/home. */
   homePrefill: Place | null;
-  /** One-off message for 1.2, e.g. after a 401. */
+  /** One-off message for 1.2, e.g. after a 401 or when the household already exists. */
   signInNotice: string | null;
+  /** 1.3 sent the user back to 1.2 (register failed): mode and field error to show there. */
+  signInReturn: SignInReturn | null;
+};
+
+export type SignInReturn = {
+  mode: 'register' | 'signIn';
+  field?: 'email' | 'password';
+  message?: string;
 };
 
 type Actions = {
@@ -67,6 +75,7 @@ const initialMemory: MemoryFirstRun = {
   session: null,
   homePrefill: null,
   signInNotice: null,
+  signInReturn: null,
 };
 
 const persistedKeys = Object.keys(initialPersisted) as (keyof PersistedFirstRun)[];

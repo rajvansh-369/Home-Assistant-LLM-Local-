@@ -28,7 +28,9 @@ import {
   FeatureRow,
   IconTile,
   InfoCallout,
+  Keypad,
   PermissionRow,
+  PinDots,
   PrimaryButton,
   ProgressSegments,
   Screen,
@@ -44,7 +46,15 @@ import {
   ToggleCard,
   ToggleRow,
 } from '@/components';
-import { common, createOwner, permissions, setHome, signIn, welcome } from '@/features/first-run/copy';
+import {
+  common,
+  createOwner,
+  permissions,
+  setHome,
+  signIn,
+  unlock,
+  welcome,
+} from '@/features/first-run/copy';
 import { colors, type ProfileColor } from '@/theme';
 
 const radiusOptions = setHome.radii.map((m) => ({ value: m, label: setHome.radiusLabel(m) }));
@@ -66,6 +76,8 @@ function GalleryContent() {
   const [testing, setTesting] = useState(false);
   const [allowed, setAllowed] = useState(false);
   const [step, setStep] = useState(2);
+  const [keypadPin, setKeypadPin] = useState('');
+  const [shake, setShake] = useState(0);
 
   return (
     <Screen header={<View style={styles.header}><BackButton onPress={() => router.back()} /></View>}>
@@ -249,6 +261,30 @@ function GalleryContent() {
           />
           <SmallPill label={common.test} icon={RotateCw} onPress={() => {}} busy />
         </View>
+      </Section>
+
+      <Section label="PinDots and Keypad (tap digits; delete; shake on 6th)">
+        <PinDots filled={keypadPin.length} shakeKey={shake} />
+        <Keypad
+          onDigit={(d) => {
+            const next = (keypadPin + d).slice(0, 6);
+            if (next.length === 6) {
+              setShake((k) => k + 1);
+              setKeypadPin('');
+            } else setKeypadPin(next);
+          }}
+          onDelete={() => setKeypadPin((p) => p.slice(0, -1))}
+          onFingerprint={() => {}}
+          fingerprintLabel={unlock.fingerprintKey}
+          deleteLabel={unlock.deleteKey}
+        />
+        <Keypad
+          onDigit={() => {}}
+          onDelete={() => {}}
+          disabled
+          fingerprintLabel={unlock.fingerprintKey}
+          deleteLabel={unlock.deleteKey}
+        />
       </Section>
 
       <Section label="PermissionRow: Allow (tap), Allowed, disabled">

@@ -1,8 +1,11 @@
 import {
   checkServerUrl,
   isValidEmail,
+  isValidName,
   isValidNewPassword,
+  isValidPin,
   normalizeServerUrl,
+  sanitizePin,
 } from '@/features/first-run/validators';
 
 describe('server address', () => {
@@ -52,4 +55,24 @@ test('email', () => {
 test('new password needs 8 characters', () => {
   expect(isValidNewPassword('1234567')).toBe(false);
   expect(isValidNewPassword('12345678')).toBe(true);
+});
+
+describe('PIN', () => {
+  test('keeps digits only, at most 6', () => {
+    expect(sanitizePin('12a3 4-5')).toBe('12345');
+    expect(sanitizePin('12345678')).toBe('123456');
+    expect(sanitizePin('')).toBe('');
+  });
+
+  test('is valid only with exactly 6 digits', () => {
+    expect(isValidPin('123456')).toBe(true);
+    expect(isValidPin('12345')).toBe(false);
+    expect(isValidPin('1234567')).toBe(false);
+    expect(isValidPin('12345a')).toBe(false);
+  });
+});
+
+test('name needs a non-space character', () => {
+  expect(isValidName('  ')).toBe(false);
+  expect(isValidName(' A ')).toBe(true);
 });

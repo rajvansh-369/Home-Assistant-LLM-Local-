@@ -44,6 +44,7 @@ export const signIn = {
   wrongCredentials: 'Email or password is wrong.', // (proposed)
   tooManyTries: (seconds: number) => `Too many tries. Try again in ${seconds} s.`, // (proposed)
   signInAgain: 'Please sign in again.', // (proposed)
+  householdExists: 'This server already has a household account. Sign in instead.', // (proposed)
   // Register mode (all proposed).
   registerTitle: 'Create the household account',
   registerSubmit: 'Continue',
@@ -80,6 +81,7 @@ export const unlock = {
   lockNote: '5 wrong tries lock this profile for 30 seconds.',
   wrongPin: 'Wrong PIN', // (proposed)
   locked: (seconds: number) => `Locked. Try again in ${seconds} s`, // (proposed)
+  digitsEntered: (n: number) => `${n} of 6 digits entered`, // (proposed, screen readers only)
 } as const;
 
 export const setHome = {
