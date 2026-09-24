@@ -1,14 +1,21 @@
 // Temporary font check (Phase 0). Replaced by launch routing in Phase 2.
-import { StyleSheet, Text, View } from 'react-native';
+// In dev builds, long-press the wordmark to open the component gallery.
+import { router } from 'expo-router';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors } from '@/theme/colors';
-import { fonts } from '@/theme/fonts';
+import { Text } from '@/components';
+import { common } from '@/features/first-run/copy';
+import { colors } from '@/theme';
 
 export default function Index() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Aster</Text>
-      <Text style={styles.body}>Fonts are loaded.</Text>
+      <Pressable onLongPress={__DEV__ ? () => router.push('/dev/gallery') : undefined}>
+        <Text variant="display">{common.brand}</Text>
+      </Pressable>
+      <Text variant="body" tone="secondary">
+        Fonts are loaded.
+      </Text>
     </View>
   );
 }
@@ -20,20 +27,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     backgroundColor: colors.bg,
-  },
-  title: {
-    fontFamily: fonts.display700,
-    fontSize: 35,
-    lineHeight: 38,
-    letterSpacing: -0.7,
-    color: colors.text,
-    includeFontPadding: false,
-  },
-  body: {
-    fontFamily: fonts.body400,
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.textSecondary,
-    includeFontPadding: false,
   },
 });
