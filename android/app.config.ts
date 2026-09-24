@@ -27,7 +27,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     'expo-router',
-    ['expo-splash-screen', { backgroundColor: BACKGROUND }],
+    // The Aster orb on the dark background (Android 12+ splash icon).
+    ['expo-splash-screen', { backgroundColor: BACKGROUND, image: './assets/splash-icon.png', imageWidth: 120 }],
     'expo-secure-store',
   ],
   experiments: {

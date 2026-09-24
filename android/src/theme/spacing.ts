@@ -8,6 +8,10 @@ export const spacing = {
   contentBottom: 24,
   welcomeTop: 8,
   welcomeBottom: 28,
+  /** 1.1: headline to feature rows, rows to button, button to caption. */
+  welcomeRowsTop: 20,
+  welcomeButtonTop: 24,
+  welcomeCaptionTop: 12,
   gapSignIn: 18,
   gapCreateOwner: 20,
   gapSetHome: 16,
@@ -47,6 +51,8 @@ export const sizes = {
   allowPill: 36,
   allowedChip: 32,
   orb: 190,
+  /** 1.1 hides the orb when its free area is shorter than this. */
+  orbMin: 96,
   orbInnerInset: 25,
   orbCore: 87,
   orbPulseBorder: 2,

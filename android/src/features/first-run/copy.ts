@@ -11,6 +11,7 @@ export const common = {
   allowFor: (title: string) => `Allow ${title}`,
   allowed: 'Allowed',
   test: 'Test',
+  somethingWrong: 'Something went wrong. Try again.', // (proposed)
 } as const;
 
 export const welcome = {
@@ -167,5 +168,4 @@ export const placeholder = {
   addressLabel: 'Address',
   latLabel: 'Latitude',
   lngLabel: 'Longitude',
-  somethingWrong: 'Something went wrong. Try again.',
 } as const;

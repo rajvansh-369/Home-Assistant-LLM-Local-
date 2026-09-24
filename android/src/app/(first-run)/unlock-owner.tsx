@@ -6,7 +6,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Avatar, BackButton, Screen, Text, TextField } from '@/components';
 import { SignedOutError, unlockOwner } from '@/features/first-run/actions';
-import { placeholder, unlock as copy } from '@/features/first-run/copy';
+import { common, unlock as copy } from '@/features/first-run/copy';
 import { useFirstRunStore } from '@/features/first-run/store';
 import { useStepBack } from '@/features/first-run/useStepBack';
 import { ApiError } from '@/services/api';
@@ -50,7 +50,7 @@ export default function UnlockOwner() {
       if (e instanceof SignedOutError) router.replace('/sign-in');
       else if (e instanceof ApiError && e.status === 429) setLockedFor(e.retryAfter ?? 30);
       else if (e instanceof ApiError && e.status === 422) setError(copy.wrongPin);
-      else setError(placeholder.somethingWrong);
+      else setError(common.somethingWrong);
     } finally {
       setBusy(false);
     }

@@ -15,7 +15,7 @@ import {
   ToggleRow,
 } from '@/components';
 import { canOpenCreateOwner, createOwner, saveOwner, SignedOutError } from '@/features/first-run/actions';
-import { createOwner as copy, placeholder } from '@/features/first-run/copy';
+import { common, createOwner as copy } from '@/features/first-run/copy';
 import { useFirstRunStore } from '@/features/first-run/store';
 import { useStepBack } from '@/features/first-run/useStepBack';
 import { ApiError } from '@/services/api';
@@ -51,7 +51,7 @@ export default function CreateOwner() {
       router.push(editing ? await saveOwner(input) : await createOwner({ ...input, pin }));
     } catch (e) {
       if (e instanceof SignedOutError) router.replace('/sign-in');
-      else setError(e instanceof ApiError ? e.message : placeholder.somethingWrong);
+      else setError(e instanceof ApiError ? e.message : common.somethingWrong);
     } finally {
       setBusy(false);
     }

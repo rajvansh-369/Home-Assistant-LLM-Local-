@@ -6,7 +6,7 @@ import { useState } from 'react';
 
 import { PrimaryButton, Screen, Segmented, StepHeader, TextField, TitleBlock } from '@/components';
 import { saveHome, SignedOutError } from '@/features/first-run/actions';
-import { placeholder, setHome as copy } from '@/features/first-run/copy';
+import { common, placeholder, setHome as copy } from '@/features/first-run/copy';
 import { useFirstRunStore } from '@/features/first-run/store';
 import { useStepBack } from '@/features/first-run/useStepBack';
 import { ApiError } from '@/services/api';
@@ -43,7 +43,7 @@ export default function SetHome() {
       router.push(route);
     } catch (e) {
       if (e instanceof SignedOutError) router.replace('/sign-in');
-      else setError(e instanceof ApiError ? e.messageFor('llm_url') : placeholder.somethingWrong);
+      else setError(e instanceof ApiError ? e.messageFor('llm_url') : common.somethingWrong);
     } finally {
       setBusy(false);
     }
