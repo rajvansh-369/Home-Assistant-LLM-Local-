@@ -155,9 +155,12 @@ describe('status lines', () => {
       text: copy.publicLlm,
     });
     const release = { homeLlmHost: '192.168.1.20', release: true };
-    expect(llmFieldStatus(checkLlmUrl('http://192.168.1.21', release), '192.168.1.20')).toEqual({
+    const blocked = checkLlmUrl('http://192.168.1.21', release);
+    expect(llmFieldStatus(blocked, '192.168.1.20')).toEqual({
       tone: 'danger',
       text: copy.llmBlocked('192.168.1.20'),
     });
+    // After Test, the result line says it; the field doesn't repeat it.
+    expect(llmFieldStatus(blocked, '192.168.1.20', { kind: 'blocked' })).toBeUndefined();
   });
 });

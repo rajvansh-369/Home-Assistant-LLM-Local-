@@ -8,15 +8,20 @@ import type { LlmUrlResult } from './validators';
 const blockedText = (homeLlmHost: string | null) =>
   homeLlmHost ? copy.llmBlocked(homeLlmHost) : copy.llmBlockedAll;
 
-/** Warning under the field for a valid address, if any. */
+/**
+ * Warning under the field for a valid address, if any. A blocked host isn't repeated once the
+ * Test line below already says so.
+ */
 export function llmFieldStatus(
   result: LlmUrlResult,
   homeLlmHost: string | null,
+  test: LlmHealth | null = null,
 ): FieldStatus | undefined {
   if (!result.ok || !result.warning) return undefined;
-  return result.warning === 'blocked'
-    ? { tone: 'danger', text: blockedText(homeLlmHost) }
-    : { tone: 'warning', text: copy.publicLlm };
+  if (result.warning === 'blocked') {
+    return test?.kind === 'blocked' ? undefined : { tone: 'danger', text: blockedText(homeLlmHost) };
+  }
+  return { tone: 'warning', text: copy.publicLlm };
 }
 
 /** The line that replaces "Test works only on home Wi-Fi" after a test. */

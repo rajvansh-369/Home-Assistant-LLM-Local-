@@ -304,7 +304,7 @@ export default function SetHome() {
             autoCorrect={false}
             returnKeyType="done"
             valid={testResult?.kind === 'ready'}
-            status={llmFieldStatus(llm, homeLlmHost)}
+            status={llmFieldStatus(llm, homeLlmHost, testResult)}
             error={
               llmServerError ??
               (llmBlurred && !llm.ok && llm.reason === 'invalid' ? copy.llmInvalid : undefined)

@@ -97,20 +97,48 @@ Added proposed strings: `common.noConnection`, `createOwner.fingerprintLater`,
     line still work.
 12. **App id.** `com.snehal.aster`.
 
+## Release build and Phase 6 device check (25 Sep 2026)
+
+Built with `HOME_LLM_HOST=10.0.2.2` (the emulator's address for the host PC), after a fresh
+`npx expo prebuild --platform android`, as an x86_64-only release APK
+(`gradlew assembleRelease -PreactNativeArchitectures=x86_64`, 11 min instead of 59 for all four
+ABIs). Run on the Android 16 emulator (API 36.1; no Android 14 or 15 image is installed):
+
+- The APK carries `homeLlmHost: "10.0.2.2"`, and its network security config allows cleartext only
+  to `10.0.2.2`.
+- The release app starts, and a full first run works on the mock server: register, 1.3, 1.4, 1.5,
+  then Home. Killing and reopening lands on Home. No crash, and nothing sensitive in the JS log.
+- 1.4 Test against a stand-in `/health` on the PC (`http://10.0.2.2:8000`) reads
+  "Ready · fake-zephyr-7b · 967 ms". `http://192.168.1.20:8000` is refused with "This build only
+  allows plain HTTP to 10.0.2.2…" and no request is sent.
+- Search found an address, and the Wi-Fi field filled with the emulator's "AndroidWifi".
+- 1.5, every row:
+  - SMS, microphone and contacts open Android's own dialogs.
+  - Location opens Aster's location settings, where "Allow all the time" was chosen.
+  - Notification access opens Aster's page in Notification access. Afterwards the system lists
+    `AsterNotificationListener` as enabled.
+  - Run in background asks for notifications first, then shows the battery dialog. Aster then
+    appears on the battery whitelist (Unrestricted).
+  - Each chip turned to Allowed on return.
+- Home shows "Home geofence: On" and a real event from the background task: "Left", because the
+  emulator's GPS is in Mountain View. After a relaunch it is still On.
+- Found while checking: after Test on a refused host, the refusal was shown twice, under the field
+  and on the Test line. The field line now steps aside once the Test line says it.
+
+Screenshots: `docs/screens/phase-6/` and `docs/screens/phase-8/393-release-*`.
+
 ## Known gaps
 
-- Release build not yet seen running. The APK in `android/app/build/outputs/apk/release/` predates
-  the `homeLlmHost` fix above, and was built from a stale prebuild whose native cleartext config
-  allows `10.0.2.2` while `.env` has `HOME_LLM_HOST` empty. Rebuild with
-  `npx expo prebuild --platform android` first, then `npx expo run:android --variant release`
-  (with `JAVA_HOME` set to Android Studio's JBR).
+- Release was checked only as an x86_64 build on the emulator, not on a real phone, and only with
+  a test `HOME_LLM_HOST`. A build for your home network needs `HOME_LLM_HOST` in `.env`, then
+  prebuild and a normal all-ABI release build.
 - Phase 7 not done: no real Laravel client, so the §10 server items are verified on mocks only.
 - No Maps key in `.env`: the pin, geofence circle and camera fit weren't seen on a device in this
   pass.
 - "Use my current location" failed on the emulator even with location on (the fused provider had a
   fix, but `getCurrentPositionAsync` didn't return one). Search worked. Check on a real phone.
-- The 1.4 Test "Ready" state wasn't seen on a device (zypherLL wasn't running); the parser is unit
-  tested.
+- The 1.4 Test "Ready" state was seen only against a stand-in `/health`, not the real zypherLL
+  (a 7B model doesn't fit in RAM next to the emulator here).
 - On a 360×640 dp phone, 2.2's bottom keypad row (0 and delete) is below the fold and needs a
   scroll. Nothing clips, but a compact keypad for short screens would be better. Needs a design
   decision.
