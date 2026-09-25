@@ -35,9 +35,12 @@ return [
     | are able to authenticate the request, Sanctum will use the bearer
     | token that's present on an incoming request for authentication.
     |
+    | Aster: none. The API accepts only bearer tokens, so a browser session
+    | (such as an admin's) can never call it.
+    |
     */
 
-    'guard' => ['web'],
+    'guard' => [],
 
     /*
     |--------------------------------------------------------------------------

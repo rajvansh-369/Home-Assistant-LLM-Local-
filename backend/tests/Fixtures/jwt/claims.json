@@ -1,0 +1,10 @@
+{
+    "iss": "aster",
+    "aud": "h1",
+    "sub": "profile:12",
+    "scope": "p12",
+    "web": "auto",
+    "memory": true,
+    "iat": 1790208000,
+    "exp": 4102444799
+}

@@ -1,8 +1,9 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+// Cron runs `php artisan schedule:run` every minute; there is no queue worker.
+// Times are server time (UTC).
+
+Schedule::command('aster:prune')->dailyAt('02:30')->withoutOverlapping();
+Schedule::command('sanctum:prune-expired --hours=24')->daily();

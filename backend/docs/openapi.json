@@ -1,0 +1,3625 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Aster API",
+        "version": "1.0.0",
+        "description": "The Aster API the Android app calls. The contract is \u00a75 of docs/aster-backend-plan.md. Send `Accept: application/json` and `Authorization: Bearer <token>`: a device token from /auth/register or /auth/login, or a profile token from /profiles/{id}/unlock."
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8000/api"
+        }
+    ],
+    "security": [
+        {
+            "http": []
+        }
+    ],
+    "paths": {
+        "/activity/batch": {
+            "post": {
+                "operationId": "activity.batch",
+                "summary": "Stores new events and skips ones already stored. The household comes\nfrom the device token, never from the request",
+                "tags": [
+                    "Activity"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ActivityBatchRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "accepted": {
+                                            "type": "integer"
+                                        },
+                                        "duplicates": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "required": [
+                                        "accepted",
+                                        "duplicates"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/activity": {
+            "get": {
+                "operationId": "activity.index",
+                "summary": "The profile's own events, newest first. The Owner also sees device\nevents, which belong to no profile",
+                "tags": [
+                    "Activity"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ActivityResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "next_cursor": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "next_cursor"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/alert-settings": {
+            "get": {
+                "operationId": "alertSetting.show",
+                "tags": [
+                    "AlertSetting"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`AlertSettingResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AlertSettingResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "alertSetting.update",
+                "tags": [
+                    "AlertSetting"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateAlertSettingRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`AlertSettingResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AlertSettingResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/auth/register": {
+            "post": {
+                "operationId": "auth.register",
+                "tags": [
+                    "Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "token": {
+                                            "type": "string"
+                                        },
+                                        "household_id": {
+                                            "type": "string"
+                                        },
+                                        "user": {
+                                            "$ref": "#/components/schemas/HouseholdUserResource"
+                                        },
+                                        "device": {
+                                            "$ref": "#/components/schemas/DeviceResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "token",
+                                        "household_id",
+                                        "user",
+                                        "device"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                "Registration is closed."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "operationId": "auth.login",
+                "tags": [
+                    "Auth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "token": {
+                                            "type": "string"
+                                        },
+                                        "household_id": {
+                                            "type": "string"
+                                        },
+                                        "user": {
+                                            "$ref": "#/components/schemas/HouseholdUserResource"
+                                        },
+                                        "device": {
+                                            "$ref": "#/components/schemas/DeviceResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "token",
+                                        "household_id",
+                                        "user",
+                                        "device"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                "This account is suspended."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "operationId": "auth.logout",
+                "tags": [
+                    "Auth"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/conversations/{conversation}/messages": {
+            "get": {
+                "operationId": "chatMessage.index",
+                "tags": [
+                    "ChatMessage"
+                ],
+                "parameters": [
+                    {
+                        "name": "conversation",
+                        "in": "path",
+                        "required": true,
+                        "description": "The conversation ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "after",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 0
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1,
+                            "maximum": 100
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/MessageResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "has_more": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "has_more"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "chatMessage.store",
+                "summary": "Upserts 1\u201350 messages by client_uuid in one transaction, so a retried\nupload stores nothing twice and returns the same ids",
+                "tags": [
+                    "ChatMessage"
+                ],
+                "parameters": [
+                    {
+                        "name": "conversation",
+                        "in": "path",
+                        "required": true,
+                        "description": "The conversation ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreMessagesRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": [
+                                                            "string",
+                                                            "integer"
+                                                        ]
+                                                    },
+                                                    "client_uuid": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "client_uuid"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/chat-messages/{message}": {
+            "patch": {
+                "operationId": "chatMessage.update",
+                "tags": [
+                    "ChatMessage"
+                ],
+                "parameters": [
+                    {
+                        "name": "message",
+                        "in": "path",
+                        "required": true,
+                        "description": "The message ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateMessageRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`MessageResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/MessageResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/conversations": {
+            "get": {
+                "operationId": "conversations.index",
+                "tags": [
+                    "Conversation"
+                ],
+                "parameters": [
+                    {
+                        "name": "since",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "cursor",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 500
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ConversationResource"
+                                            }
+                                        },
+                                        "deleted": {
+                                            "type": "string"
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "next_cursor": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "next_cursor"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "deleted",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "conversations.store",
+                "summary": "Idempotent by client_uuid: 201 when new, 200 when the phone retries",
+                "tags": [
+                    "Conversation"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreConversationRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`ConversationResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ConversationResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "`ConversationResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ConversationResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/conversations/{conversation}": {
+            "delete": {
+                "operationId": "conversations.destroy",
+                "tags": [
+                    "Conversation"
+                ],
+                "parameters": [
+                    {
+                        "name": "conversation",
+                        "in": "path",
+                        "required": true,
+                        "description": "The conversation ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/locations/batch": {
+            "post": {
+                "operationId": "location.batch",
+                "summary": "Stores new points, skips ones already stored, and discards everything\nwhile tracking is off or paused",
+                "tags": [
+                    "Location"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LocationBatchRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "accepted": {
+                                                    "type": "integer"
+                                                },
+                                                "duplicates": {
+                                                    "type": "integer"
+                                                },
+                                                "discarded": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "accepted",
+                                                "duplicates",
+                                                "discarded"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "accepted": {
+                                                    "type": "integer"
+                                                },
+                                                "duplicates": {
+                                                    "type": "integer",
+                                                    "minimum": 0
+                                                },
+                                                "discarded": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "accepted",
+                                                "duplicates",
+                                                "discarded"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/locations": {
+            "get": {
+                "operationId": "location.index",
+                "summary": "One local day, in the requested IANA timezone, oldest point first",
+                "tags": [
+                    "Location"
+                ],
+                "parameters": [
+                    {
+                        "name": "date",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "tz",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PointResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "date": {},
+                                                "tz": {},
+                                                "count": {
+                                                    "type": "integer",
+                                                    "minimum": 0
+                                                }
+                                            },
+                                            "required": [
+                                                "date",
+                                                "tz",
+                                                "count"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/location-settings": {
+            "get": {
+                "operationId": "locationSetting.show",
+                "tags": [
+                    "LocationSetting"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`LocationSettingResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/LocationSettingResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "locationSetting.update",
+                "tags": [
+                    "LocationSetting"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateLocationSettingRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`LocationSettingResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/LocationSettingResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/me": {
+            "get": {
+                "operationId": "me.show",
+                "tags": [
+                    "Me"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ProfileResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "me.update",
+                "tags": [
+                    "Me"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateMeRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ProfileResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/places/home": {
+            "get": {
+                "operationId": "place.show",
+                "tags": [
+                    "Place"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`PlaceResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PlaceResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "place.update",
+                "summary": "Creates or replaces the home. Always 200, as \u00a75 says, even on the first save",
+                "tags": [
+                    "Place"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateHomeRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`PlaceResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/PlaceResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/profiles": {
+            "post": {
+                "operationId": "profile.store",
+                "tags": [
+                    "Profile"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreProfileRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`ProfileResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "get": {
+                "operationId": "profile.index",
+                "tags": [
+                    "Profile"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `ProfileSummaryResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ProfileSummaryResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/profiles/{profile}": {
+            "put": {
+                "operationId": "profiles.update",
+                "tags": [
+                    "Profile"
+                ],
+                "parameters": [
+                    {
+                        "name": "profile",
+                        "in": "path",
+                        "required": true,
+                        "description": "The profile ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateProfileRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ProfileResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "profiles.destroy",
+                "tags": [
+                    "Profile"
+                ],
+                "parameters": [
+                    {
+                        "name": "profile",
+                        "in": "path",
+                        "required": true,
+                        "description": "The profile ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/reminders": {
+            "get": {
+                "operationId": "reminders.index",
+                "tags": [
+                    "Reminder"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `ReminderResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ReminderResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "reminders.store",
+                "summary": "Idempotent by client_uuid: 201 when new, 200 when the phone retries",
+                "tags": [
+                    "Reminder"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReminderRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`ReminderResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReminderResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "`ReminderResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReminderResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/reminders/{reminder}": {
+            "put": {
+                "operationId": "reminders.update",
+                "tags": [
+                    "Reminder"
+                ],
+                "parameters": [
+                    {
+                        "name": "reminder",
+                        "in": "path",
+                        "required": true,
+                        "description": "The reminder ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ReminderRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`ReminderResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReminderResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "reminders.destroy",
+                "tags": [
+                    "Reminder"
+                ],
+                "parameters": [
+                    {
+                        "name": "reminder",
+                        "in": "path",
+                        "required": true,
+                        "description": "The reminder ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/profiles/{profile}/unlock": {
+            "post": {
+                "operationId": "session.unlock",
+                "tags": [
+                    "Session"
+                ],
+                "parameters": [
+                    {
+                        "name": "profile",
+                        "in": "path",
+                        "required": true,
+                        "description": "The profile ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UnlockRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "profile_token": {
+                                            "type": "string"
+                                        },
+                                        "llm_token": {
+                                            "type": "string"
+                                        },
+                                        "expires_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "household_id": {
+                                            "type": "string"
+                                        },
+                                        "profile": {
+                                            "$ref": "#/components/schemas/ProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "profile_token",
+                                        "llm_token",
+                                        "expires_at",
+                                        "household_id",
+                                        "profile"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/guest-sessions": {
+            "post": {
+                "operationId": "session.guest",
+                "tags": [
+                    "Session"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "profile_token": {
+                                            "type": "string"
+                                        },
+                                        "llm_token": {
+                                            "type": "string"
+                                        },
+                                        "expires_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "household_id": {
+                                            "type": "string"
+                                        },
+                                        "profile": {
+                                            "$ref": "#/components/schemas/ProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "profile_token",
+                                        "llm_token",
+                                        "expires_at",
+                                        "household_id",
+                                        "profile"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/profiles/{profile}/lock": {
+            "post": {
+                "operationId": "session.lock",
+                "tags": [
+                    "Session"
+                ],
+                "parameters": [
+                    {
+                        "name": "profile",
+                        "in": "path",
+                        "required": true,
+                        "description": "The profile ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                "You can only lock your own profile."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/llm-token": {
+            "post": {
+                "operationId": "session.llmToken",
+                "tags": [
+                    "Session"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "llm_token": {
+                                            "type": "string"
+                                        },
+                                        "expires_at": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "llm_token",
+                                        "expires_at"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/sync": {
+            "get": {
+                "operationId": "sync",
+                "tags": [
+                    "Sync"
+                ],
+                "parameters": [
+                    {
+                        "name": "since",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "cursor",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "maxLength": 500
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "server_time": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "household_id": {
+                                            "type": "string"
+                                        },
+                                        "me": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer"
+                                                },
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "role": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "name",
+                                                "role"
+                                            ]
+                                        },
+                                        "profiles": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ProfileSummaryResource"
+                                            }
+                                        },
+                                        "home": {
+                                            "anyOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/PlaceResource"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "location_settings": {
+                                            "anyOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/LocationSettingResource"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "alert_settings": {
+                                            "anyOf": [
+                                                {
+                                                    "$ref": "#/components/schemas/AlertSettingResource"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "vip_contacts": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/VipContactResource"
+                                            }
+                                        },
+                                        "reminders": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ReminderResource"
+                                            }
+                                        },
+                                        "deleted": {
+                                            "type": "object",
+                                            "properties": {
+                                                "profiles": {
+                                                    "type": "object",
+                                                    "additionalProperties": {}
+                                                },
+                                                "reminders": {
+                                                    "type": "object",
+                                                    "additionalProperties": {}
+                                                },
+                                                "vip_contacts": {
+                                                    "type": "object",
+                                                    "additionalProperties": {}
+                                                }
+                                            },
+                                            "required": [
+                                                "profiles",
+                                                "reminders",
+                                                "vip_contacts"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "server_time",
+                                        "household_id",
+                                        "me",
+                                        "profiles",
+                                        "home",
+                                        "location_settings",
+                                        "alert_settings",
+                                        "vip_contacts",
+                                        "reminders",
+                                        "deleted"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/vip-contacts": {
+            "get": {
+                "operationId": "vip-contacts.index",
+                "tags": [
+                    "VipContact"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Array of `VipContactResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/VipContactResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "vip-contacts.store",
+                "tags": [
+                    "VipContact"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VipContactRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "`VipContactResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/VipContactResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/vip-contacts/{vipContact}": {
+            "put": {
+                "operationId": "vip-contacts.update",
+                "tags": [
+                    "VipContact"
+                ],
+                "parameters": [
+                    {
+                        "name": "vipContact",
+                        "in": "path",
+                        "required": true,
+                        "description": "The vip contact ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VipContactRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "`VipContactResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/VipContactResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "vip-contacts.destroy",
+                "tags": [
+                    "VipContact"
+                ],
+                "parameters": [
+                    {
+                        "name": "vipContact",
+                        "in": "path",
+                        "required": true,
+                        "description": "The vip contact ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "http": {
+                "type": "http",
+                "scheme": "bearer"
+            }
+        },
+        "schemas": {
+            "ActivityBatchRequest": {
+                "type": "object",
+                "properties": {
+                    "events": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "client_uuid": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                },
+                                "profile_id": {
+                                    "type": [
+                                        "integer",
+                                        "null"
+                                    ]
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "description": "A plain string rather than ActivityType, so a newer app can send new types.",
+                                    "pattern": "^[a-z_]+$",
+                                    "maxLength": 40
+                                },
+                                "summary": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                },
+                                "meta": {
+                                    "type": [
+                                        "array",
+                                        "null"
+                                    ],
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "occurred_at": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                }
+                            },
+                            "required": [
+                                "client_uuid",
+                                "type",
+                                "summary",
+                                "occurred_at"
+                            ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 500,
+                        "uniqueItems": true
+                    }
+                },
+                "required": [
+                    "events"
+                ],
+                "title": "ActivityBatchRequest"
+            },
+            "ActivityResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "profile_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "device_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "summary": {
+                        "type": "string"
+                    },
+                    "meta": {
+                        "anyOf": [
+                            {
+                                "type": "object",
+                                "additionalProperties": {}
+                            },
+                            {
+                                "type": "string"
+                            }
+                        ]
+                    },
+                    "occurred_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "profile_id",
+                    "device_id",
+                    "type",
+                    "summary",
+                    "meta",
+                    "occurred_at"
+                ],
+                "title": "ActivityResource"
+            },
+            "AlertSettingResource": {
+                "type": "object",
+                "properties": {
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "missed_after_minutes": {
+                        "type": "integer"
+                    },
+                    "speak_mode": {
+                        "type": "string"
+                    },
+                    "quiet_start": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "quiet_end": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "urgent_keywords": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "headphones_only": {
+                        "type": "boolean"
+                    },
+                    "only_at_home": {
+                        "type": "boolean"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "enabled",
+                    "missed_after_minutes",
+                    "speak_mode",
+                    "quiet_start",
+                    "quiet_end",
+                    "urgent_keywords",
+                    "headphones_only",
+                    "only_at_home",
+                    "updated_at"
+                ],
+                "title": "AlertSettingResource"
+            },
+            "ConversationResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "client_uuid": {
+                        "type": "string"
+                    },
+                    "profile_id": {
+                        "type": "integer"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "last_message_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "message_count": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "integer",
+                                "minimum": 0
+                            }
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "client_uuid",
+                    "profile_id",
+                    "title",
+                    "last_message_at",
+                    "message_count",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "ConversationResource"
+            },
+            "DeviceResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name"
+                ],
+                "title": "DeviceResource"
+            },
+            "FinishReason": {
+                "type": "string",
+                "enum": [
+                    "stop",
+                    "length",
+                    "cancelled",
+                    "error"
+                ],
+                "title": "FinishReason"
+            },
+            "HouseholdUserResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "email"
+                ],
+                "title": "HouseholdUserResource"
+            },
+            "LocationBatchRequest": {
+                "type": "object",
+                "properties": {
+                    "points": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "client_uuid": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                },
+                                "lat": {
+                                    "type": "number",
+                                    "minimum": -90,
+                                    "maximum": 90
+                                },
+                                "lng": {
+                                    "type": "number",
+                                    "minimum": -180,
+                                    "maximum": 180
+                                },
+                                "accuracy_m": {
+                                    "type": [
+                                        "number",
+                                        "null"
+                                    ],
+                                    "minimum": 0,
+                                    "maximum": 100000
+                                },
+                                "event": {
+                                    "$ref": "#/components/schemas/LocationEvent"
+                                },
+                                "place_id": {
+                                    "type": [
+                                        "integer",
+                                        "null"
+                                    ]
+                                },
+                                "recorded_at": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                }
+                            },
+                            "required": [
+                                "client_uuid",
+                                "lat",
+                                "lng",
+                                "event",
+                                "recorded_at"
+                            ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 500,
+                        "uniqueItems": true
+                    }
+                },
+                "required": [
+                    "points"
+                ],
+                "title": "LocationBatchRequest"
+            },
+            "LocationEvent": {
+                "type": "string",
+                "enum": [
+                    "periodic",
+                    "arrived",
+                    "left"
+                ],
+                "title": "LocationEvent"
+            },
+            "LocationSettingResource": {
+                "type": "object",
+                "properties": {
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "interval_minutes": {
+                        "type": "integer"
+                    },
+                    "retention_days": {
+                        "type": "integer"
+                    },
+                    "share_area": {
+                        "type": "boolean"
+                    },
+                    "paused_until": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "enabled",
+                    "interval_minutes",
+                    "retention_days",
+                    "share_area",
+                    "paused_until",
+                    "updated_at"
+                ],
+                "title": "LocationSettingResource"
+            },
+            "LoginRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "password": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "device_name": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "app_version": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 40
+                    }
+                },
+                "required": [
+                    "email",
+                    "password",
+                    "device_name"
+                ],
+                "title": "LoginRequest"
+            },
+            "MessageResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "client_uuid": {
+                        "type": "string"
+                    },
+                    "role": {
+                        "type": "string"
+                    },
+                    "content": {
+                        "type": "string"
+                    },
+                    "sent_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "finish_reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "memory_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "live": {
+                        "type": "boolean"
+                    },
+                    "cited": {
+                        "type": "boolean"
+                    },
+                    "sources": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": {}
+                        }
+                    },
+                    "recalled": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "sampling": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "usage": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "additionalProperties": {
+                            "type": "integer"
+                        }
+                    },
+                    "seconds": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "rating": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "context": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "client_uuid",
+                    "role",
+                    "content",
+                    "sent_at",
+                    "finish_reason",
+                    "memory_id",
+                    "live",
+                    "cited",
+                    "sources",
+                    "recalled",
+                    "sampling",
+                    "usage",
+                    "seconds",
+                    "rating",
+                    "context",
+                    "created_at"
+                ],
+                "title": "MessageResource"
+            },
+            "MessageRole": {
+                "type": "string",
+                "enum": [
+                    "user",
+                    "assistant"
+                ],
+                "title": "MessageRole"
+            },
+            "MessageSource": {
+                "type": "string",
+                "enum": [
+                    "whatsapp",
+                    "google_chat",
+                    "sms"
+                ],
+                "title": "MessageSource"
+            },
+            "PlaceResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "address": {
+                        "type": "string"
+                    },
+                    "lat": {
+                        "type": "number"
+                    },
+                    "lng": {
+                        "type": "number"
+                    },
+                    "radius_m": {
+                        "type": "integer"
+                    },
+                    "wifi_ssid": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "llm_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "address",
+                    "lat",
+                    "lng",
+                    "radius_m",
+                    "wifi_ssid",
+                    "llm_url",
+                    "updated_at"
+                ],
+                "title": "PlaceResource"
+            },
+            "PointResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "lat": {
+                        "type": "number"
+                    },
+                    "lng": {
+                        "type": "number"
+                    },
+                    "accuracy_m": {
+                        "type": [
+                            "number",
+                            "null"
+                        ]
+                    },
+                    "event": {
+                        "type": "string"
+                    },
+                    "place_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "recorded_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "lat",
+                    "lng",
+                    "accuracy_m",
+                    "event",
+                    "place_id",
+                    "recorded_at"
+                ],
+                "title": "PointResource"
+            },
+            "ProfileResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "color": {
+                        "type": "string"
+                    },
+                    "role": {
+                        "type": "string"
+                    },
+                    "has_pin": {
+                        "type": "boolean"
+                    },
+                    "personality": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "web_mode": {
+                        "type": "string"
+                    },
+                    "memory_enabled": {
+                        "type": "boolean"
+                    },
+                    "sampling": {
+                        "type": "string"
+                    },
+                    "max_tokens": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "auto_lock_minutes": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "color",
+                    "role",
+                    "has_pin",
+                    "personality",
+                    "web_mode",
+                    "memory_enabled",
+                    "sampling",
+                    "max_tokens",
+                    "auto_lock_minutes",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "ProfileResource"
+            },
+            "ProfileSummaryResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "color": {
+                        "type": "string"
+                    },
+                    "role": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "color",
+                    "role"
+                ],
+                "title": "ProfileSummaryResource"
+            },
+            "Rating": {
+                "type": "string",
+                "enum": [
+                    "good",
+                    "bad"
+                ],
+                "title": "Rating"
+            },
+            "RegisterRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 255
+                    },
+                    "password": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 255
+                    },
+                    "device_name": {
+                        "type": "string",
+                        "maxLength": 100
+                    },
+                    "app_version": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 40
+                    }
+                },
+                "required": [
+                    "name",
+                    "email",
+                    "password",
+                    "device_name"
+                ],
+                "title": "RegisterRequest"
+            },
+            "ReminderRequest": {
+                "type": "object",
+                "description": "POST needs client_uuid, title and trigger; PATCH and PUT change only what\nthey send. The controller checks that a time reminder ends up with a due_at.",
+                "properties": {
+                    "client_uuid": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "title": {
+                        "type": "string",
+                        "maxLength": 200
+                    },
+                    "trigger": {
+                        "$ref": "#/components/schemas/ReminderTrigger"
+                    },
+                    "due_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/ReminderStatus"
+                    }
+                },
+                "required": [
+                    "client_uuid",
+                    "title",
+                    "trigger"
+                ],
+                "title": "ReminderRequest"
+            },
+            "ReminderResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "client_uuid": {
+                        "type": "string"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "due_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "trigger": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "client_uuid",
+                    "title",
+                    "due_at",
+                    "trigger",
+                    "status",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "ReminderResource"
+            },
+            "ReminderStatus": {
+                "type": "string",
+                "enum": [
+                    "pending",
+                    "done",
+                    "cancelled"
+                ],
+                "title": "ReminderStatus"
+            },
+            "ReminderTrigger": {
+                "type": "string",
+                "enum": [
+                    "time",
+                    "arrive_home"
+                ],
+                "title": "ReminderTrigger"
+            },
+            "Sampling": {
+                "type": "string",
+                "enum": [
+                    "auto",
+                    "precise",
+                    "balanced",
+                    "creative"
+                ],
+                "title": "Sampling"
+            },
+            "SpeakMode": {
+                "type": "string",
+                "enum": [
+                    "full",
+                    "name",
+                    "summary"
+                ],
+                "title": "SpeakMode"
+            },
+            "StoreConversationRequest": {
+                "type": "object",
+                "properties": {
+                    "client_uuid": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "title": {
+                        "type": "string",
+                        "maxLength": 120
+                    }
+                },
+                "required": [
+                    "client_uuid",
+                    "title"
+                ],
+                "title": "StoreConversationRequest"
+            },
+            "StoreMessagesRequest": {
+                "type": "object",
+                "properties": {
+                    "messages": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "client_uuid": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                },
+                                "role": {
+                                    "$ref": "#/components/schemas/MessageRole"
+                                },
+                                "content": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 50000
+                                },
+                                "sent_at": {
+                                    "type": "string",
+                                    "format": "date-time"
+                                },
+                                "finish_reason": {
+                                    "anyOf": [
+                                        {
+                                            "$ref": "#/components/schemas/FinishReason"
+                                        },
+                                        {
+                                            "type": "null"
+                                        }
+                                    ]
+                                },
+                                "memory_id": {
+                                    "type": [
+                                        "integer",
+                                        "null"
+                                    ],
+                                    "minimum": 0
+                                },
+                                "live": {
+                                    "type": "boolean"
+                                },
+                                "cited": {
+                                    "type": "boolean"
+                                },
+                                "sources": {
+                                    "type": [
+                                        "array",
+                                        "null"
+                                    ],
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "n": {
+                                                "type": [
+                                                    "integer",
+                                                    "null"
+                                                ],
+                                                "minimum": 0
+                                            },
+                                            "title": {
+                                                "type": [
+                                                    "string",
+                                                    "null"
+                                                ],
+                                                "maxLength": 500
+                                            },
+                                            "url": {
+                                                "type": "string",
+                                                "maxLength": 2048
+                                            }
+                                        },
+                                        "required": [
+                                            "n",
+                                            "title",
+                                            "url"
+                                        ]
+                                    },
+                                    "maxItems": 20
+                                },
+                                "recalled": {
+                                    "type": [
+                                        "integer",
+                                        "null"
+                                    ],
+                                    "minimum": 0
+                                },
+                                "sampling": {
+                                    "anyOf": [
+                                        {
+                                            "$ref": "#/components/schemas/Sampling"
+                                        },
+                                        {
+                                            "type": "null"
+                                        }
+                                    ]
+                                },
+                                "usage": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": [
+                                            "integer",
+                                            "null"
+                                        ],
+                                        "minimum": 0
+                                    }
+                                },
+                                "seconds": {
+                                    "type": [
+                                        "number",
+                                        "null"
+                                    ],
+                                    "minimum": 0,
+                                    "maximum": 999999
+                                },
+                                "rating": {
+                                    "anyOf": [
+                                        {
+                                            "$ref": "#/components/schemas/Rating"
+                                        },
+                                        {
+                                            "type": "null"
+                                        }
+                                    ]
+                                },
+                                "context": {
+                                    "type": [
+                                        "array",
+                                        "null"
+                                    ],
+                                    "items": {
+                                        "type": "string",
+                                        "pattern": "^[a-z0-9_.:-]+$",
+                                        "maxLength": 40
+                                    },
+                                    "maxItems": 20
+                                }
+                            },
+                            "required": [
+                                "client_uuid",
+                                "role",
+                                "content",
+                                "sent_at"
+                            ]
+                        },
+                        "minItems": 1,
+                        "maxItems": 50,
+                        "uniqueItems": true
+                    }
+                },
+                "required": [
+                    "messages"
+                ],
+                "title": "StoreMessagesRequest"
+            },
+            "StoreProfileRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 40
+                    },
+                    "color": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-F]{6}$"
+                    },
+                    "personality": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 2000
+                    },
+                    "web_mode": {
+                        "$ref": "#/components/schemas/WebMode"
+                    },
+                    "memory_enabled": {
+                        "type": "boolean"
+                    },
+                    "sampling": {
+                        "$ref": "#/components/schemas/Sampling"
+                    },
+                    "max_tokens": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 16,
+                        "maximum": 8192
+                    },
+                    "auto_lock_minutes": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1,
+                        "maximum": 60
+                    },
+                    "pin": {
+                        "type": "string",
+                        "pattern": "^\\d{6}$"
+                    },
+                    "role": {
+                        "type": "string",
+                        "enum": [
+                            "owner",
+                            "member",
+                            "restricted"
+                        ]
+                    }
+                },
+                "required": [
+                    "name",
+                    "color",
+                    "pin",
+                    "role"
+                ],
+                "title": "StoreProfileRequest"
+            },
+            "UnlockRequest": {
+                "type": "object",
+                "description": "Any string is accepted: a PIN in the wrong format simply counts as a wrong try.",
+                "properties": {
+                    "pin": {
+                        "type": "string",
+                        "maxLength": 20
+                    }
+                },
+                "required": [
+                    "pin"
+                ],
+                "title": "UnlockRequest"
+            },
+            "UpdateAlertSettingRequest": {
+                "type": "object",
+                "description": "Fields left out keep their value.",
+                "properties": {
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "missed_after_minutes": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 120
+                    },
+                    "speak_mode": {
+                        "$ref": "#/components/schemas/SpeakMode"
+                    },
+                    "quiet_start": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "quiet_end": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "urgent_keywords": {
+                        "type": [
+                            "array",
+                            "null"
+                        ],
+                        "items": {
+                            "type": "string",
+                            "maxLength": 40
+                        },
+                        "maxItems": 20,
+                        "uniqueItems": true
+                    },
+                    "headphones_only": {
+                        "type": "boolean"
+                    },
+                    "only_at_home": {
+                        "type": "boolean"
+                    }
+                },
+                "title": "UpdateAlertSettingRequest"
+            },
+            "UpdateHomeRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "enum": [
+                            "Home"
+                        ]
+                    },
+                    "address": {
+                        "type": "string",
+                        "maxLength": 255
+                    },
+                    "lat": {
+                        "type": "number",
+                        "minimum": -90,
+                        "maximum": 90
+                    },
+                    "lng": {
+                        "type": "number",
+                        "minimum": -180,
+                        "maximum": 180
+                    },
+                    "radius_m": {
+                        "type": "integer",
+                        "minimum": 50,
+                        "maximum": 1000
+                    },
+                    "wifi_ssid": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 64
+                    },
+                    "llm_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uri",
+                        "maxLength": 255
+                    }
+                },
+                "required": [
+                    "name",
+                    "address",
+                    "lat",
+                    "lng",
+                    "radius_m"
+                ],
+                "title": "UpdateHomeRequest"
+            },
+            "UpdateLocationSettingRequest": {
+                "type": "object",
+                "description": "Fields left out keep their value.",
+                "properties": {
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "interval_minutes": {
+                        "type": "integer",
+                        "minimum": 15,
+                        "maximum": 120
+                    },
+                    "retention_days": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 90
+                    },
+                    "share_area": {
+                        "type": "boolean"
+                    },
+                    "paused_until": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "title": "UpdateLocationSettingRequest"
+            },
+            "UpdateMeRequest": {
+                "type": "object",
+                "description": "A profile edits itself. Role changes go through the Owner instead.",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 40
+                    },
+                    "color": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-F]{6}$"
+                    },
+                    "personality": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 2000
+                    },
+                    "web_mode": {
+                        "$ref": "#/components/schemas/WebMode"
+                    },
+                    "memory_enabled": {
+                        "type": "boolean"
+                    },
+                    "sampling": {
+                        "$ref": "#/components/schemas/Sampling"
+                    },
+                    "max_tokens": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 16,
+                        "maximum": 8192
+                    },
+                    "auto_lock_minutes": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1,
+                        "maximum": 60
+                    },
+                    "pin": {
+                        "type": "string",
+                        "pattern": "^\\d{6}$"
+                    },
+                    "current_pin": {
+                        "type": "string"
+                    }
+                },
+                "title": "UpdateMeRequest"
+            },
+            "UpdateMessageRequest": {
+                "type": "object",
+                "description": "Rate an answer, or replace its content after \"continue\" finished it.",
+                "properties": {
+                    "rating": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/Rating"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "content": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 50000
+                    },
+                    "finish_reason": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/FinishReason"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "title": "UpdateMessageRequest"
+            },
+            "UpdateProfileRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 40
+                    },
+                    "color": {
+                        "type": "string",
+                        "pattern": "^#[0-9A-F]{6}$"
+                    },
+                    "personality": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 2000
+                    },
+                    "web_mode": {
+                        "$ref": "#/components/schemas/WebMode"
+                    },
+                    "memory_enabled": {
+                        "type": "boolean"
+                    },
+                    "sampling": {
+                        "$ref": "#/components/schemas/Sampling"
+                    },
+                    "max_tokens": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 16,
+                        "maximum": 8192
+                    },
+                    "auto_lock_minutes": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1,
+                        "maximum": 60
+                    },
+                    "pin": {
+                        "type": "string",
+                        "pattern": "^\\d{6}$"
+                    },
+                    "role": {
+                        "type": "string",
+                        "enum": [
+                            "owner",
+                            "member",
+                            "restricted",
+                            "guest"
+                        ]
+                    }
+                },
+                "title": "UpdateProfileRequest"
+            },
+            "VipContactRequest": {
+                "type": "object",
+                "description": "POST needs every field; PATCH and PUT change only what they send.",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 60
+                    },
+                    "match_key": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "sources": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/MessageSource"
+                        },
+                        "minItems": 1,
+                        "uniqueItems": true
+                    },
+                    "enabled": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "name",
+                    "match_key",
+                    "sources"
+                ],
+                "title": "VipContactRequest"
+            },
+            "VipContactResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "match_key": {
+                        "type": "string"
+                    },
+                    "sources": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "enabled": {
+                        "type": "boolean"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "match_key",
+                    "sources",
+                    "enabled",
+                    "updated_at"
+                ],
+                "title": "VipContactResource"
+            },
+            "WebMode": {
+                "type": "string",
+                "enum": [
+                    "auto",
+                    "never"
+                ],
+                "title": "WebMode"
+            }
+        },
+        "responses": {
+            "ValidationException": {
+                "description": "Validation error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Errors overview."
+                                },
+                                "errors": {
+                                    "type": "object",
+                                    "description": "A detailed description of each field that failed validation.",
+                                    "additionalProperties": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "errors"
+                            ]
+                        }
+                    }
+                }
+            },
+            "AuthenticationException": {
+                "description": "Unauthenticated",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            },
+            "AuthorizationException": {
+                "description": "Authorization error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            },
+            "ModelNotFoundException": {
+                "description": "Not found",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -62,4 +62,28 @@ return [
 
     'token_hours' => (int) env('ASTER_TOKEN_HOURS', 12),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Request size
+    |--------------------------------------------------------------------------
+    |
+    | /api requests with a larger body get 413.
+    |
+    */
+
+    'max_request_kb' => (int) env('ASTER_MAX_REQUEST_KB', 1024),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Trusted proxies
+    |--------------------------------------------------------------------------
+    |
+    | The load balancer or reverse proxy in front of the app, whose
+    | X-Forwarded-* headers are believed: "*" for any, a comma-separated list
+    | of IPs or CIDR ranges, or empty for none.
+    |
+    */
+
+    'trusted_proxies' => env('ASTER_TRUSTED_PROXIES', ''),
+
 ];
