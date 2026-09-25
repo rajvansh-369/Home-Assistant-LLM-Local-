@@ -97,7 +97,12 @@ export default function UnlockOwner() {
       ? { tone: 'accent' as const, variant: 'statusStrong' as const, text: copy.accepted }
       : message.kind === 'error'
         ? { tone: 'danger' as const, variant: 'hint' as const, text: message.text }
-        : { tone: 'muted' as const, variant: 'hint' as const, text: copy.fingerprintHint };
+        : // No stored biometric PIN: no fingerprint key, so no hint pointing at it.
+          {
+            tone: 'muted' as const,
+            variant: 'hint' as const,
+            text: fingerprintEnabled ? copy.fingerprintHint : '',
+          };
 
   return (
     <Screen
@@ -109,7 +114,7 @@ export default function UnlockOwner() {
         </View>
       }
       footer={
-        <Text variant="helper" tone="muted" style={styles.center}>
+        <Text variant="helper" tone="muted" style={[styles.center, styles.lockNote]}>
           {copy.lockNote}
         </Text>
       }
@@ -120,7 +125,7 @@ export default function UnlockOwner() {
           {owner?.name}
         </Text>
         <View style={styles.badge}>
-          <Text variant="badge" tone="accent">
+          <Text variant="badge" tone="accent" accessibilityLabel={copy.ownerBadge}>
             {copy.ownerBadge}
           </Text>
         </View>
@@ -169,7 +174,7 @@ const styles = StyleSheet.create({
   name: { marginTop: spacing.unlockNameTop },
   badge: {
     marginTop: spacing.unlockBadgeTop,
-    height: sizes.badgeHeight,
+    minHeight: sizes.badgeHeight,
     paddingHorizontal: spacing.badgeX,
     borderRadius: radii.badge,
     borderWidth: 1,
@@ -179,7 +184,9 @@ const styles = StyleSheet.create({
   },
   prompt: { marginTop: spacing.unlockPromptTop },
   dots: { marginTop: spacing.unlockDotsTop },
-  line: { marginTop: spacing.unlockLineTop, height: sizes.unlockLine, justifyContent: 'center' },
+  line: { marginTop: spacing.unlockLineTop, minHeight: sizes.unlockLine, justifyContent: 'center' },
   keypad: { marginTop: spacing.unlockKeypadTop },
   center: { textAlign: 'center' },
+  // Short phones: the keypad pushes the note down, so it needs its own space above it.
+  lockNote: { paddingTop: spacing.unlockDotsTop },
 });

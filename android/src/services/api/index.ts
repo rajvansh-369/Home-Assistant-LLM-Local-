@@ -17,7 +17,6 @@ export type {
   AsterApi,
   CreateProfileBody,
   LlmHealth,
-  LlmHealthCheck,
   LoginBody,
   Place,
   Profile,

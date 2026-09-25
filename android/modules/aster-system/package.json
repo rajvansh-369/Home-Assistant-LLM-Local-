@@ -1,0 +1,7 @@
+{
+  "name": "aster-system",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Aster's Android special access: notification listener and battery optimisation (plan §7)",
+  "main": "index.ts"
+}

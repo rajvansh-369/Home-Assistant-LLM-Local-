@@ -20,7 +20,10 @@ export function TextLink({ label, onPress, disabled = false }: TextLinkProps) {
       style={[styles.link, disabled && styles.disabled]}
     >
       {({ pressed }) => (
-        <Text variant="link" style={{ color: pressed ? colors.text : colors.textSecondary }}>
+        <Text
+          variant="link"
+          style={[styles.label, { color: pressed ? colors.text : colors.textSecondary }]}
+        >
           {label}
         </Text>
       )}
@@ -29,6 +32,8 @@ export function TextLink({ label, onPress, disabled = false }: TextLinkProps) {
 }
 
 const styles = StyleSheet.create({
-  link: { height: sizes.textLink, alignItems: 'center', justifyContent: 'center' },
+  link: { minHeight: sizes.textLink, alignItems: 'center', justifyContent: 'center' },
+  // Large system text can wrap the label onto two lines.
+  label: { textAlign: 'center' },
   disabled: { opacity: 0.4 },
 });

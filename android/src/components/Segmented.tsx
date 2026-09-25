@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors, radii, sizes } from '@/theme';
+import { colors, hitSlopFor, radii, sizes } from '@/theme';
 
 import { Text } from './Text';
 
@@ -28,6 +28,7 @@ export function Segmented<T extends string | number>({
           <Pressable
             key={String(option.value)}
             onPress={() => onChange(option.value)}
+            hitSlop={hitSlopFor(sizes.segmentItem)}
             accessibilityRole="radio"
             accessibilityLabel={option.label}
             accessibilityState={{ checked: selected }}
@@ -55,7 +56,7 @@ const styles = StyleSheet.create({
   },
   item: {
     flex: 1,
-    height: sizes.segmentItem,
+    minHeight: sizes.segmentItem,
     borderRadius: radii.segmentItem,
     borderWidth: 1,
     alignItems: 'center',

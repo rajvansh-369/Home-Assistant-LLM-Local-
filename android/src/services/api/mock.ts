@@ -12,10 +12,6 @@
 //   Register, email starting with "taken"     422 on email (already taken)
 //   Register, password shorter than 8         422 on password
 //   Unlock, wrong PIN                         422; the 5th wrong try locks for 30 s, then 429 with retry_after
-//   LLM address containing "loading"          health: model loading
-//   LLM address containing "fail"             health: 500, model failed to load
-//   LLM address containing "blocked"          health: host blocked by the build
-//   LLM address containing "noreply"          health: no reply in 3 s
 //   Anything else                             works
 //
 // Tokens the mock hands out are random strings; a token the mock doesn't know gives 401.
@@ -28,7 +24,6 @@ import {
   ApiError,
   type AsterApi,
   type CreateProfileBody,
-  type LlmHealthCheck,
   type Place,
   type Profile,
   type UpdateProfileBody,
@@ -39,7 +34,6 @@ const SEEDED_PIN = '123456';
 const MAX_UNLOCK_TRIES = 5;
 const UNLOCK_LOCK_MS = 30_000;
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
-const LLM_TIMEOUT_MS = 3000;
 
 type MockProfile = Profile & { pinHash: string; auto_lock_minutes: number | null };
 
@@ -267,17 +261,4 @@ export const mockApi: AsterApi = {
     await save(state);
     return place;
   },
-};
-
-export const mockLlmHealth: LlmHealthCheck = async (llmUrl) => {
-  const started = Date.now();
-  if (llmUrl.includes('noreply')) {
-    await wait(latency[1] === 0 ? 0 : LLM_TIMEOUT_MS);
-    return { kind: 'no-reply' };
-  }
-  await delay();
-  if (llmUrl.includes('blocked')) return { kind: 'blocked' };
-  if (llmUrl.includes('fail')) return { kind: 'failed', error: 'out of memory' };
-  if (llmUrl.includes('loading')) return { kind: 'loading', ms: Date.now() - started };
-  return { kind: 'ready', model: 'zypher-mock', ms: Date.now() - started };
 };

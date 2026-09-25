@@ -43,3 +43,7 @@ yarn-error.*
 
 # env (values in .env.example)
 .env
+
+# local Expo module build output (Gradle)
+modules/*/android/build/
+modules/*/android/.gradle/

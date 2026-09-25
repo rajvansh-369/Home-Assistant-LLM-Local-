@@ -12,6 +12,7 @@ export const common = {
   allowed: 'Allowed',
   test: 'Test',
   somethingWrong: 'Something went wrong. Try again.', // (proposed)
+  noConnection: "Can't reach your Aster server. Check your connection and try again.", // (proposed)
 } as const;
 
 export const welcome = {
@@ -40,7 +41,7 @@ export const signIn = {
   checking: 'Checking…', // (proposed)
   reachable: (ms: number) => `Reachable · HTTPS · ${ms} ms`,
   needsHttps: 'Use an https:// address', // (proposed)
-  unreachable: "Can't reach this server", // (proposed)
+  unreachable: "Can't reach this server. Check the address.", // (proposed)
   wrongCredentials: 'Email or password is wrong.', // (proposed)
   tooManyTries: (seconds: number) => `Too many tries. Try again in ${seconds} s.`, // (proposed)
   signInAgain: 'Please sign in again.', // (proposed)
@@ -69,6 +70,7 @@ export const createOwner = {
   // Returning to 1.3 after the Owner exists (proposed).
   save: 'Save profile',
   pinLocked: 'Change your PIN later in Settings.',
+  fingerprintLater: 'Turn this on later in Settings.',
 } as const;
 
 export const unlock = {
@@ -79,7 +81,7 @@ export const unlock = {
   fingerprintKey: 'Unlock with fingerprint',
   deleteKey: 'Delete last digit',
   lockNote: '5 wrong tries lock this profile for 30 seconds.',
-  wrongPin: 'Wrong PIN', // (proposed)
+  wrongPin: 'Wrong PIN. Try again.', // (proposed)
   locked: (seconds: number) => `Locked. Try again in ${seconds} s`, // (proposed)
   digitsEntered: (n: number) => `${n} of 6 digits entered`, // (proposed, screen readers only)
 } as const;
@@ -93,7 +95,7 @@ export const setHome = {
   withinRadius: (m: number) => `Aster turns on within ${m} m of here`,
   noPoint: 'Search for your address or use your location', // (proposed)
   locationOff: 'Location is off. Search for your address instead.', // (proposed)
-  noMatch: (query: string) => `No match for “${query}”`, // (proposed)
+  noMatch: (query: string) => `No match for “${query}”. Try a fuller address.`, // (proposed)
   homeArea: 'Home area',
   radii: [100, 150, 300, 500] as const,
   radiusLabel: (m: number) => `${m} m`,
@@ -104,12 +106,20 @@ export const setHome = {
   llmPlaceholder: 'http://192.168.1.20:8000',
   testHint: 'Test works only on home Wi-Fi',
   publicLlm: 'This looks like a public address. Keep zypherLL on your home network.', // (proposed)
+  llmInvalid: 'Use an http:// or https:// address', // (proposed)
   // Test results (all proposed).
   llmReady: (model: string, ms: number) => `Ready · ${model} · ${ms} ms`,
+  /** zypherLL's /health doesn't name the model. */
+  llmReadyNoModel: (ms: number) => `Ready · ${ms} ms`,
   llmLoading: 'Model is loading. Try again in a minute.',
-  llmFailed: (error: string) => `Model failed to load: ${error}`,
+  llmFailed: (error: string) =>
+    `Model failed to load: ${error.replace(/[.\s]+$/, '')}. Check zypherLL on your computer.`,
   llmNoReply: 'No reply in 3 s. Are you on home Wi-Fi?',
-  llmBlocked: (host: string) => `This build only allows plain HTTP to ${host}.`,
+  llmBlocked: (host: string) =>
+    `This build only allows plain HTTP to ${host}. Use that address, or https://.`,
+  /** Release build with no HOME_LLM_HOST set. */
+  llmBlockedAll: 'This build doesn’t allow plain HTTP. Use an https:// address.',
+  llmUnexpected: (status: number) => `Unexpected reply (HTTP ${status}). Check the address.`,
   submit: 'Save home',
 } as const;
 
@@ -136,6 +146,9 @@ export const permissions = {
     },
     contacts: { title: 'Contacts', description: 'Matches senders like “Mom” to your VIP list.' },
   },
+  /** Android 13+ may block notification access for an APK installed outside a store (§7). */
+  restrictedHint:
+    'Greyed out? Open App info, tap ⋮ and choose “Allow restricted settings”, then try again.', // (proposed)
   finish: 'Finish setup',
   skip: 'Skip for now',
 } as const;
@@ -158,16 +171,12 @@ export const homePlaceholder = {
     fingerprint: 'Fingerprint unlock',
     lockWhenLeave: 'Lock when I leave',
     permissionsDone: 'Permissions step done',
+    skipped: 'Permissions not allowed yet',
+    geofence: 'Home geofence',
+    lastGeofenceEvent: 'Last geofence event',
   },
+  geofenceEvent: (type: 'enter' | 'exit', at: string) =>
+    `${type === 'enter' ? 'Arrived' : 'Left'} · ${at}`,
   yes: 'On',
   no: 'Off',
-} as const;
-
-// Temporary controls on the Phase 2 placeholder screens. Phases 3–6 remove them.
-export const placeholder = {
-  next: 'Next',
-  pinLabel: 'PIN',
-  addressLabel: 'Address',
-  latLabel: 'Latitude',
-  lngLabel: 'Longitude',
 } as const;

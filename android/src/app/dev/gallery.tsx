@@ -26,6 +26,8 @@ import {
   BackButton,
   BrandMark,
   FeatureRow,
+  HomeMap,
+  HomePin,
   IconTile,
   InfoCallout,
   Keypad,
@@ -248,6 +250,26 @@ function GalleryContent() {
         <Segmented label={setHome.homeArea} options={radiusOptions} value={radius} onChange={setRadius} />
       </Section>
 
+      <Section label="HomePin; HomeMap search bar: idle, searching, locating (map off)">
+        <HomePin />
+        {([null, 'search', 'locate'] as const).map((finding) => (
+          <HomeMap
+            key={finding ?? 'idle'}
+            point={null}
+            radiusM={radius}
+            center={null}
+            onPick={() => {}}
+            query=""
+            onQueryChange={() => {}}
+            onSearch={() => {}}
+            onLocate={() => {}}
+            finding={finding}
+            labels={{ map: setHome.mapLabel, search: setHome.searchLabel, locate: setHome.locateLabel }}
+            mapEnabled={false}
+          />
+        ))}
+      </Section>
+
       <Section label="SmallPill: idle, busy (tap)">
         <View style={styles.row}>
           <SmallPill
@@ -287,12 +309,13 @@ function GalleryContent() {
         />
       </Section>
 
-      <Section label="PermissionRow: Allow (tap), Allowed, disabled">
+      <Section label="PermissionRow: Allow (tap), note, Allowed, disabled">
         <PermissionRow
           icon={Bell}
           {...permissions.rows.notifications}
           allowed={allowed}
           onAllow={() => setAllowed(true)}
+          note={allowed ? undefined : permissions.restrictedHint}
         />
         <PermissionRow icon={MessageSquare} {...permissions.rows.sms} allowed onAllow={() => {}} />
         <PermissionRow icon={MapPin} {...permissions.rows.location} allowed={false} onAllow={() => {}} allowDisabled />

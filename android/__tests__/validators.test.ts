@@ -1,5 +1,7 @@
 import {
+  checkLlmUrl,
   checkServerUrl,
+  isPrivateHost,
   isValidEmail,
   isValidName,
   isValidNewPassword,
@@ -75,4 +77,48 @@ describe('PIN', () => {
 test('name needs a non-space character', () => {
   expect(isValidName('  ')).toBe(false);
   expect(isValidName(' A ')).toBe(true);
+});
+
+describe('home LLM address', () => {
+  const dev = { homeLlmHost: '192.168.1.20', release: false };
+  const release = { homeLlmHost: '192.168.1.20', release: true };
+
+  test('private hosts: 10.x, 172.16–31.x, 192.168.x, .local and .lan', () => {
+    for (const host of ['10.0.2.2', '172.16.0.1', '172.31.255.255', '192.168.1.20', 'pc.local', 'PC.LAN']) {
+      expect(isPrivateHost(host)).toBe(true);
+    }
+    for (const host of ['172.15.0.1', '172.32.0.1', '192.169.1.1', '8.8.8.8', 'example.com', 'local', '10.0.0.256']) {
+      expect(isPrivateHost(host)).toBe(false);
+    }
+  });
+
+  test('needs http or https with a host', () => {
+    expect(checkLlmUrl('  ', dev)).toEqual({ ok: false, reason: 'empty' });
+    expect(checkLlmUrl('192.168.1.20:8000', dev)).toEqual({ ok: false, reason: 'invalid' });
+    expect(checkLlmUrl('ftp://192.168.1.20', dev)).toEqual({ ok: false, reason: 'invalid' });
+    expect(checkLlmUrl('http://', dev)).toEqual({ ok: false, reason: 'invalid' });
+    expect(checkLlmUrl(' http://192.168.1.20:8000/ ', dev)).toEqual({
+      ok: true,
+      url: 'http://192.168.1.20:8000',
+      host: '192.168.1.20',
+      warning: null,
+    });
+    expect(checkLlmUrl('https://llm.lan', dev)).toMatchObject({ ok: true, warning: null });
+  });
+
+  test('warns about a public host', () => {
+    expect(checkLlmUrl('https://llm.example.com', dev)).toMatchObject({ ok: true, warning: 'public' });
+    expect(checkLlmUrl('http://8.8.8.8:8000', dev)).toMatchObject({ ok: true, warning: 'public' });
+  });
+
+  test('a release build blocks plain http to any host but HOME_LLM_HOST', () => {
+    expect(checkLlmUrl('http://192.168.1.20:8000', release)).toMatchObject({ warning: null });
+    expect(checkLlmUrl('http://192.168.1.21:8000', release)).toMatchObject({ ok: true, warning: 'blocked' });
+    expect(checkLlmUrl('https://192.168.1.21', release)).toMatchObject({ warning: null });
+    expect(checkLlmUrl('http://192.168.1.20', { homeLlmHost: null, release: true })).toMatchObject({
+      warning: 'blocked',
+    });
+    // Debug builds allow any http host.
+    expect(checkLlmUrl('http://192.168.1.21:8000', dev)).toMatchObject({ warning: null });
+  });
 });

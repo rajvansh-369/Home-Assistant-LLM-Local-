@@ -11,6 +11,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { bootFirstRun } from '@/features/first-run/actions';
 import { useFirstRunStore } from '@/features/first-run/store';
+import { syncHomeGeofence } from '@/services/geofence';
+// Defines the geofence task at module scope, so it exists when Android wakes the app (plan §7).
+import '@/tasks/geofence-task';
 import { colors } from '@/theme/colors';
 import { fontAssets } from '@/theme/fonts';
 
@@ -24,7 +27,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     // If storage can't be read, start as a fresh install rather than hang on the splash screen.
-    bootFirstRun().catch(() => useFirstRunStore.getState().set({ booted: true }));
+    bootFirstRun()
+      // Geofences may not survive a reboot or an update: register again while allowed (§7).
+      .then(() => syncHomeGeofence(useFirstRunStore.getState().home).catch(() => false))
+      .catch(() => useFirstRunStore.getState().set({ booted: true }));
   }, []);
 
   useEffect(() => {

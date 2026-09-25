@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-
 import UnlockOwner from '@/app/(first-run)/unlock-owner';
 import { resetFirstRun, signIn } from '@/features/first-run/actions';
 import { unlock as copy } from '@/features/first-run/copy';
+import { useFirstRunStore } from '@/features/first-run/store';
 import { setMockLatency } from '@/services/api/mock';
 
 const mockPush = jest.fn();
@@ -31,10 +32,25 @@ async function typePin(pin: string) {
   for (const digit of pin) await fireEvent.press(screen.getByRole('button', { name: digit }));
 }
 
-test('shows the Owner and submits on the 6th digit', async () => {
+test('a fresh sign-in has no biometric PIN: no fingerprint key and no hint pointing at it', async () => {
   await render(<UnlockOwner />);
   expect(screen.getByText('Test Owner')).toBeTruthy();
+  expect(screen.getByText(copy.ownerBadge)).toBeTruthy();
+  expect(screen.getByText(copy.prompt)).toBeTruthy();
+  expect(screen.getByText(copy.lockNote)).toBeTruthy();
+  expect(screen.queryByText(copy.fingerprintHint)).toBeNull();
+  expect(screen.queryByRole('button', { name: copy.fingerprintKey })).toBeNull();
+});
+
+test('with a stored biometric PIN, the fingerprint key and hint show', async () => {
+  useFirstRunStore.getState().set({ fingerprintEnabled: true });
+  await render(<UnlockOwner />);
   expect(screen.getByText(copy.fingerprintHint)).toBeTruthy();
+  expect(screen.getByRole('button', { name: copy.fingerprintKey })).toBeTruthy();
+});
+
+test('shows the Owner and submits on the 6th digit', async () => {
+  await render(<UnlockOwner />);
 
   await typePin('12345');
   expect(screen.getByLabelText(copy.digitsEntered(5))).toBeTruthy();

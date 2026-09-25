@@ -1,8 +1,16 @@
 import { Check, type LucideIcon } from 'lucide-react-native';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { common } from '@/features/first-run/copy';
-import { colors, hitSlopFor, iconSizes, radii, sizes, strokes } from '@/theme';
+import {
+  colors,
+  hitSlopFor,
+  iconSizes,
+  maxFontSizeMultiplier,
+  radii,
+  sizes,
+  strokes,
+} from '@/theme';
 
 import { IconTile } from './IconTile';
 import { Text } from './Text';
@@ -33,9 +41,14 @@ export function AllowPill({ title, onPress, disabled = false }: AllowPillProps) 
   );
 }
 
+/** The row's label already says "Allowed", so the chip is hidden from screen readers. */
 export function AllowedChip() {
   return (
-    <View style={styles.chip}>
+    <View
+      style={styles.chip}
+      importantForAccessibility="no-hide-descendants"
+      accessibilityElementsHidden
+    >
       <Check size={iconSizes.chip} color={colors.accent} strokeWidth={strokes.check} />
       <Text variant="chip" tone="accent">
         {common.allowed}
@@ -51,6 +64,8 @@ type PermissionRowProps = {
   allowed: boolean;
   onAllow: () => void;
   allowDisabled?: boolean;
+  /** A follow-up line under the description, e.g. how to get past "Restricted setting". */
+  note?: string;
 };
 
 export function PermissionRow({
@@ -60,26 +75,39 @@ export function PermissionRow({
   allowed,
   onAllow,
   allowDisabled = false,
+  note,
 }: PermissionRowProps) {
+  // Large system text: the pill would squeeze the title until words break, so it moves under
+  // the text instead.
+  const stacked = useWindowDimensions().fontScale > maxFontSizeMultiplier;
   return (
-    <View style={styles.row}>
-      <IconTile icon={icon} size={40} tone="neutral" />
-      <View
-        style={styles.text}
-        accessible
-        accessibilityLabel={allowed ? `${title}, ${common.allowed}` : title}
-        accessibilityHint={description}
-      >
-        <Text variant="rowTitle">{title}</Text>
-        <Text variant="helper" tone="muted">
-          {description}
-        </Text>
+    <View style={[styles.row, stacked && styles.rowStacked]}>
+      <View style={[styles.main, !stacked && styles.mainFill]}>
+        <IconTile icon={icon} size={40} tone="neutral" />
+        <View
+          style={styles.text}
+          accessible
+          accessibilityLabel={allowed ? `${title}, ${common.allowed}` : title}
+          accessibilityHint={note ? `${description} ${note}` : description}
+        >
+          <Text variant="rowTitle">{title}</Text>
+          <Text variant="helper" tone="muted">
+            {description}
+          </Text>
+          {note ? (
+            <Text variant="helper" tone="warning" accessibilityLiveRegion="polite">
+              {note}
+            </Text>
+          ) : null}
+        </View>
       </View>
-      {allowed ? (
-        <AllowedChip />
-      ) : (
-        <AllowPill title={title} onPress={onAllow} disabled={allowDisabled} />
-      )}
+      <View style={stacked && styles.controlStacked}>
+        {allowed ? (
+          <AllowedChip />
+        ) : (
+          <AllowPill title={title} onPress={onAllow} disabled={allowDisabled} />
+        )}
+      </View>
     </View>
   );
 }
@@ -98,9 +126,14 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
+  rowStacked: { flexDirection: 'column', alignItems: 'stretch' },
+  main: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  mainFill: { flex: 1 },
   text: { flex: 1, gap: 2 },
+  // Under the text, past the icon tile.
+  controlStacked: { alignSelf: 'flex-start', marginLeft: sizes.iconTileLarge + 14 },
   pill: {
-    height: sizes.allowPill,
+    minHeight: sizes.allowPill,
     paddingHorizontal: 16,
     borderRadius: radii.pill,
     borderWidth: 1,
@@ -112,7 +145,7 @@ const styles = StyleSheet.create({
   pillPressed: { backgroundColor: colors.accentTint },
   disabled: { opacity: 0.4 },
   chip: {
-    height: sizes.allowedChip,
+    minHeight: sizes.allowedChip,
     paddingHorizontal: 10,
     borderRadius: radii.pill,
     backgroundColor: colors.accentTint,

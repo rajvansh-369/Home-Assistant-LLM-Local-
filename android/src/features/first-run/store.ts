@@ -6,6 +6,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 import type { Place } from '@/services/api/types';
+import type { PermissionKey } from '@/services/permissions';
 import type { ProfileColor } from '@/theme';
 
 import type { FirstRunFacts } from './routing';
@@ -23,6 +24,8 @@ export type PersistedFirstRun = {
   fingerprintEnabled: boolean;
   lockWhenLeave: boolean;
   permissionsDone: boolean;
+  /** 1.5 rows not allowed at Finish or Skip, so Settings can offer them later. */
+  permissionsSkipped: PermissionKey[];
   firstRunDone: boolean;
 };
 
@@ -65,6 +68,7 @@ export const initialPersisted: PersistedFirstRun = {
   fingerprintEnabled: true,
   lockWhenLeave: true,
   permissionsDone: false,
+  permissionsSkipped: [],
   firstRunDone: false,
 };
 

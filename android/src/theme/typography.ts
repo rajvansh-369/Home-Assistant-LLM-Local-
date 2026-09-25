@@ -55,6 +55,14 @@ export const typography = {
 
 export type TextVariant = keyof typeof typography;
 
-// Variants whose layout breaks at large system font sizes (§2).
-export const cappedVariants: readonly TextVariant[] = ['display', 'title', 'button'];
+// Variants whose layout breaks at large system font sizes (§2), plus the glyphs drawn inside
+// fixed shapes: the avatar initial (84 circle) and the keypad digits (64 keys).
+export const cappedVariants: readonly TextVariant[] = [
+  'display',
+  'title',
+  'button',
+  'avatar',
+  'avatarSmall',
+  'key',
+];
 export const maxFontSizeMultiplier = 1.3;

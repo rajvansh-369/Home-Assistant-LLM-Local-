@@ -52,14 +52,13 @@ export function StepHeader({ step, onBack }: StepHeaderProps) {
 
 type ProgressSegmentsProps = { step: number; total?: number };
 
+/** Decorative: screen readers get "Step N of 4" from the label above it. */
 export function ProgressSegments({ step, total = TOTAL_STEPS }: ProgressSegmentsProps) {
   return (
     <View
       style={styles.segments}
-      accessible
-      accessibilityRole="progressbar"
-      accessibilityLabel={common.stepOf(step, total)}
-      accessibilityValue={{ min: 0, max: total, now: step }}
+      importantForAccessibility="no-hide-descendants"
+      accessibilityElementsHidden
     >
       {Array.from({ length: total }, (_, i) => (
         <Segment key={i} filled={i < step} />

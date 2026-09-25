@@ -60,6 +60,7 @@ test('the persisted slice never contains a token, PIN or password', async () => 
       'lockWhenLeave',
       'owner',
       'permissionsDone',
+      'permissionsSkipped',
       'serverUrl',
     ].sort(),
   );

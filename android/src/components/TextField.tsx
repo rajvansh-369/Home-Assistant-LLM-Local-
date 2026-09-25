@@ -8,7 +8,16 @@ import {
   type TextInputProps,
 } from 'react-native';
 
-import { colors, iconSizes, radii, sizes, spacing, strokes, typography } from '@/theme';
+import {
+  colors,
+  iconSizes,
+  maxFontSizeMultiplier,
+  radii,
+  sizes,
+  spacing,
+  strokes,
+  typography,
+} from '@/theme';
 
 import { Text, textTones } from './Text';
 
@@ -57,9 +66,11 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
       ? colors.accentBorder
       : colors.border;
 
+  // TalkBack reads the label, then the line under the input, as one field. The visible label and
+  // helper are skipped so they aren't read twice; error and status lines stay live regions.
   return (
     <View style={styles.field}>
-      <Text variant="label" tone="secondary">
+      <Text variant="label" tone="secondary" importantForAccessibility="no">
         {label}
       </Text>
       <TextInput
@@ -67,7 +78,10 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
         {...inputProps}
         editable={editable}
         accessibilityLabel={label}
+        accessibilityHint={error ?? status?.text ?? helper}
         accessibilityState={{ disabled: !editable }}
+        // Single-line inputs have a fixed height: at 2x text the placeholder wraps and clips.
+        maxFontSizeMultiplier={maxFontSizeMultiplier}
         placeholderTextColor={colors.textMuted}
         selectionColor={colors.accent}
         cursorColor={colors.accent}
@@ -88,7 +102,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
       ) : status ? (
         <StatusLine status={status} />
       ) : helper ? (
-        <Text variant="helper" tone="muted">
+        <Text variant="helper" tone="muted" importantForAccessibility="no">
           {helper}
         </Text>
       ) : null}
@@ -117,7 +131,7 @@ export function StatusLine({ status }: { status: FieldStatus }) {
   );
 }
 
-// TextInput ignores lineHeight well on Android only when height is fixed, so drop it here.
+// Android's single-line TextInput centres text badly with a lineHeight, so drop it here.
 const inputText = StyleSheet.create({
   default: { ...typography.body, lineHeight: undefined, color: colors.text },
   mono: { ...typography.mono, lineHeight: undefined, color: colors.text },
@@ -127,7 +141,7 @@ const inputText = StyleSheet.create({
 const styles = StyleSheet.create({
   field: { gap: spacing.fieldLabelGap, alignSelf: 'stretch' },
   input: {
-    height: sizes.input,
+    minHeight: sizes.input,
     borderRadius: radii.input,
     borderWidth: 1,
     backgroundColor: colors.surface,

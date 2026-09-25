@@ -1,9 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import SignIn from '@/app/(first-run)/sign-in';
-import Welcome from '@/app/(first-run)/welcome';
 import { resetFirstRun } from '@/features/first-run/actions';
-import { signIn as copy, welcome } from '@/features/first-run/copy';
+import { signIn as copy } from '@/features/first-run/copy';
 import { useFirstRunStore } from '@/features/first-run/store';
 import { setMockLatency } from '@/services/api/mock';
 
@@ -35,15 +34,6 @@ async function fillIn(server: string, email: string, password: string) {
 }
 
 const submitButton = (label: string = copy.submit) => screen.getByRole('button', { name: label });
-
-test('Welcome shows the copy and goes to Sign in', async () => {
-  await render(<Welcome />);
-  expect(screen.getByText(welcome.headline)).toBeTruthy();
-  for (const text of Object.values(welcome.features)) expect(screen.getByText(text)).toBeTruthy();
-  expect(screen.getByText(welcome.caption)).toBeTruthy();
-  await fireEvent.press(screen.getByRole('button', { name: welcome.cta }));
-  expect(mockPush).toHaveBeenCalledWith('/sign-in');
-});
 
 test('checks the server, then enables Sign in and follows §5', async () => {
   await render(<SignIn />);

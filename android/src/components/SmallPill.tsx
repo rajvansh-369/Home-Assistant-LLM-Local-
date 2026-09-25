@@ -39,7 +39,7 @@ export function SmallPill({ label, icon: Icon, onPress, busy = false, disabled =
 
 const styles = StyleSheet.create({
   pill: {
-    height: sizes.smallPill,
+    minHeight: sizes.smallPill,
     paddingHorizontal: 12,
     borderRadius: radii.pill,
     borderWidth: 1,

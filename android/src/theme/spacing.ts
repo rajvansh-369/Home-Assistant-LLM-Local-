@@ -37,6 +37,18 @@ export const spacing = {
   unlockLineTop: 14,
   unlockKeypadTop: 22,
   badgeX: 7,
+  // 1.4 Set home (§4.4): title block 18 20 14, body 16 20 24, search bar inset 12 / 16.
+  setHomeTitleTop: 18,
+  setHomeTitleBottom: 14,
+  setHomeBodyTop: 16,
+  mapSearchTop: 12,
+  mapSearchX: 16,
+  searchBarLeft: 14,
+  searchBarRight: 6,
+  searchBarGap: 10,
+  addressRowGap: 12,
+  /** Wi-Fi hint or test result, then the Test pill (proposed: the canvas has no value). */
+  testRowGap: 8,
 } as const;
 
 export const sizes = {
@@ -78,6 +90,18 @@ export const sizes = {
   keyHeight: 64,
   keyGap: 12,
   unlockLine: 20,
+  // 1.4 Set home (§4.4).
+  map: 270,
+  searchBar: 48,
+  locateButton: 40,
+  homePinWidth: 22,
+  homePinHeight: 30,
+  homePinDotRadius: 4.2,
+  /** Geofence edge: 5 on, 5 off. */
+  geofenceDash: 5,
+  /** Space kept clear when fitting the circle: the search bar (12 + 48) plus 12 below it. */
+  mapFitTop: 72,
+  mapFitSide: 24,
 } as const;
 
 export const iconSizes = {
@@ -91,6 +115,9 @@ export const iconSizes = {
   chip: 15,
   keyFingerprint: 28,
   keyDelete: 24,
+  search: 18,
+  locate: 20,
+  testHint: 15,
 } as const;
 
 export const strokes = {

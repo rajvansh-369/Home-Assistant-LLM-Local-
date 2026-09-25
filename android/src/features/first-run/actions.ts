@@ -4,6 +4,8 @@ import * as Device from 'expo-device';
 
 import { api, ApiError, type Place, type Profile } from '@/services/api';
 import { resetMockServer } from '@/services/api/mock';
+import { syncHomeGeofence } from '@/services/geofence';
+import type { PermissionKey } from '@/services/permissions';
 import * as secure from '@/services/secure';
 import { profileColors, type ProfileColor } from '@/theme';
 
@@ -114,6 +116,12 @@ export async function signIn({ server, email, password }: Credentials): Promise<
   const profiles = await withDeviceToken((token) => api.listProfiles(server, token));
   const owner = profiles.find((p) => p.role === 'owner');
   store().set({ owner: owner ? toOwner(owner) : null });
+  if (!alreadySignedIn) {
+    // A fresh sign-in has no biometric PIN on this phone for this Owner, so 2.2 shows no
+    // fingerprint key (plan §4.6). With no Owner yet, 1.3 starts with fingerprint on.
+    await secure.deleteBiometricPin();
+    store().set({ fingerprintEnabled: owner == null });
+  }
   return nextRoute();
 }
 
@@ -271,12 +279,17 @@ export async function saveHome(place: Omit<Place, 'name'>): Promise<FirstRunRout
   const saved = await api.putHomePlace(server, session.profileToken, { name: 'Home', ...place });
   const { name: _name, ...home } = saved;
   store().set({ home, homePrefill: null });
+  // Coming back to 1.4 after 1.5 granted background location: move the geofence too.
+  await syncHomeGeofence(home).catch(() => false);
   return nextRoute();
 }
 
-/** 1.5 Finish setup and Skip for now. The caller replaces the stack with /home. */
-export function finishFirstRun() {
-  store().set({ permissionsDone: true, firstRunDone: true });
+/**
+ * 1.5 Finish setup and Skip for now. `skipped` are the rows not allowed yet. The caller replaces
+ * the stack with /home.
+ */
+export function finishFirstRun(skipped: PermissionKey[] = []) {
+  store().set({ permissionsDone: true, permissionsSkipped: skipped, firstRunDone: true });
 }
 
 /** Dev only: back to a fresh install, including the secure store and the mock server. */

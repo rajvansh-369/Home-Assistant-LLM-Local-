@@ -27,12 +27,15 @@ export default function Welcome() {
   return (
     <Screen variant="welcome" gap={0}>
       {/* Dev builds: long-press the brand mark to open the component gallery. */}
-      <Pressable
-        onLongPress={__DEV__ ? () => router.push('/dev/gallery') : undefined}
-        style={styles.brand}
-      >
-        <BrandMark />
-      </Pressable>
+      {__DEV__ ? (
+        <Pressable onLongPress={() => router.push('/dev/gallery')} style={styles.brand}>
+          <BrandMark />
+        </Pressable>
+      ) : (
+        <View style={styles.brand}>
+          <BrandMark />
+        </View>
+      )}
 
       <View style={styles.orbArea} onLayout={onOrbAreaLayout}>
         {orbSize >= sizes.orbMin ? <AsterOrb size={orbSize} /> : null}

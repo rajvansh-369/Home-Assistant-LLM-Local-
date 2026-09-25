@@ -96,11 +96,12 @@ export interface AsterApi {
 }
 
 export type LlmHealth =
-  | { kind: 'ready'; model: string; ms: number }
+  /** zypherLL's /health has no model name, so `model` is null there. */
+  | { kind: 'ready'; model: string | null; ms: number }
   | { kind: 'loading'; ms: number }
   | { kind: 'failed'; error: string }
   | { kind: 'no-reply' }
-  | { kind: 'blocked' };
-
-/** zypherLL health check: `GET {llmUrl}/health`, 3 s timeout, no token. */
-export type LlmHealthCheck = (llmUrl: string) => Promise<LlmHealth>;
+  /** Release build, plain http to a host other than HOME_LLM_HOST (plan §7). */
+  | { kind: 'blocked' }
+  /** A reply that isn't zypherLL's /health, e.g. 404 from the wrong port. */
+  | { kind: 'unexpected'; status: number };

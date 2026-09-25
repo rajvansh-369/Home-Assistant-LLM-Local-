@@ -20,3 +20,27 @@ jest.mock('expo-secure-store', () => {
     deleteItemAsync: jest.fn(async (key) => void items.delete(key)),
   };
 });
+
+// The local Kotlin module (modules/aster-system) has no native side under Jest. Nothing is
+// enabled and every settings screen "opens"; tests override per case.
+jest.mock('./modules/aster-system', () => ({
+  __esModule: true,
+  default: {
+    isNotificationListenerEnabled: jest.fn(() => false),
+    openNotificationListenerSettings: jest.fn(() => true),
+    isIgnoringBatteryOptimizations: jest.fn(() => false),
+    requestIgnoreBatteryOptimizations: jest.fn(() => true),
+  },
+}));
+
+// react-native-maps looks up its native module on import; tests only need the components.
+jest.mock('react-native-maps', () => {
+  const { createElement, forwardRef } = require('react');
+  const { View } = require('react-native');
+  const MapView = forwardRef(function MapView(props, ref) {
+    return createElement(View, { ref, testID: 'map', accessibilityLabel: props.accessibilityLabel }, props.children);
+  });
+  const Shape = () => null;
+  const Marker = (props) => createElement(View, null, props.children);
+  return { __esModule: true, default: MapView, Circle: Shape, Marker, Polyline: Shape, PROVIDER_GOOGLE: 'google' };
+});
