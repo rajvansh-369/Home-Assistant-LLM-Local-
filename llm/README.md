@@ -159,7 +159,9 @@ python main.py serve --host 0.0.0.0 --port 8080   # set ZYPHER_API_KEY first
 the same value as `ZYPHER_API_KEY` in `.env`. Leave `apiKey` empty if the
 server runs without a key. All requests except Health send the key as a bearer
 token. The chat requests save the stored exchange's id to `{{memoryId}}`, and
-the Rate requests use it.
+the Rate requests use it. Set `engine` to `local` or `markl` to run every Chat
+and Memory request against that engine; requests named "(Mark-L)" always use
+Mark-L. With `markl`, Rate answers 400: Mark-L keeps facts, not rated answers.
 
 The server starts answering straight away; `/health` reports `loading` until
 the model is up, and chat calls return 503 until then.

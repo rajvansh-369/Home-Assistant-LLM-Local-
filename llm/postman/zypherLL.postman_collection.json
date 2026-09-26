@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "bc8d61ff-5f61-43ac-82e8-9e79ba68fe99",
     "name": "zypherLL",
-    "description": "Local Zephyr 7B API (OpenAI-compatible).\n\n1. Start the server: `python main.py serve`\n2. Import `zypherLL.local.postman_environment.json` too and select it, or edit the collection variables.\n3. Set `apiKey` to the same value as `ZYPHER_API_KEY` in `.env` (leave empty if the server runs without one).\n\nEvery request except Health sends `Authorization: Bearer {{apiKey}}` (collection-level auth).\n\nChat requests save the stored exchange's id into `memoryId`, which the Rate requests use.",
+    "description": "zypherLL: local Zephyr 7B or Mark-L (Gemini), behind one OpenAI-compatible API.\n\n1. Start the server: `python main.py serve`\n2. Import `zypherLL.local.postman_environment.json` too and select it, or edit the collection variables.\n3. Set `apiKey` to the same value as `ZYPHER_API_KEY` in `.env` (leave empty if the server runs without one).\n4. Set `engine` to `local` (Zephyr on this PC) or `markl` (Mark-L on Gemini; needs `ZYPHER_MARKL_GEMINI_KEY` in `.env`). Every Chat and Memory request uses it; requests named \"(Mark-L)\" always use Mark-L.\n\nEvery request except Health sends `Authorization: Bearer {{apiKey}}` (collection-level auth).\n\nLocal chat requests save the stored exchange's id into `memoryId`, which the Rate requests use. Mark-L keeps named facts instead of exchanges, so it has no ratings: Rate answers 400 with `engine` = `markl`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -27,6 +27,11 @@
     {
       "key": "memoryId",
       "value": ""
+    },
+    {
+      "key": "engine",
+      "value": "local",
+      "type": "string"
     }
   ],
   "item": [
@@ -47,7 +52,7 @@
                 "health"
               ]
             },
-            "description": "Load state (`loading` / `ready` / `error`), device and whether auth is on. No API key needed -- poll it while the model loads.",
+            "description": "`status`, `error` and `model` are the default engine's (`loading` / `ready` / `error`); `engines` has both: local `loading` | `ready` | `error` | `off`, markl `ready` | `unconfigured`. No API key needed -- poll it while the model loads.",
             "auth": {
               "type": "noauth"
             }
@@ -58,7 +63,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('reports both engines', () => pm.expect(pm.response.json().engines).to.have.all.keys('local', 'markl'));"
                 ]
               }
             }
@@ -79,7 +85,7 @@
                 "models"
               ]
             },
-            "description": "The one model, in the OpenAI list shape."
+            "description": "Both engines in the OpenAI list shape: `zephyr-7b` (engine `local`) and `mark-l` (engine `markl`), each with its `status`. Either id works as `model` in a chat request."
           },
           "event": [
             {
@@ -108,7 +114,7 @@
                 "settings"
               ]
             },
-            "description": "Server-wide defaults a request gets when it does not say."
+            "description": "Server-wide defaults a request gets when it does not say, including the default `engine` and a `markl` block: status, Gemini model in use, mode (free / paid), quota cooldown, tools and name."
           },
           "event": [
             {
@@ -142,10 +148,10 @@
                 "settings"
               ]
             },
-            "description": "Change server-wide defaults. Every field is optional. `web: true` also re-arms lookups paused after network failures. `max_tokens` is the answer budget (like `/tokens N`).",
+            "description": "Change server-wide defaults. Every field is optional. `engine` (`local` | `markl`) is what a request gets when it names none. `markl_mode`: `free` keeps Mark-L inside a free Gemini key's quota (lite model, DuckDuckGo, 8 req/min); `paid` uses the full model and Google-grounded search. `web: true` also re-arms lookups paused after network failures. `max_tokens` is the local answer budget.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"web\": true,\n  \"memory\": true,\n  \"max_tokens\": 4096\n}",
+              "raw": "{\n  \"engine\": \"local\",\n  \"markl_mode\": \"free\",\n  \"web\": true,\n  \"memory\": true,\n  \"max_tokens\": 4096\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -160,6 +166,50 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Set default engine",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "settings"
+              ]
+            },
+            "description": "Make `{{engine}}` the server default, for clients that never name an engine.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"engine\": \"{{engine}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('default is {{engine}}', () => pm.expect(pm.response.json().engine).to.eql(pm.variables.get('engine')));"
                 ]
               }
             }
@@ -194,7 +244,7 @@
             "description": "Plain question. The router decides whether to search the web; memory recalls similar past exchanges. Response `zypher` carries sources, recall count, captured notes and `memory_id`.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"model\": \"zephyr-7b\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"How do I reverse a list in Python?\"\n    }\n  ]\n}",
+              "raw": "{\n  \"engine\": \"{{engine}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"How do I reverse a list in Python?\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -209,6 +259,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('answered by {{engine}}', () => pm.expect((pm.response.json().zypher || {}).engine).to.eql(pm.variables.get('engine')));",
                   "const meta = pm.response.json().zypher || {};",
                   "if (meta.memory_id) {",
                   "    pm.collectionVariables.set('memoryId', meta.memory_id);",
@@ -243,7 +294,7 @@
             "description": "Server-sent events in the OpenAI chunk format, ending with `data: [DONE]`. Status chunks (searching / recalled) carry a `zypher` field and an empty delta.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"model\": \"zephyr-7b\",\n  \"stream\": true,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Write a haiku about local LLMs.\"\n    }\n  ]\n}",
+              "raw": "{\n  \"engine\": \"{{engine}}\",\n  \"stream\": true,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Write a haiku about local LLMs.\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -276,7 +327,7 @@
             "description": "`web: true` always searches, even when the router would not or web lookup is off server-wide -- same as `/web <question>`. Answers cite sources as [n].",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"model\": \"zephyr-7b\",\n  \"web\": true,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"What is the latest stable Python release?\"\n    }\n  ]\n}",
+              "raw": "{\n  \"engine\": \"{{engine}}\",\n  \"web\": true,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"What is the latest stable Python release?\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -290,7 +341,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('answered by {{engine}}', () => pm.expect((pm.response.json().zypher || {}).engine).to.eql(pm.variables.get('engine')));"
                 ]
               }
             }
@@ -320,7 +372,7 @@
             "description": "Send the whole conversation each time, as with OpenAI. A system message is appended to the runner's own system prompt, not swapped in for it.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"model\": \"zephyr-7b\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Answer in one short paragraph.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"What is a KV cache?\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"A KV cache stores the attention keys and values of tokens already processed, so they are not recomputed for each new token.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Why does it run out on small GPUs?\"\n    }\n  ]\n}",
+              "raw": "{\n  \"engine\": \"{{engine}}\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Answer in one short paragraph.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"What is a KV cache?\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"A KV cache stores the attention keys and values of tokens already processed, so they are not recomputed for each new token.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Why does it run out on small GPUs?\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -335,6 +387,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('answered by {{engine}}', () => pm.expect((pm.response.json().zypher || {}).engine).to.eql(pm.variables.get('engine')));",
                   "const meta = pm.response.json().zypher || {};",
                   "if (meta.memory_id) {",
                   "    pm.collectionVariables.set('memoryId', meta.memory_id);",
@@ -369,7 +422,7 @@
             "description": "End `messages` with the partial assistant reply to continue it in place, like `continue` in the console. The response content is only the new text -- append it to what you had.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"model\": \"zephyr-7b\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Write a Python function that checks whether a string is a palindrome.\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"```python\\ndef is_palindrome(text):\\n\"\n    }\n  ]\n}",
+              "raw": "{\n  \"engine\": \"{{engine}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Write a Python function that checks whether a string is a palindrome.\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"```python\\ndef is_palindrome(text):\\n\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -383,7 +436,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('answered by {{engine}}', () => pm.expect((pm.response.json().zypher || {}).engine).to.eql(pm.variables.get('engine')));"
                 ]
               }
             }
@@ -410,10 +464,10 @@
                 "completions"
               ]
             },
-            "description": "Runner extensions: `memory: false` skips recall and learning for this call; `sampling` picks `precise` / `balanced` / `creative`; `temperature` / `top_p` override it (`temperature: 0` = greedy). `max_tokens` is capped at the server budget; `min_tokens` forbids ending the answer before that many tokens.",
+            "description": "Runner extensions: `memory: false` skips recall and learning for this call; `sampling` picks `precise` / `balanced` / `creative`; `temperature` / `top_p` override it (`temperature: 0` = greedy). `max_tokens` is capped at the server budget; `min_tokens` forbids ending the answer before that many tokens. `sampling` and the local answer budget apply to the local engine; Mark-L picks its own sampling.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"model\": \"zephyr-7b\",\n  \"memory\": false,\n  \"web\": false,\n  \"sampling\": \"creative\",\n  \"temperature\": 0.9,\n  \"max_tokens\": 400,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Brainstorm five names for a local AI assistant.\"\n    }\n  ]\n}",
+              "raw": "{\n  \"engine\": \"{{engine}}\",\n  \"memory\": false,\n  \"web\": false,\n  \"sampling\": \"creative\",\n  \"temperature\": 0.9,\n  \"max_tokens\": 400,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Brainstorm five names for a local AI assistant.\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -427,7 +481,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('answered by {{engine}}', () => pm.expect((pm.response.json().zypher || {}).engine).to.eql(pm.variables.get('engine')));"
                 ]
               }
             }
@@ -454,10 +509,10 @@
                 "completions"
               ]
             },
-            "description": "`min_tokens` forbids the model from ending its turn until the answer is that many tokens long -- for when Zephyr stops too soon (`finish_reason: stop` on a short answer). Capped at `max_tokens` and the server budget (4096 on a 6 GB card). Set it higher than the model has things to say and it pads with repetition; 500-1000 suits a detailed explanation.",
+            "description": "`min_tokens` forbids the model from ending its turn until the answer is that many tokens long -- for when Zephyr stops too soon (`finish_reason: stop` on a short answer). Capped at `max_tokens` and the server budget (4096 on a 6 GB card). Set it higher than the model has things to say and it pads with repetition; 500-1000 suits a detailed explanation. Local engine only: Mark-L has no `min_tokens`.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"model\": \"zephyr-7b\",\n  \"min_tokens\": 800,\n  \"max_tokens\": 4096,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Explain Python decorators in detail, with examples.\"\n    }\n  ]\n}",
+              "raw": "{\n  \"engine\": \"{{engine}}\",\n  \"min_tokens\": 800,\n  \"max_tokens\": 4096,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Explain Python decorators in detail, with examples.\"\n    }\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -472,6 +527,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('answered by {{engine}}', () => pm.expect((pm.response.json().zypher || {}).engine).to.eql(pm.variables.get('engine')));",
                   "const body = pm.response.json();",
                   "console.log('completion_tokens =', body.usage.completion_tokens, 'finish_reason =', body.choices[0].finish_reason);"
                 ]
@@ -568,13 +624,19 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/memory",
+              "raw": "{{baseUrl}}/v1/memory?engine={{engine}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "v1",
                 "memory"
+              ],
+              "query": [
+                {
+                  "key": "engine",
+                  "value": "{{engine}}"
+                }
               ]
             },
             "description": "Store stats, and the notes about you that go into every system prompt."
@@ -597,7 +659,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/memory/records?kind=note&limit=50&offset=0",
+              "raw": "{{baseUrl}}/v1/memory/records?kind=note&limit=50&offset=0&engine={{engine}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -621,10 +683,14 @@
                   "key": "offset",
                   "value": "0",
                   "description": ""
+                },
+                {
+                  "key": "engine",
+                  "value": "{{engine}}"
                 }
               ]
             },
-            "description": "Stored records, newest first. `kind` filters to `note` or `exchange`."
+            "description": "Stored records, newest first. `kind` filters to `note` or `exchange`. Mark-L facts come back as `kind: note` with their `category` and `key`."
           },
           "event": [
             {
@@ -649,7 +715,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/memory/notes",
+              "raw": "{{baseUrl}}/v1/memory/notes?engine={{engine}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -657,9 +723,15 @@
                 "v1",
                 "memory",
                 "notes"
+              ],
+              "query": [
+                {
+                  "key": "engine",
+                  "value": "{{engine}}"
+                }
               ]
             },
-            "description": "Keep a fact about yourself for good -- same as `/remember`.",
+            "description": "Keep a fact about yourself for good -- same as `/remember`. With `engine` = `markl` it becomes a Mark-L fact in `notes`, keyed by its first words; see \"Add fact (Mark-L)\" to choose the category and key.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"text\": \"I use four-space indentation in Python.\"\n}",
@@ -693,7 +765,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/memory/{{memoryId}}/rate",
+              "raw": "{{baseUrl}}/v1/memory/{{memoryId}}/rate?engine={{engine}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -702,9 +774,15 @@
                 "memory",
                 "{{memoryId}}",
                 "rate"
+              ],
+              "query": [
+                {
+                  "key": "engine",
+                  "value": "{{engine}}"
+                }
               ]
             },
-            "description": "Promote an answer so it surfaces earlier -- same as `/good`. `memoryId` is set by the Chat requests.",
+            "description": "Promote an answer so it surfaces earlier -- same as `/good`. `memoryId` is set by the Chat requests. Local engine only: 400 with `engine` = `markl`.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"rating\": \"good\"\n}",
@@ -721,7 +799,19 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                  "// Mark-L stores facts, not answers, so there is nothing to rate: 400.",
+                  "const expected = pm.variables.get('engine') === 'markl' ? 400 : 200;",
+                  "pm.test(`${expected} for engine ${pm.variables.get('engine')}`, () => pm.response.to.have.status(expected));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// No chat has set memoryId yet (Mark-L chats never do): use 0, so the URL still routes.",
+                  "if (!pm.variables.get('memoryId')) pm.variables.set('memoryId', '0');"
                 ]
               }
             }
@@ -738,7 +828,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/v1/memory/{{memoryId}}/rate",
+              "raw": "{{baseUrl}}/v1/memory/{{memoryId}}/rate?engine={{engine}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -747,9 +837,15 @@
                 "memory",
                 "{{memoryId}}",
                 "rate"
+              ],
+              "query": [
+                {
+                  "key": "engine",
+                  "value": "{{engine}}"
+                }
               ]
             },
-            "description": "Exclude an answer from recall -- same as `/bad`.",
+            "description": "Exclude an answer from recall -- same as `/bad`. Local engine only: 400 with `engine` = `markl`.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"rating\": \"bad\"\n}",
@@ -766,7 +862,19 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                  "// Mark-L stores facts, not answers, so there is nothing to rate: 400.",
+                  "const expected = pm.variables.get('engine') === 'markl' ? 400 : 200;",
+                  "pm.test(`${expected} for engine ${pm.variables.get('engine')}`, () => pm.response.to.have.status(expected));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// No chat has set memoryId yet (Mark-L chats never do): use 0, so the URL still routes.",
+                  "if (!pm.variables.get('memoryId')) pm.variables.set('memoryId', '0');"
                 ]
               }
             }
@@ -778,7 +886,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/memory?selector=last",
+              "raw": "{{baseUrl}}/v1/memory?selector=last&engine={{engine}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -791,6 +899,10 @@
                   "key": "selector",
                   "value": "last",
                   "description": "last | all | free text"
+                },
+                {
+                  "key": "engine",
+                  "value": "{{engine}}"
                 }
               ]
             },
@@ -814,7 +926,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/memory?selector=indentation",
+              "raw": "{{baseUrl}}/v1/memory?selector=indentation&engine={{engine}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -827,10 +939,14 @@
                   "key": "selector",
                   "value": "indentation",
                   "description": ""
+                },
+                {
+                  "key": "engine",
+                  "value": "{{engine}}"
                 }
               ]
             },
-            "description": "Drop every memory similar to the text."
+            "description": "Local: drop every memory similar to the text. Mark-L: `selector` is a fact's key, `category/key`, or a record id -- see \"Forget by key (Mark-L)\"."
           },
           "event": [
             {
@@ -850,7 +966,7 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/memory?selector=all",
+              "raw": "{{baseUrl}}/v1/memory?selector=all&engine={{engine}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -863,6 +979,10 @@
                   "key": "selector",
                   "value": "all",
                   "description": ""
+                },
+                {
+                  "key": "engine",
+                  "value": "{{engine}}"
                 }
               ]
             },
@@ -881,12 +1001,63 @@
           ]
         },
         {
-          "name": "Overview (Mark-L)",
+          "name": "Add fact (Mark-L)",
           "request": {
-            "method": "GET",
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/memory/notes?engine=markl",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "memory",
+                "notes"
+              ],
+              "query": [
+                {
+                  "key": "engine",
+                  "value": "markl"
+                }
+              ]
+            },
+            "description": "A Mark-L fact filed under a category (`identity`, `preferences`, `projects`, `relationships`, `wishes`, `notes`) and key. The same key again replaces the value.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Prefers tea over coffee\",\n  \"category\": \"preferences\",\n  \"key\": \"drink\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('filed as preferences/drink', () => pm.expect(pm.response.json()).to.include({category: 'preferences', key: 'drink'}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forget by key (Mark-L)",
+          "request": {
+            "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/v1/memory?engine=markl",
+              "raw": "{{baseUrl}}/v1/memory?selector=preferences/drink&engine=markl",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -896,12 +1067,16 @@
               ],
               "query": [
                 {
+                  "key": "selector",
+                  "value": "preferences/drink"
+                },
+                {
                   "key": "engine",
                   "value": "markl"
                 }
               ]
             },
-            "description": "Mark-L's fact store: counts by category, and the identity and preference facts."
+            "description": "Drop one Mark-L fact by `category/key` (or just the key, or a record id). Removes what \"Add fact (Mark-L)\" stored."
           },
           "event": [
             {
