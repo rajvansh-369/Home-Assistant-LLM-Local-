@@ -67,6 +67,19 @@ it('sends an admin without MFA to set it up before the dashboard', function () {
         ->assertRedirect(route('filament.admin.auth.multi-factor-authentication.set-up-required'));
 });
 
+it('shows a QR code the browser can render when setting up MFA', function () {
+    $this->actingAs(Admin::factory()->create(), 'admin');
+
+    $uri = Filament::getCurrentPanel()->getMultiFactorAuthenticationProviders()['app']
+        ->generateQrCodeDataUri('JBSWY3DPEHPK3PXP');
+
+    // One data URI wrapping the SVG itself, not a data URI wrapping another.
+    expect($uri)->toStartWith('data:image/svg+xml;base64,')
+        ->and(base64_decode(substr($uri, strlen('data:image/svg+xml;base64,'))))
+        ->toStartWith('<?xml')
+        ->toContain('<svg');
+});
+
 it('shows the dashboard to an active admin with MFA', function () {
     $admin = Admin::factory()->withMfa()->create();
 
