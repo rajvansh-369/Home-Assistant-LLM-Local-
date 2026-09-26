@@ -132,6 +132,9 @@ Screenshots: `docs/screens/phase-6/` and `docs/screens/phase-8/393-release-*`.
 - Release was checked only as an x86_64 build on the emulator, not on a real phone, and only with
   a test `HOME_LLM_HOST`. A build for your home network needs `HOME_LLM_HOST` in `.env`, then
   prebuild and a normal all-ABI release build.
+- Expo Go opens the app, but only for UI checks. It lacks `modules/aster-system` and TaskManager,
+  so Notification access, battery and the geofence do nothing there (a dev warning says so), and
+  SMS and background location may be refused. Use a development build for 1.5.
 - Phase 7 not done: no real Laravel client, so the §10 server items are verified on mocks only.
 - No Maps key in `.env`: the pin, geofence circle and camera fit weren't seen on a device in this
   pass.
