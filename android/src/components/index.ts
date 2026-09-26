@@ -1,6 +1,7 @@
 export { AsterOrb } from './AsterOrb';
 export { Avatar } from './Avatar';
 export { BrandMark } from './BrandMark';
+export { ChoiceCard } from './ChoiceCard';
 export { FeatureRow } from './FeatureRow';
 export { HomeMap } from './HomeMap';
 export { HomePin } from './HomePin';

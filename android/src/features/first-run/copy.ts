@@ -161,6 +161,7 @@ export const homePlaceholder = {
   none: '—',
   reset: 'Reset first run',
   gallery: 'Component gallery',
+  settings: 'Settings',
   facts: {
     server: 'Server',
     email: 'Email',
@@ -174,6 +175,7 @@ export const homePlaceholder = {
     skipped: 'Permissions not allowed yet',
     geofence: 'Home geofence',
     lastGeofenceEvent: 'Last geofence event',
+    assistant: 'Assistant',
   },
   geofenceEvent: (type: 'enter' | 'exit', at: string) =>
     `${type === 'enter' ? 'Arrived' : 'Left'} · ${at}`,

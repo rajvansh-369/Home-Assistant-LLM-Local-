@@ -2,6 +2,7 @@
 // Screens call these and navigate with the route they return. Never log tokens, PINs or passwords.
 import * as Device from 'expo-device';
 
+import { afterUnlockSyncEngine } from '@/features/settings/actions';
 import { api, ApiError, type Place, type Profile } from '@/services/api';
 import { resetMockServer } from '@/services/api/mock';
 import { syncHomeGeofence } from '@/services/geofence';
@@ -262,9 +263,9 @@ export async function unlockOwner(pin: string): Promise<FirstRunRoute> {
     profileToken: result.profile_token,
     llmToken: result.llm_token,
     expiresAt: result.expires_at,
-    engines: result.engines,
   };
-  store().set({ session });
+  store().set({ session, engines: result.engines });
+  await afterUnlockSyncEngine(result.profile.llm_engine);
   if (!store().home) {
     const place = await api.getHomePlace(server, session.profileToken).catch(() => null);
     store().set({ homePrefill: place });

@@ -54,9 +54,12 @@ test('the persisted slice never contains a token, PIN or password', async () => 
   expect(Object.keys(stored).sort()).toEqual(
     [
       'email',
+      'engines',
       'fingerprintEnabled',
       'firstRunDone',
       'home',
+      'llmEngine',
+      'llmEngineSynced',
       'lockWhenLeave',
       'owner',
       'permissionsDone',

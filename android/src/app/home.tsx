@@ -38,6 +38,7 @@ export default function Home() {
 
   const onOff = (value: boolean) => (value ? copy.yes : copy.no);
   const skipped = facts.permissionsSkipped.map((key) => permissions.rows[key].title).join(', ');
+  const engineName = facts.engines.find((e) => e.id === facts.llmEngine)?.name ?? facts.llmEngine;
   const rows: [string, string][] = [
     [copy.facts.server, facts.serverUrl ?? copy.none],
     [copy.facts.email, facts.email ?? copy.none],
@@ -57,17 +58,21 @@ export default function Home() {
       copy.facts.lastGeofenceEvent,
       lastEvent ? copy.geofenceEvent(lastEvent.type, new Date(lastEvent.at).toLocaleString()) : copy.none,
     ],
+    [copy.facts.assistant, engineName],
   ];
 
   return (
     <Screen
       footer={
-        __DEV__ ? (
-          <>
-            <PrimaryButton label={copy.reset} onPress={reset} />
-            <TextLink label={copy.gallery} onPress={() => router.push('/dev/gallery')} />
-          </>
-        ) : undefined
+        <>
+          <TextLink label={copy.settings} onPress={() => router.push('/settings')} />
+          {__DEV__ ? (
+            <>
+              <PrimaryButton label={copy.reset} onPress={reset} />
+              <TextLink label={copy.gallery} onPress={() => router.push('/dev/gallery')} />
+            </>
+          ) : null}
+        </>
       }
     >
       <TitleBlock title={copy.title} subtitle={copy.subtitle} />

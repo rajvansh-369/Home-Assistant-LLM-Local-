@@ -55,6 +55,7 @@ export default function RootLayout() {
             <Stack.Screen name="index" options={{ animation: 'none' }} />
             <Stack.Screen name="(first-run)" />
             <Stack.Screen name="home" />
+            <Stack.Screen name="settings" />
             <Stack.Screen name="dev/gallery" />
           </Stack>
         </KeyboardProvider>

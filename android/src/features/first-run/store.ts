@@ -5,7 +5,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import type { EngineOption, Place } from '@/services/api/types';
+import {
+  DEFAULT_ENGINES,
+  type EngineOption,
+  type LlmEngine,
+  type Place,
+} from '@/services/api/types';
 import type { PermissionKey } from '@/services/permissions';
 import type { ProfileColor } from '@/theme';
 
@@ -27,15 +32,15 @@ export type PersistedFirstRun = {
   /** 1.5 rows not allowed at Finish or Skip, so Settings can offer them later. */
   permissionsSkipped: PermissionKey[];
   firstRunDone: boolean;
-};
-
-export type Session = {
-  profileToken: string;
-  llmToken: string;
-  expiresAt: string;
-  /** Engine names for the picker, from unlock. */
+  /** 5.1 Assistant: who answers chats, sent to zypherLL as `engine`. */
+  llmEngine: LlmEngine;
+  /** False while a choice made without a session still has to reach Laravel. */
+  llmEngineSynced: boolean;
+  /** The admin panel's names for the engines, refreshed at every unlock. */
   engines: EngineOption[];
 };
+
+export type Session = { profileToken: string; llmToken: string; expiresAt: string };
 
 export type MemoryFirstRun = {
   /** Persisted slice loaded and device token checked. */
@@ -76,6 +81,9 @@ export const initialPersisted: PersistedFirstRun = {
   permissionsDone: false,
   permissionsSkipped: [],
   firstRunDone: false,
+  llmEngine: 'local',
+  llmEngineSynced: true,
+  engines: DEFAULT_ENGINES,
 };
 
 const initialMemory: MemoryFirstRun = {

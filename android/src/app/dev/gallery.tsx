@@ -5,6 +5,7 @@ import {
   Check,
   Clock,
   Cloud,
+  Cpu,
   Fingerprint,
   Lock,
   MapPin,
@@ -25,6 +26,7 @@ import {
   Avatar,
   BackButton,
   BrandMark,
+  ChoiceCard,
   FeatureRow,
   HomeMap,
   HomePin,
@@ -72,6 +74,7 @@ function GalleryContent() {
   const [fingerprint, setFingerprint] = useState(true);
   const [lockWhenLeave, setLockWhenLeave] = useState(true);
   const [radius, setRadius] = useState<number>(150);
+  const [engine, setEngine] = useState<'local' | 'markl'>('local');
   const [colour, setColour] = useState<ProfileColor>('mint');
   const [name, setName] = useState('');
   const [pin, setPin] = useState('');
@@ -244,6 +247,26 @@ function GalleryContent() {
           <Avatar color="lilac" name="A" small />
           <Avatar color="sky" name="" />
         </View>
+      </Section>
+
+      <Section label="ChoiceCard: selected, idle (tap), disabled">
+        <ChoiceCard
+          icon={Cpu}
+          title="Local"
+          tag="Offline"
+          description="Runs on your home computer."
+          selected={engine === 'local'}
+          onPress={() => setEngine('local')}
+        />
+        <ChoiceCard
+          icon={Cloud}
+          title="Mark-L"
+          tag="Online"
+          description="Google Gemini, reached through your home computer."
+          selected={engine === 'markl'}
+          onPress={() => setEngine('markl')}
+        />
+        <ChoiceCard icon={Cloud} title="Disabled" description="Can't be picked." selected={false} onPress={() => {}} disabled />
       </Section>
 
       <Section label="Segmented">

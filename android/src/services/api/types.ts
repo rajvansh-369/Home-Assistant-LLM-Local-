@@ -9,6 +9,12 @@ export type LlmEngine = 'local' | 'markl';
 /** An engine and the name the admin panel gave it, e.g. `{ id: 'markl', name: 'Mark-L' }`. */
 export type EngineOption = { id: LlmEngine; name: string };
 
+/** What Laravel sends before the admin panel renames anything; shown until the first unlock. */
+export const DEFAULT_ENGINES: EngineOption[] = [
+  { id: 'local', name: 'Local' },
+  { id: 'markl', name: 'Mark-L' },
+];
+
 export type Profile = {
   id: number;
   name: string;
@@ -53,6 +59,8 @@ export type UnlockResponse = {
   expires_at: string;
   /** Local first, then Mark-L, with the names set in the admin panel. */
   engines: EngineOption[];
+  /** The full profile, including its `llm_engine`. */
+  profile: Profile;
 };
 
 /** Every failed call becomes an ApiError. `status` 0 means no HTTP reply (network or timeout). */

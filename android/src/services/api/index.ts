@@ -12,7 +12,7 @@ export const api: AsterApi = useMockApi
   ? mockApi
   : new Proxy({} as AsterApi, { get: () => notConnected });
 
-export { ApiError } from './types';
+export { ApiError, DEFAULT_ENGINES } from './types';
 export type {
   AsterApi,
   CreateProfileBody,

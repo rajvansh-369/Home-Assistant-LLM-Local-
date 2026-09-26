@@ -118,6 +118,8 @@ export const iconSizes = {
   search: 18,
   locate: 20,
   testHint: 15,
+  /** 5.1 ChoiceCard's radio mark. */
+  choiceMark: 22,
 } as const;
 
 export const strokes = {
