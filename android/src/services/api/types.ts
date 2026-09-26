@@ -3,12 +3,20 @@
 
 export type ProfileRole = 'owner' | 'member' | 'guest';
 
+/** Who answers chats on the home PC; sent to zypherLL as `engine`. */
+export type LlmEngine = 'local' | 'markl';
+
+/** An engine and the name the admin panel gave it, e.g. `{ id: 'markl', name: 'Mark-L' }`. */
+export type EngineOption = { id: LlmEngine; name: string };
+
 export type Profile = {
   id: number;
   name: string;
   /** Hex colour, e.g. the Mint swatch value. */
   color: string;
   role: ProfileRole;
+  /** In the full profile (unlock, PATCH, /me); the profile picker list leaves it out. */
+  llm_engine?: LlmEngine;
 };
 
 export type Place = {
@@ -34,13 +42,17 @@ export type CreateProfileBody = {
   auto_lock_minutes: number | null;
 };
 
-export type UpdateProfileBody = Partial<Pick<CreateProfileBody, 'name' | 'color' | 'auto_lock_minutes'>>;
+export type UpdateProfileBody = Partial<Pick<CreateProfileBody, 'name' | 'color' | 'auto_lock_minutes'>> & {
+  llm_engine?: LlmEngine;
+};
 
 export type UnlockResponse = {
   profile_token: string;
   llm_token: string;
   /** ISO 8601, 12 hours after unlock. */
   expires_at: string;
+  /** Local first, then Mark-L, with the names set in the admin panel. */
+  engines: EngineOption[];
 };
 
 /** Every failed call becomes an ApiError. `status` 0 means no HTTP reply (network or timeout). */

@@ -48,6 +48,15 @@ zypherLL/
 ├── postman/
 │   ├── zypherLL.postman_collection.json          every endpoint, ready to send
 │   └── zypherLL.local.postman_environment.json   baseUrl, apiKey, memoryId
+├── markl/                         the Mark-L engine (Gemini), ported from D:\GIT\Mark-L
+│   ├── __init__.py                exports MarkL, MarkLNotReady, MarkLQuotaExhausted, MarkLError, MODEL_ID
+│   ├── settings.py                ZYPHER_MARKL_* from .env: key, mode, models, name, tools, memory db
+│   ├── budget.py                  free / paid policy, 8 req/min while degraded, 15-min 429 cooldown
+│   ├── registry.py                @tool: schema next to the code, per-tool timeout, bounded pool
+│   ├── prompt.txt                 Mark-L persona rewritten for text replies
+│   ├── engine.py                  MarkL.answer: system instruction, streaming, function-calling loop
+│   ├── memory/                    store.py (SQLite facts), embeddings.py (Gemini or lexical), __init__ (recall, prompt block, API ops)
+│   └── tools/                     web_search.py, system_status.py, memory_tools.py
 └── zypher/
     ├── __init__.py                process-wide env (Xet off, CUDA allocator, UTF-8 stdout)
     ├── config.py                  every setting + the .env loader
@@ -63,8 +72,8 @@ zypherLL/
     │   ├── memory.py              semantic memory: exchanges, notes, ratings, recall, forget
     │   └── retrieval.py           live-data router, web search, grounding, source list
     ├── presenter/
-    │   ├── __init__.py            exports Assistant, ModelNotReady
-    │   └── assistant.py           Assistant: load, answer (one turn), memory operations
+    │   ├── __init__.py            exports Assistant, ModelNotReady, resolve_engine
+    │   └── assistant.py           Assistant: load, answer (local turn, or hand to Mark-L), memory operations per engine
     └── view/
         ├── cli.py                 console loop and slash commands
         └── api/
@@ -267,16 +276,22 @@ non-localhost address without a key.
 
 | # | Method | Path | Auth | Purpose |
 |---|---|---|---|---|
-| 1 | GET | `/health` | no | Load state, device, VRAM, whether auth is on |
-| 2 | GET | `/v1/models` | yes | The single model |
-| 3 | GET | `/v1/settings` | yes | Server-wide defaults |
-| 4 | PATCH | `/v1/settings` | yes | Change defaults |
+| 1 | GET | `/health` | no | Default engine's load state and `model`, both engines' state (`engines`), device, VRAM, whether auth is on |
+| 2 | GET | `/v1/models` | yes | Both engines: `zephyr-7b` (local) and `mark-l` |
+| 3 | GET | `/v1/settings` | yes | Server-wide defaults, incl. `engine` and Mark-L's `markl` block |
+| 4 | PATCH | `/v1/settings` | yes | Change defaults, incl. `engine` and `markl_mode` |
 | 5 | POST | `/v1/chat/completions` | yes | Answer (JSON or SSE) |
 | 6 | GET | `/v1/memory` | yes | Memory stats and profile notes |
 | 7 | GET | `/v1/memory/records` | yes | Stored records, newest first |
 | 8 | POST | `/v1/memory/notes` | yes | Add a note (`/remember`) |
-| 9 | POST | `/v1/memory/{record_id}/rate` | yes | Rate a record (`/good` / `/bad`) |
+| 9 | POST | `/v1/memory/{record_id}/rate` | yes | Rate a record (`/good` / `/bad`); local only |
 | 10 | DELETE | `/v1/memory` | yes | Forget records (`/forget`) |
+
+**Engines.** Chat takes `engine` (`local` | `markl`) or `model: "mark-l"`, plus
+`assistant_name` for Mark-L; memory calls 6–10 take `?engine=`. Unset, both use
+the server's `engine` setting (`ZYPHER_DEFAULT_ENGINE`). Mark-L errors: 503 no
+key, 429 quota exhausted, 502 Gemini rejected the request. See README "Mark-L
+engine".
 
 FastAPI also serves interactive docs at `/docs` and the schema at `/openapi.json`.
 

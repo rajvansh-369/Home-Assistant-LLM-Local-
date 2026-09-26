@@ -30,7 +30,7 @@ class ProfileController extends Controller
     public const GUEST_COLOR = '#9299A1';
 
     /** Fields a request may set directly; pin and role are handled on their own. */
-    private const FIELDS = ['name', 'color', 'personality', 'web_mode', 'memory_enabled', 'sampling', 'max_tokens', 'auto_lock_minutes'];
+    private const FIELDS = ['name', 'color', 'personality', 'web_mode', 'memory_enabled', 'sampling', 'llm_engine', 'max_tokens', 'auto_lock_minutes'];
 
     public function index(Request $request): AnonymousResourceCollection
     {

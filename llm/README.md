@@ -177,20 +177,25 @@ reply = client.chat.completions.create(
 
 | Endpoint | Does |
 |---|---|
-| `GET /health` | load state, device, whether a key is required (no auth) |
-| `GET /v1/models` | the one model |
-| `GET /v1/settings` | server defaults and budgets |
+| `GET /health` | load state of the default engine, both engines' state, device, whether a key is required (no auth) |
+| `GET /v1/models` | both engines: `zephyr-7b` and `mark-l` |
+| `GET /v1/settings` | server defaults and budgets, Mark-L's mode and model |
 | `POST /v1/chat/completions` | answer; `stream: true` for server-sent events |
 | `GET /v1/memory` | memory stats and the notes in the system prompt |
 | `GET /v1/memory/records?kind=note\|exchange` | stored records, newest first |
 | `POST /v1/memory/notes` | `{"text": ...}` -- same as `/remember` |
-| `POST /v1/memory/{id}/rate` | `{"rating": "good"\|"bad"}` -- same as `/good` / `/bad` |
+| `POST /v1/memory/{id}/rate` | `{"rating": "good"\|"bad"}` -- same as `/good` / `/bad` (local only) |
 | `DELETE /v1/memory?selector=last\|all\|<text>` | same as `/forget` |
-| `PATCH /v1/settings` | `{"web": bool, "memory": bool, "max_tokens": N}`, the server defaults |
+| `PATCH /v1/settings` | `{"engine": "local"\|"markl", "markl_mode": "free"\|"paid", "web": bool, "memory": bool, "max_tokens": N}`, the server defaults |
+
+Every memory call also takes `?engine=local|markl` (see [Mark-L engine](#mark-l-engine)).
 
 Chat requests take the usual `messages`, `max_tokens`, `temperature`,
 `top_p` and `stream`, plus:
 
+- `engine`: `"local"` or `"markl"`; or pass `"model": "mark-l"`. Default: the
+  server's `engine` setting
+- `assistant_name`: what Mark-L calls itself on this turn (max 40 chars)
 - `web`: `"auto"` (default, the router decides), `true` (force a lookup), `false`
 - `memory`: recall and learn on this request; defaults to the server setting
 - `sampling`: `precise`, `balanced` or `creative`, instead of the per-question pick
@@ -211,6 +216,62 @@ Requests are served one at a time -- one model, one GPU. Disconnecting mid-
 stream stops the generation at the next token. Set `ZYPHER_API_KEY` to require
 `Authorization: Bearer <key>`; without it, anyone who can reach the port can
 use the model and read its memory.
+
+---
+
+## Mark-L engine
+
+A second engine, in `markl/`: the brain of the Mark-L desktop assistant
+(`D:\GIT\Mark-L`), carried over to answer in text over this API. Its persona,
+fact memory, tools and free/paid Gemini budget came across; its voice session,
+HUD, vision and PC-control tools did not. Mark-L requests need no GPU and run
+alongside local ones.
+
+Set it up in `.env`:
+
+| Variable | What | Default |
+|---|---|---|
+| `ZYPHER_MARKL_GEMINI_KEY` | Gemini API key (the one in `Mark-L/config/api_keys.json`) | empty = engine `unconfigured` |
+| `ZYPHER_MARKL_MODE` | `free`: lite model, DuckDuckGo search, 8 req/min. `paid`: full model, Google-grounded search, embeddings | `free` |
+| `ZYPHER_MARKL_MODEL` / `ZYPHER_MARKL_LITE_MODEL` | Gemini models | `gemini-3.6-flash` / `gemini-3.5-flash-lite` |
+| `ZYPHER_MARKL_NAME` | what it calls itself when a request sends no `assistant_name` | `Mark-L` |
+| `ZYPHER_MARKL_TOOLS` | tools callers may use, comma-separated | all four below |
+| `ZYPHER_MARKL_MEMORY_DB` | the fact store; point it at `Mark-L/memory/memory.db` to share the desktop app's memory | `.markl/memory.db` |
+| `ZYPHER_DEFAULT_ENGINE` | engine for requests that do not say | `local` |
+| `ZYPHER_LOCAL_MODEL` | `off` never loads Zephyr: Mark-L only, no GPU | `on` |
+
+Pick it per request:
+
+```bash
+curl http://127.0.0.1:8000/v1/chat/completions -H "Content-Type: application/json" \
+  -d '{"engine": "markl", "assistant_name": "Mark-L", "stream": true,
+       "messages": [{"role": "user", "content": "How hot is my PC running?"}]}'
+```
+
+- **Tools.** `web_search` (news, research, price, compare modes), `system_status`
+  (the home PC's CPU, RAM, GPU, temperature), `save_memory`, `recall_memory`.
+  The model calls them itself; a stream reports each as a `zypher` status
+  (`{"stage": "searching"}` or `{"stage": "tool", "tool": ...}`) and the final
+  `zypher.tools` lists them. `web: false` withholds `web_search`, `memory: false`
+  withholds the memory tools and the recalled facts.
+- **Memory.** Mark-L keeps named facts (`identity`, `preferences`, `projects`,
+  `relationships`, `wishes`, `notes`), saved when the model decides to, not
+  every exchange. `?engine=markl` on the memory calls reads and edits them:
+  records come back as `kind: "note"` with `category` and `key`; `POST
+  /v1/memory/notes` accepts optional `category` and `key`; `DELETE` takes
+  `last`, `all`, a record id, `category/key` or a key; rating is local only (400).
+- **Errors.** 503 when no key is set, 429 when the Gemini quota is exhausted
+  (Mark-L then drops to its reduced mode for 15 minutes), 502 when Gemini
+  rejects the request.
+- **Not ported**, on purpose: opening apps, keyboard and mouse, volume and
+  power, files, WhatsApp messages and the code agent. Phones on the home Wi-Fi,
+  Restricted and Guest profiles included, can reach this API.
+
+In the Aster app each profile picks Local or Mark-L (`llm_engine` on the
+profile in Laravel); the admin panel's **Assistant engines** page renames
+Mark-L for every household, and unlock hands the names to the app as
+`engines`. The app sends the choice as `engine` and the name as
+`assistant_name`.
 
 ---
 
@@ -371,13 +432,23 @@ zypher/
       app.py              FastAPI app and server
       routes.py           endpoints, SSE streaming, auth
       schemas.py          request bodies
+markl/                    the Mark-L engine, ported from the Mark-L desktop app
+  settings.py             Gemini key, models, mode, tools -- from .env
+  budget.py               free / paid policy, rate limit, 429 cooldown
+  registry.py             @tool declarations, timed execution
+  prompt.txt              Mark-L's persona, for text replies
+  engine.py               one turn: prompt, streaming, tool calls
+  memory/                 SQLite fact store, relevance ranking
+  tools/                  web_search, system_status, save/recall_memory
 postman/                  collection + local environment
 requirements.txt          dependencies, with the reason for each floor
 test.html                 sample long output from the runner
 ```
 
 Both views call `Assistant.answer()`, so a change to how a turn works (a new
-grounding source, a different learning rule) is made in one place.
+grounding source, a different learning rule) is made in one place. For
+`engine: "markl"` it hands the whole turn to `markl.MarkL.answer()`, which
+returns a result of the same shape.
 
 ---
 

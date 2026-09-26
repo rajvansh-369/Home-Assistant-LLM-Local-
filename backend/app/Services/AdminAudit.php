@@ -31,9 +31,12 @@ class AdminAudit
 
     public const ADMIN_REACTIVATED = 'admin.reactivated';
 
+    public const ENGINE_RENAMED = 'engine.renamed';
+
     public const ACTIONS = [
         self::MESSAGES_VIEWED, self::LOCATIONS_VIEWED, self::HOUSEHOLD_SUSPENDED, self::HOUSEHOLD_UNSUSPENDED,
         self::DEVICE_REVOKED, self::ADMIN_CREATED, self::ADMIN_DEACTIVATED, self::ADMIN_REACTIVATED,
+        self::ENGINE_RENAMED,
     ];
 
     /**

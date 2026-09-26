@@ -61,8 +61,30 @@ API_KEY = os.environ.get("ZYPHER_API_KEY") or None
 HOST = os.environ.get("ZYPHER_HOST", "127.0.0.1")
 PORT = int(os.environ.get("ZYPHER_PORT", "8000"))
 
-# The name clients pass as "model". There is only one.
+# The name clients pass as "model" for the local engine.
 MODEL_ID = "zephyr-7b"
+
+
+# ============================================================
+# ENGINES (env: ZYPHER_DEFAULT_ENGINE, ZYPHER_LOCAL_MODEL)
+# ============================================================
+
+# Who answers. "local" is Zephyr on this machine's GPU; "markl" is Mark-L on
+# Gemini (the markl package, configured by the ZYPHER_MARKL_* variables). A
+# request picks one with "engine", or with "model": "mark-l"; one that does not
+# say gets DEFAULT_ENGINE. Change it at runtime with PATCH /v1/settings.
+ENGINES = ("local", "markl")
+
+DEFAULT_ENGINE = os.environ.get("ZYPHER_DEFAULT_ENGINE", "local").strip().lower()
+
+if DEFAULT_ENGINE not in ENGINES:
+    DEFAULT_ENGINE = "local"
+
+# "off" never loads Zephyr: no download, no GPU, and the service answers with
+# Mark-L alone. Local-engine requests then get 503.
+LOCAL_MODEL_ENABLED = os.environ.get("ZYPHER_LOCAL_MODEL", "on").strip().lower() not in (
+    "off", "0", "false", "no",
+)
 
 
 # ============================================================

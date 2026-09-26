@@ -16,6 +16,8 @@ export { ApiError } from './types';
 export type {
   AsterApi,
   CreateProfileBody,
+  EngineOption,
+  LlmEngine,
   LlmHealth,
   LoginBody,
   Place,

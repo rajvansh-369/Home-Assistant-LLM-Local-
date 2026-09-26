@@ -478,6 +478,84 @@
               }
             }
           ]
+        },
+        {
+          "name": "Chat (Mark-L)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/completions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "completions"
+              ]
+            },
+            "description": "Answered by the Mark-L engine (Gemini) instead of the local model. `engine` picks it (or `\"model\": \"mark-l\"`); `assistant_name` is what it calls itself. Tools it used are in `zypher.tools`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"engine\": \"markl\",\n  \"assistant_name\": \"Mark-L\",\n  \"stream\": false,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"How is my PC doing right now?\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('answered by Mark-L', () => pm.expect(pm.response.json().zypher.engine).to.eql('markl'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Chat (Mark-L, streaming, web)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/v1/chat/completions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "completions"
+              ]
+            },
+            "description": "Mark-L streaming with a forced web search: a `{\"stage\": \"searching\"}` status chunk arrives before the text.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"mark-l\",\n  \"stream\": true,\n  \"web\": true,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"One headline from today's tech news.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -789,6 +867,41 @@
               ]
             },
             "description": "Wipe the whole store. Cannot be undone."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Overview (Mark-L)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/memory?engine=markl",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "memory"
+              ],
+              "query": [
+                {
+                  "key": "engine",
+                  "value": "markl"
+                }
+              ]
+            },
+            "description": "Mark-L's fact store: counts by category, and the identity and preference facts."
           },
           "event": [
             {

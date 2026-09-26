@@ -24,6 +24,7 @@ import {
   ApiError,
   type AsterApi,
   type CreateProfileBody,
+  type EngineOption,
   type Place,
   type Profile,
   type UpdateProfileBody,
@@ -105,6 +106,12 @@ function requireProfile(state: MockState, token: string) {
 }
 
 const publicProfile = ({ id, name, color, role }: MockProfile): Profile => ({ id, name, color, role });
+
+/** What Laravel sends before the admin panel renames anything. */
+export const MOCK_ENGINES: EngineOption[] = [
+  { id: 'local', name: 'Local' },
+  { id: 'markl', name: 'Mark-L' },
+];
 
 function validateProfile(body: UpdateProfileBody) {
   if (body.name !== undefined && body.name.trim() === '') {
@@ -208,8 +215,9 @@ export const mockApi: AsterApi = {
     if (body.name !== undefined) profile.name = body.name.trim();
     if (body.color !== undefined) profile.color = body.color;
     if (body.auto_lock_minutes !== undefined) profile.auto_lock_minutes = body.auto_lock_minutes;
+    if (body.llm_engine !== undefined) profile.llm_engine = body.llm_engine;
     await save(state);
-    return publicProfile(profile);
+    return { ...publicProfile(profile), llm_engine: profile.llm_engine ?? 'local' };
   },
 
   async unlockProfile(_server, deviceToken, id, pin) {
@@ -240,6 +248,7 @@ export const mockApi: AsterApi = {
       profile_token: profileToken,
       llm_token: newToken(),
       expires_at: new Date(now + TOKEN_TTL_MS).toISOString(),
+      engines: MOCK_ENGINES,
     };
   },
 

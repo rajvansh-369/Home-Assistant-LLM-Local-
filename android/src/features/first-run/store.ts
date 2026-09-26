@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import type { Place } from '@/services/api/types';
+import type { EngineOption, Place } from '@/services/api/types';
 import type { PermissionKey } from '@/services/permissions';
 import type { ProfileColor } from '@/theme';
 
@@ -29,7 +29,13 @@ export type PersistedFirstRun = {
   firstRunDone: boolean;
 };
 
-export type Session = { profileToken: string; llmToken: string; expiresAt: string };
+export type Session = {
+  profileToken: string;
+  llmToken: string;
+  expiresAt: string;
+  /** Engine names for the picker, from unlock. */
+  engines: EngineOption[];
+};
 
 export type MemoryFirstRun = {
   /** Persisted slice loaded and device token checked. */

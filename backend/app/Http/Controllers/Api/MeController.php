@@ -17,7 +17,7 @@ use Illuminate\Validation\ValidationException;
  */
 class MeController extends Controller
 {
-    private const FIELDS = ['name', 'color', 'personality', 'web_mode', 'memory_enabled', 'sampling', 'max_tokens', 'auto_lock_minutes'];
+    private const FIELDS = ['name', 'color', 'personality', 'web_mode', 'memory_enabled', 'sampling', 'llm_engine', 'max_tokens', 'auto_lock_minutes'];
 
     public function show(Request $request): ProfileResource
     {

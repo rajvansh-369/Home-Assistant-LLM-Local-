@@ -6,10 +6,12 @@ use App\Http\Resources\ProfileResource;
 use App\Models\Device;
 use App\Models\Profile;
 use App\Support\ApiTime;
+use App\Support\EngineNames;
 
 /**
  * Opens a profile on a device: a profile token plus a matching llm_token,
- * in the shape unlock and guest-sessions return (§5).
+ * in the shape unlock and guest-sessions return (§5), with the names the
+ * admin panel gave the assistant engines for the app's engine picker.
  */
 class ProfileSessions
 {
@@ -37,6 +39,7 @@ class ProfileSessions
             'expires_at' => ApiTime::format($llm['expires_at']),
             'household_id' => $profile->user->householdId(),
             'profile' => new ProfileResource($profile),
+            'engines' => EngineNames::list(),
         ];
     }
 }

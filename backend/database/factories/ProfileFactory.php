@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\LlmEngine;
 use App\Enums\ProfileRole;
 use App\Enums\Sampling;
 use App\Enums\WebMode;
@@ -39,6 +40,7 @@ class ProfileFactory extends Factory
             'web_mode' => WebMode::Auto,
             'memory_enabled' => true,
             'sampling' => Sampling::Auto,
+            'llm_engine' => LlmEngine::Local,
         ];
     }
 

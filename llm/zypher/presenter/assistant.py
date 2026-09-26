@@ -15,12 +15,18 @@ of the question -- search results and recalled memories wrapped round it --
 exists for the one generation that reads it and is never stored in history.
 Left there, it would re-spend a large part of the prompt budget on every later
 turn re-showing text the model has already used.
+
+That is the local engine. A turn for the "markl" engine is handed to Mark-L
+(the markl package) whole: it has its own prompt, fact memory and tools, and
+returns a result of the same shape. Memory calls take an engine too, since
+each engine keeps its own store.
 """
 
 import threading
 
 import torch
 
+from markl import MarkL
 from zypher import config
 from zypher.model import llm
 from zypher.model import memory as memory_store
@@ -29,6 +35,19 @@ from zypher.model import retrieval
 
 class ModelNotReady(Exception):
     """The model is still loading, or failed to."""
+
+
+def resolve_engine(engine=None):
+    """The engine to use: the one asked for, else the server default."""
+
+    engine = engine or config.DEFAULT_ENGINE
+
+    if engine not in config.ENGINES:
+        raise ValueError("unknown engine {!r}: use one of {}".format(
+            engine, ", ".join(config.ENGINES)
+        ))
+
+    return engine
 
 
 class Assistant:
@@ -50,6 +69,9 @@ class Assistant:
         self.ready = threading.Event()
         self.error = None
 
+        # Needs no loading: a Gemini key in .env is all it takes.
+        self.markl = MarkL()
+
         # The grounded text of the last question answered, so continuing a
         # truncated answer shows the model the same sources it started from
         # -- and the same prompt bytes, which keeps the whole KV cache.
@@ -64,6 +86,9 @@ class Assistant:
             # Constructed first: it loads its encoder on a background thread,
             # and the model load below covers that for free.
             self.store = memory_store.Memory()
+
+            if not config.LOCAL_MODEL_ENABLED:
+                return
 
             if not llm.download_model():
                 raise RuntimeError("model download or verification failed")
@@ -80,7 +105,15 @@ class Assistant:
             self.error = error
             raise
 
-    def status(self):
+    def status(self, engine=None):
+        """local: loading | ready | error | off. markl: ready | unconfigured."""
+
+        if resolve_engine(engine) == "markl":
+            return self.markl.status()
+
+        if not config.LOCAL_MODEL_ENABLED:
+            return "off"
+
         if self.error is not None:
             return "error"
 
@@ -99,8 +132,45 @@ class Assistant:
 
     def answer(self, messages, web="auto", memory=None, sampling=None,
                temperature=None, top_p=None, max_tokens=None, min_tokens=None,
-               on_event=None):
-        """Answer a conversation. Blocking; call it off the event loop.
+               on_event=None, engine=None, assistant_name=None):
+        """Answer a conversation with an engine. Blocking; call it off the event loop.
+
+        engine: "local" or "markl"; None means the server default.
+        assistant_name: the name Mark-L gives itself this turn. Ignored by the
+            local engine.
+
+        Everything else is described on _answer_local. Mark-L takes web,
+        memory, temperature, top_p and max_tokens; it chooses its own sampling
+        and has no min_tokens.
+        """
+
+        if resolve_engine(engine) == "local":
+            return self._answer_local(
+                messages, web=web, memory=memory, sampling=sampling,
+                temperature=temperature, top_p=top_p, max_tokens=max_tokens,
+                min_tokens=min_tokens, on_event=on_event,
+            )
+
+        # Server defaults apply to both engines: web off in settings means no
+        # web_search tool unless the request forces one.
+        if web == "auto" and not config.RETRIEVAL_ENABLED:
+            web = False
+
+        return self.markl.answer(
+            messages,
+            web=web,
+            memory_on=config.MEMORY_ENABLED if memory is None else memory,
+            temperature=temperature,
+            top_p=top_p,
+            max_tokens=max_tokens,
+            assistant_name=assistant_name,
+            on_event=on_event,
+        )
+
+    def _answer_local(self, messages, web="auto", memory=None, sampling=None,
+                      temperature=None, top_p=None, max_tokens=None,
+                      min_tokens=None, on_event=None):
+        """Answer a conversation with the local model.
 
         messages: [{"role": "system"|"user"|"assistant", "content": str}].
             The last non-system message is either the question, or a partial
@@ -118,10 +188,13 @@ class Assistant:
             then "text" with each decoded piece. Raising from it -- ClientGone
             for a vanished reader -- cancels the generation.
 
-        Returns a dict: text, finish_reason, usage, and meta -- sampling,
-        live, sources, cited, recalled, notes_captured, memory_id, seconds,
-        rounds, history_kept.
+        Returns a dict: text, finish_reason, usage, and meta -- engine, model,
+        sampling, live, sources, cited, recalled, notes_captured, memory_id,
+        tools, seconds, rounds, history_kept.
         """
+
+        if not config.LOCAL_MODEL_ENABLED:
+            raise ModelNotReady("the local model is switched off (ZYPHER_LOCAL_MODEL=off)")
 
         if self.error is not None:
             raise ModelNotReady("model failed to load: {}".format(self.error))
@@ -288,6 +361,8 @@ class Assistant:
                 "total_tokens": reply["prompt_tokens"] + reply["tokens"],
             },
             "meta": {
+                "engine": "local",
+                "model": config.MODEL_ID,
                 "sampling": profile,
                 "live": live,
                 "sources": cited or list(sources),
@@ -295,6 +370,7 @@ class Assistant:
                 "recalled": recalled,
                 "notes_captured": captured,
                 "memory_id": memory_id,
+                "tools": [],
                 "seconds": round(reply["seconds"], 3),
                 "rounds": reply["rounds"],
                 # Turns (excluding system) that still fit the prompt budget. A
@@ -306,6 +382,10 @@ class Assistant:
         }
 
     # -- memory -----------------------------------------------
+    #
+    # Each engine keeps its own store: the local engine remembers exchanges and
+    # notes in .memory, Mark-L keeps named facts in SQLite. engine=None is the
+    # server default, as for answer().
 
     def _memory(self):
         if self.store is None:
@@ -315,7 +395,10 @@ class Assistant:
 
         return self.store
 
-    def memory_stats(self):
+    def memory_stats(self, engine=None):
+        if resolve_engine(engine) == "markl":
+            return self.markl.memory_stats()
+
         if self.store is None:
             return None
 
@@ -325,24 +408,39 @@ class Assistant:
 
         return stats
 
-    def profile(self):
+    def profile(self, engine=None):
+        if resolve_engine(engine) == "markl":
+            return self.markl.profile()
+
         return self._memory().profile()
 
-    def records(self, kind=None):
+    def records(self, kind=None, engine=None):
         """Stored records, newest first."""
+
+        if resolve_engine(engine) == "markl":
+            return self.markl.records(kind)
 
         return [
             record for record in reversed(self._memory().records)
             if kind is None or record.get("kind", "exchange") == kind
         ]
 
-    def note(self, text):
-        """Keep a fact about the user. Returns the record, or None."""
+    def note(self, text, engine=None, category=None, key=None):
+        """Keep a fact about the user. Returns the record, or None.
+
+        category and key name a Mark-L fact; the local store ignores them.
+        """
+
+        if resolve_engine(engine) == "markl":
+            return self.markl.note(text, category, key)
 
         return self._memory().note(text)
 
-    def rate(self, record_id, good):
+    def rate(self, record_id, good, engine=None):
         """Promote or demote a stored record. Returns it, or None if unknown."""
+
+        if resolve_engine(engine) == "markl":
+            raise ValueError("Mark-L memory holds facts, not answers -- there is nothing to rate")
 
         store = self._memory()
         record = next((r for r in store.records if r.get("id") == record_id), None)
@@ -352,8 +450,15 @@ class Assistant:
 
         return store.rate(1 if good else -1, record)
 
-    def forget(self, selector="last"):
-        """Drop memories: 'last', 'all', or free text. Returns how many."""
+    def forget(self, selector="last", engine=None):
+        """Drop memories. Returns how many.
+
+        local: 'last', 'all', or free text matched by similarity.
+        markl: 'last', 'all', a record id, 'category/key', or a key.
+        """
+
+        if resolve_engine(engine) == "markl":
+            return self.markl.forget(selector)
 
         return self._memory().forget(selector)
 

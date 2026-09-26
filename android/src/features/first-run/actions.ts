@@ -262,6 +262,7 @@ export async function unlockOwner(pin: string): Promise<FirstRunRoute> {
     profileToken: result.profile_token,
     llmToken: result.llm_token,
     expiresAt: result.expires_at,
+    engines: result.engines,
   };
   store().set({ session });
   if (!store().home) {

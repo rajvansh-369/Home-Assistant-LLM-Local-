@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\LlmEngine;
 use App\Enums\ProfileRole;
 use App\Enums\Sampling;
 use App\Enums\WebMode;
@@ -19,10 +20,11 @@ use Laravel\Sanctum\HasApiTokens;
  * @property ProfileRole $role
  * @property WebMode $web_mode
  * @property Sampling $sampling
+ * @property LlmEngine $llm_engine
  */
 #[Fillable([
     'name', 'color', 'role', 'pin_hash', 'personality', 'web_mode', 'memory_enabled',
-    'sampling', 'max_tokens', 'auto_lock_minutes', 'last_unlocked_at',
+    'sampling', 'llm_engine', 'max_tokens', 'auto_lock_minutes', 'last_unlocked_at',
 ])]
 #[Hidden(['pin_hash'])]
 class Profile extends Model
@@ -39,6 +41,7 @@ class Profile extends Model
             'role' => ProfileRole::class,
             'web_mode' => WebMode::class,
             'sampling' => Sampling::class,
+            'llm_engine' => LlmEngine::class,
             'memory_enabled' => 'boolean',
             'max_tokens' => 'integer',
             'auto_lock_minutes' => 'integer',

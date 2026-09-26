@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\LlmEngine;
 use App\Enums\Sampling;
 use App\Enums\WebMode;
 use Illuminate\Validation\Rule;
@@ -33,6 +34,7 @@ trait ProfileFields
             'web_mode' => ['sometimes', 'required', Rule::enum(WebMode::class)],
             'memory_enabled' => ['sometimes', 'required', 'boolean'],
             'sampling' => ['sometimes', 'required', Rule::enum(Sampling::class)],
+            'llm_engine' => ['sometimes', 'required', Rule::enum(LlmEngine::class)],
             'max_tokens' => ['sometimes', 'nullable', 'integer', 'between:16,8192'],
             'auto_lock_minutes' => ['sometimes', 'nullable', 'integer', 'between:1,60'],
             'pin' => ['sometimes', 'required', 'string', self::PIN_RULE],

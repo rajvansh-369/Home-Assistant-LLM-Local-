@@ -29,6 +29,7 @@ class ProfileResource extends JsonResource
             'web_mode' => $this->web_mode->value,
             'memory_enabled' => $this->memory_enabled,
             'sampling' => $this->sampling->value,
+            'llm_engine' => $this->llm_engine->value,
             'max_tokens' => $this->max_tokens,
             'auto_lock_minutes' => $this->auto_lock_minutes,
             'created_at' => ApiTime::format($this->created_at),
