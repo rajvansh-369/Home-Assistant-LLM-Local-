@@ -8,6 +8,7 @@ import { chat as copy } from '@/features/chat/copy';
 import type { Source } from '@/services/api/types';
 import { colors, iconSizes, radii, sizes, spacing, strokes } from '@/theme';
 
+import { MarkdownText } from './MarkdownText';
 import { OrbDot } from './OrbDot';
 import { SmallPill } from './SmallPill';
 import { Text } from './Text';
@@ -142,11 +143,7 @@ export function AssistantMessage({
             </Text>
           </View>
         ) : null}
-        {content ? (
-          <Text variant="message" selectable>
-            {content}
-          </Text>
-        ) : null}
+        {content ? <MarkdownText source={content} /> : null}
 
         {!streaming && sources.length > 0 ? <Sources sources={sources} /> : null}
         {!streaming && live ? (

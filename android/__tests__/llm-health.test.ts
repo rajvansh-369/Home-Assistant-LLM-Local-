@@ -28,12 +28,14 @@ describe('health parser', () => {
     expect(parseHealth(200, { status: 'error', error: 'CUDA out of memory' }, 5)).toEqual({
       kind: 'failed',
       error: 'CUDA out of memory',
+      ms: 5,
     });
     expect(parseHealth(500, { error: 'model failed to load' }, 5)).toEqual({
       kind: 'failed',
       error: 'model failed to load',
+      ms: 5,
     });
-    expect(parseHealth(500, null, 5)).toEqual({ kind: 'failed', error: 'HTTP 500' });
+    expect(parseHealth(500, null, 5)).toEqual({ kind: 'failed', error: 'HTTP 500', ms: 5 });
   });
 
   test('anything else is an unexpected reply', () => {
@@ -85,6 +87,7 @@ describe('health check', () => {
     expect(await checkLlmHealth('http://192.168.1.20:8000', options)).toEqual({
       kind: 'failed',
       error: 'boom',
+      ms: expect.any(Number),
     });
   });
 

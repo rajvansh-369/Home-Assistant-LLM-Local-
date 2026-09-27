@@ -64,9 +64,11 @@ export function ChatView({
         ? copy.unavailable.loading
         : homeMode.kind === 'checking'
           ? copy.unavailable.checking
-          : homeMode.kind === 'noServer' || homeMode.kind === 'failed'
+          : homeMode.kind === 'noServer'
             ? copy.unavailable.noServer
-            : copy.unavailable.away;
+            : homeMode.kind === 'failed'
+              ? copy.unavailable.failed
+              : copy.unavailable.away;
 
   useEffect(() => {
     if (chat.missing) onMissing?.();

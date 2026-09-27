@@ -52,6 +52,7 @@ export const chat = {
     away: 'Chat is available at home',
     loading: 'Model is loading', // (spec)
     noServer: 'Home server not answering', // (spec)
+    failed: "The home model didn't load", // (proposed)
     checking: 'Checking the home server…', // (proposed)
   },
   errors: {

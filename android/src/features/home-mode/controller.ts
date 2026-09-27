@@ -6,7 +6,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { AppState } from 'react-native';
 
 import { distanceM } from '@/features/first-run/geo';
-import { useFirstRunStore } from '@/features/first-run/store';
+import { activeEngineOf, useFirstRunStore } from '@/features/first-run/store';
 import { checkLlmHealth } from '@/services/llm/health';
 import { lastKnownPosition } from '@/services/location';
 import { currentWifiName } from '@/services/wifi';
@@ -53,7 +53,8 @@ async function readSignals(home: {
 }
 
 async function evaluate() {
-  const { home, llmEngine } = useFirstRunStore.getState();
+  const state = useFirstRunStore.getState();
+  const { home } = state;
   if (!home) {
     setMode({ mode: { kind: 'noHome' } });
     schedule(null);
@@ -80,7 +81,7 @@ async function evaluate() {
   lostAt = null;
   if (!isAtHome(current)) setMode({ mode: { kind: 'checking' } });
   const health = await checkLlmHealth(home.llm_url);
-  const mode = modeFromHealth(health, llmEngine);
+  const mode = modeFromHealth(health, activeEngineOf(state));
   setMode({ mode, checkedAt: Date.now() });
   schedule(nextCheckMs(mode));
 }
@@ -111,8 +112,13 @@ export function startHomeMode(): () => void {
     NetInfo.addEventListener(() => void checkHomeMode()),
     onGeofenceEvent(() => void checkHomeMode()),
     useFirstRunStore.subscribe((state, previous) => {
-      if (state.llmEngine !== previous.llmEngine || state.home !== previous.home)
+      if (
+        activeEngineOf(state) !== activeEngineOf(previous) ||
+        state.home !== previous.home ||
+        state.session?.profile.id !== previous.session?.profile.id
+      ) {
         void checkHomeMode();
+      }
     }),
   ];
   const appState = AppState.addEventListener('change', (next) => {

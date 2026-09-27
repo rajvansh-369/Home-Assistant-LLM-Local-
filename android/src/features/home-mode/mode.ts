@@ -2,6 +2,7 @@
 // transition can be tested without a phone.
 import type { Point } from '@/features/first-run/geo';
 import type { EngineOption, LlmEngine, LlmHealth } from '@/services/api';
+import { LOCAL_MODEL_ID } from '@/services/llm/health';
 
 export type HomeMode =
   /** No home saved: nothing to detect. */
@@ -18,8 +19,8 @@ export type HomeMode =
 
 export type HomeModeKind = HomeMode['kind'];
 
-/** zypherLL's model id for the local engine (`MODEL_ID` in llm/zypher/config.py). */
-export const LOCAL_MODEL_ID = 'zephyr-7b';
+/** zypherLL's model id for the local engine. */
+export { LOCAL_MODEL_ID };
 
 /** Only chat needs Ready; these kinds mean the phone is at home. */
 export const AT_HOME: readonly HomeModeKind[] = [

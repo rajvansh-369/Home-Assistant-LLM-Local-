@@ -16,6 +16,7 @@ export { IconTile } from './IconTile';
 export { InfoCallout } from './InfoCallout';
 export type { CalloutTone } from './InfoCallout';
 export { Keypad } from './Keypad';
+export { MarkdownText } from './MarkdownText';
 export { OrbDot } from './OrbDot';
 export { AllowedChip, AllowPill, PermissionRow } from './PermissionRow';
 export { PinDots } from './PinDots';

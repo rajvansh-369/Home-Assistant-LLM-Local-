@@ -3,7 +3,7 @@
 import { House } from 'lucide-react-native';
 
 import { StatusChip, type StatusTone } from '@/components';
-import { useFirstRunStore } from '@/features/first-run/store';
+import { activeEngineOf, useFirstRunStore } from '@/features/first-run/store';
 import { homeStatus as copy } from '@/features/home/copy';
 
 import { modelLabel, type HomeMode } from './mode';
@@ -39,7 +39,7 @@ type HomeStatusChipProps = {
 
 export function HomeStatusChip({ onPress }: HomeStatusChipProps) {
   const mode = useHomeModeStore((state) => state.mode);
-  const model = useFirstRunStore((state) => modelLabel(state.llmEngine, state.engines));
+  const model = useFirstRunStore((state) => modelLabel(activeEngineOf(state), state.engines));
   const { label, tone } = homeStatusText(mode, model, onPress != null);
   return (
     <StatusChip label={label} tone={tone} icon={onPress ? House : undefined} onPress={onPress} />

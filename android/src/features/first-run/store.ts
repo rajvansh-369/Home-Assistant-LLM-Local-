@@ -133,6 +133,15 @@ export const useFirstRunStore = create<FirstRunStore>()(
   ),
 );
 
+/**
+ * Who answers chats right now: the phone's choice for the unlocked profile; Guest, which has no
+ * Settings, uses its own engine from Laravel.
+ */
+export function activeEngineOf(state: Pick<FirstRunStore, 'session' | 'llmEngine'>): LlmEngine {
+  if (state.session?.profile.role === 'guest') return state.session.profile.llm_engine ?? 'local';
+  return state.llmEngine;
+}
+
 export function isUnlocked(session: Session | null, now = Date.now()): boolean {
   return session != null && Date.parse(session.expiresAt) > now;
 }

@@ -2,7 +2,7 @@
 // asks for (docs/aster-home-chat-plan.md §6 Errors): a 401 gets a fresh llm_token from Laravel and
 // one retry; "out of GPU memory" retries once with less history and max_tokens 1024; a model that
 // isn't ready sends home mode back to checking.
-import { useFirstRunStore } from '@/features/first-run/store';
+import { activeEngineOf, useFirstRunStore } from '@/features/first-run/store';
 import { checkHomeMode } from '@/features/home-mode/controller';
 import { api, type LlmEngine } from '@/services/api';
 import { ChatError, streamChat, type ChatMessage, type ChatResult } from '@/services/llm/chat';
@@ -14,9 +14,7 @@ const store = () => useFirstRunStore.getState();
 
 /** The engine for this session: the phone's choice for the profile; Guest uses its own. */
 export function activeEngine(): LlmEngine {
-  const { session, llmEngine } = store();
-  if (session?.profile.role === 'guest') return session.profile.llm_engine ?? 'local';
-  return llmEngine;
+  return activeEngineOf(store());
 }
 
 export type AskInput = {

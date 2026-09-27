@@ -1,10 +1,13 @@
 // zypherLL health check for the 1.4 Test pill (plan §4.4, §6). Always a real fetch, mock mode
 // included: the home LLM isn't part of the mock server.
 import { checkLlmUrl } from '@/features/first-run/validators';
-import type { HealthServer, LlmHealth } from '@/services/api/types';
+import type { HealthServer, LlmEngine, LlmHealth } from '@/services/api/types';
 import { homeLlmHost, isReleaseBuild } from '@/services/buildConfig';
 
 export const LLM_HEALTH_TIMEOUT_MS = 3000;
+
+/** zypherLL's model id for the local engine (`MODEL_ID` in llm/zypher/config.py). */
+export const LOCAL_MODEL_ID = 'zephyr-7b';
 
 type HealthOptions = {
   homeLlmHost: string | null;
@@ -41,12 +44,46 @@ export function parseHealth(status: number, body: unknown, ms: number): LlmHealt
   const error = text(data.error) ?? text(data.message) ?? text(data.detail);
   const server = serverInfo(data);
   if (status >= 500 || (status === 200 && data.status === 'error')) {
-    return { kind: 'failed', error: error ?? `HTTP ${status}`, ...server };
+    return { kind: 'failed', error: error ?? `HTTP ${status}`, ms, ...server };
   }
   if (status === 200 && data.status === 'ready')
     return { kind: 'ready', model: text(data.model), ms, ...server };
   if (status === 200 && data.status === 'loading') return { kind: 'loading', ms, ...server };
   return { kind: 'unexpected', status };
+}
+
+/**
+ * The `/health` result for one engine. zypherLL with Mark-L reports each engine in `engines`, and
+ * its top-level `status` is only the default engine's: a PC with Zephyr switched off but Mark-L
+ * ready is ready for a profile on Mark-L. `engineName` is what to call Mark-L (its admin-panel
+ * name); Local is named by its model id.
+ */
+export function healthForEngine(
+  health: LlmHealth,
+  engine: LlmEngine,
+  engineName: string,
+): LlmHealth {
+  if (health.kind !== 'ready' && health.kind !== 'loading' && health.kind !== 'failed')
+    return health;
+  const state = health.server?.engines[engine];
+  if (state === undefined) return health;
+  const ms = health.ms ?? 0;
+  if (state === 'ready') {
+    const model =
+      engine === 'local'
+        ? health.server!.engine === 'local' && health.kind === 'ready'
+          ? (health.model ?? LOCAL_MODEL_ID)
+          : LOCAL_MODEL_ID
+        : engineName;
+    return { kind: 'ready', model, ms, server: health.server };
+  }
+  if (state === 'loading') return { kind: 'loading', ms, server: health.server };
+  const own = health.kind === 'failed' && health.server!.engine === engine;
+  return {
+    kind: 'failed',
+    error: own ? health.error : `${engineName}: ${state}`,
+    server: health.server,
+  };
 }
 
 /** `GET {llmUrl}/health`, no token, 3 s timeout covering the body too. */

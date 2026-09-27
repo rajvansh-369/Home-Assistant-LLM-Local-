@@ -7,7 +7,7 @@ import {
   type HomeSignals,
 } from '@/features/home-mode/mode';
 import type { LlmHealth } from '@/services/api';
-import { parseHealth } from '@/services/llm/health';
+import { healthForEngine, parseHealth } from '@/services/llm/health';
 
 const server = (engines: Record<string, string>, engine = 'local', busy = false) => ({
   server: { engines, engine, busy },
@@ -136,4 +136,50 @@ test('model labels: the local model id, or Mark-L by its admin-panel name', () =
   ];
   expect(modelLabel('local', engines)).toBe('zephyr-7b');
   expect(modelLabel('markl', engines)).toBe('Jarvis');
+});
+
+describe('healthForEngine (1.4 Test)', () => {
+  const offLocal: LlmHealth = {
+    kind: 'failed',
+    error: 'the local model is switched off (ZYPHER_LOCAL_MODEL=off)',
+    ms: 12,
+    server: { engines: { local: 'off', markl: 'ready' }, engine: 'local', busy: false },
+  };
+
+  test('Zephyr off, Mark-L ready: ready for a Mark-L Owner, named by its admin-panel name', () => {
+    expect(healthForEngine(offLocal, 'markl', 'Jarvis')).toMatchObject({
+      kind: 'ready',
+      model: 'Jarvis',
+      ms: 12,
+    });
+  });
+
+  test("the same PC is the default engine's error for a Local Owner", () => {
+    expect(healthForEngine(offLocal, 'local', 'Local')).toMatchObject({
+      kind: 'failed',
+      error: 'the local model is switched off (ZYPHER_LOCAL_MODEL=off)',
+    });
+  });
+
+  test('Mark-L not set up names its state', () => {
+    const noKey: LlmHealth = {
+      kind: 'ready',
+      model: 'zephyr-7b',
+      ms: 3,
+      server: { engines: { local: 'ready', markl: 'unconfigured' }, engine: 'local', busy: false },
+    };
+    expect(healthForEngine(noKey, 'markl', 'Mark-L')).toMatchObject({
+      kind: 'failed',
+      error: 'Mark-L: unconfigured',
+    });
+    expect(healthForEngine(noKey, 'local', 'Local')).toMatchObject({
+      kind: 'ready',
+      model: 'zephyr-7b',
+    });
+  });
+
+  test('an old server without engines is left as it is', () => {
+    const old: LlmHealth = { kind: 'ready', model: null, ms: 1 };
+    expect(healthForEngine(old, 'markl', 'Mark-L')).toBe(old);
+  });
 });

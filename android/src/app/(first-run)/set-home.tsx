@@ -28,7 +28,7 @@ import { useStepBack } from '@/features/first-run/useStepBack';
 import { checkLlmUrl } from '@/features/first-run/validators';
 import { ApiError, type LlmHealth } from '@/services/api';
 import { hasMapsKey, homeLlmHost, isReleaseBuild } from '@/services/buildConfig';
-import { checkLlmHealth } from '@/services/llm/health';
+import { checkLlmHealth, healthForEngine } from '@/services/llm/health';
 import {
   addressLine,
   currentPosition,
@@ -82,7 +82,13 @@ export default function SetHome() {
   const [error, setError] = useState<string | null>(null);
 
   const llm = checkLlmUrl(llmUrl, { homeLlmHost, release: isReleaseBuild });
-  const testResult = llm.ok && test?.url === llm.url ? test.result : null;
+  // Judged for the Owner's engine: a PC with Zephyr off but Mark-L ready is ready for Mark-L.
+  const engine = useFirstRunStore((state) => state.llmEngine);
+  const engineName = useFirstRunStore(
+    (state) => state.engines.find((e) => e.id === state.llmEngine)?.name ?? state.llmEngine,
+  );
+  const testResult =
+    llm.ok && test?.url === llm.url ? healthForEngine(test.result, engine, engineName) : null;
   const canSubmit = point !== null && address !== null && llm.ok;
 
   // No prompt on arrival: only use location if it was already granted.

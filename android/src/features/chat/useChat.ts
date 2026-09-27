@@ -41,7 +41,8 @@ export function errorText(error: unknown, engineName: string): string {
     case 'unauthorized':
       return copy.errors.signedOut;
     case 'not-ready':
-      return copy.errors.loading;
+      // "model is still loading" reads as our line; "switched off" or "not configured" as zypherLL's.
+      return /loading/i.test(error.message) ? copy.errors.loading : error.message;
     case 'quota':
       return copy.errors.quota(engineName);
     case 'upstream':

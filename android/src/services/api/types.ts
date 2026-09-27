@@ -260,7 +260,7 @@ export type LlmHealth =
   /** `model` is the default engine's model id ("zephyr-7b"); older servers leave it out. */
   | { kind: 'ready'; model: string | null; ms: number; server?: HealthServer }
   | { kind: 'loading'; ms: number; server?: HealthServer }
-  | { kind: 'failed'; error: string; server?: HealthServer }
+  | { kind: 'failed'; error: string; ms?: number; server?: HealthServer }
   | { kind: 'no-reply' }
   /** Release build, plain http to a host other than HOME_LLM_HOST (plan §7). */
   | { kind: 'blocked' }
