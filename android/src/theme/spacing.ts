@@ -136,6 +136,17 @@ export const sizes = {
   sourceNumber: 22,
   rateWidth: 36,
   rateHeight: 32,
+  // Reminders and location (docs/aster-reminders-location-plan.md §3).
+  /** 5.3's map, full width. */
+  dayMap: 280,
+  /** 5.3's day arrows and the timeline's icon tiles. */
+  dayArrow: 40,
+  timelineTile: 32,
+  /** The dotted path: 1 on, 7 off (canvas), and its width. */
+  pathDash: 7,
+  pathWidth: 3,
+  /** 5.3's Pause button. */
+  secondaryButton: 48,
 } as const;
 
 export const iconSizes = {

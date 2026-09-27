@@ -69,4 +69,6 @@ export const mapColors = {
   searchShadow: 'rgba(0,0,0,0.35)',
   /** 3.2: the phone's position (canvas #82C7F0 with a light ring). */
   me: '#82C7F0',
+  /** 5.3: the day's path, dotted. */
+  path: colors.warning,
 } as const;

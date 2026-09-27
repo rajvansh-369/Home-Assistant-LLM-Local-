@@ -1,5 +1,6 @@
 // What the phone sends zypherLL for a turn (docs/aster-home-chat-plan.md §6, decision 8): the
-// profile's personality as a system message, the last 10 messages of the chat, then the question.
+// profile's personality as a system message (with the city, when "Use my area in answers" is on:
+// reminders plan §5), the last 10 messages of the chat, then the question.
 // zypherLL appends a client system message to its own prompt, which already has the date and the
 // profile's notes.
 import type { ChatMessage } from '@/services/llm/chat';
@@ -14,18 +15,20 @@ export type Turn = { role: 'user' | 'assistant'; content: string };
 
 export function buildMessages({
   personality,
+  area,
   history,
   question,
   limit = CONTEXT_MESSAGES,
 }: {
   personality?: string | null;
+  /** "The user is in or near Pune." */
+  area?: string | null;
   history: Turn[];
   question: string;
   limit?: number;
 }): ChatMessage[] {
-  const system = personality?.trim()
-    ? [{ role: 'system' as const, content: personality.trim() }]
-    : [];
+  const lines = [personality?.trim(), area?.trim()].filter(Boolean);
+  const system = lines.length > 0 ? [{ role: 'system' as const, content: lines.join('\n\n') }] : [];
   const recent = history.filter((turn) => turn.content.trim() !== '').slice(-limit);
   return [...system, ...recent, { role: 'user', content: question }];
 }

@@ -11,6 +11,7 @@ import { useChatStore } from '@/features/chat/store';
 import { resetFirstRun, signIn, unlockOwner } from '@/features/first-run/actions';
 import { useFirstRunStore } from '@/features/first-run/store';
 import { useHomeModeStore } from '@/features/home-mode/store';
+import * as area from '@/features/location/area';
 import { openGuestSession } from '@/features/profiles/actions';
 import { guest as guestCopy } from '@/features/profiles/copy';
 import { mockApi, setMockLatency } from '@/services/api/mock';
@@ -259,4 +260,28 @@ test('Guest: memory and web off, nothing kept, End locks and goes back', async (
   });
   expect(useFirstRunStore.getState().session).toBeNull();
   expect(mockBack).toHaveBeenCalled();
+});
+
+test('Use my area: the city rides in the system message and the question is flagged', async () => {
+  const line = jest.spyOn(area, 'areaLine').mockReturnValue('The user is in or near Pune.');
+  fetchMock.mockResolvedValueOnce(stream([text('Try the cafe on FC Road.'), done('stop')]));
+  await render(<Chat />);
+  await ask('Good cafes near me?');
+
+  await waitFor(() => expect(fetchMock).toHaveBeenCalled(), wait);
+  expect(lastBody().messages[0]).toEqual({
+    role: 'system',
+    content: 'The user is in or near Pune.',
+  });
+  expect(JSON.stringify(lastBody())).not.toMatch(/18\.5|73\.8/);
+  const [chat] = Object.values(useChatStore.getState().chats);
+  await waitFor(
+    () =>
+      expect(
+        chat.messages[0]?.context ??
+          useChatStore.getState().chats[chat.clientUuid].messages[0].context,
+      ).toEqual(['area']),
+    wait,
+  );
+  line.mockRestore();
 });

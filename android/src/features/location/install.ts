@@ -7,6 +7,7 @@ import { AppState } from 'react-native';
 import { onSessionOpened } from '@/features/first-run/actions';
 import { useFirstRunStore } from '@/features/first-run/store';
 
+import { forgetArea, refreshArea } from './area';
 import { clearLocationSettings, refreshLocationSettings, useLocationStore } from './settings';
 import { stopTracking, syncTracking } from './tracking';
 import { flushDeviceUploads } from './uploads';
@@ -18,6 +19,7 @@ export function installLocation() {
   installed = true;
 
   void syncTracking();
+  void refreshArea();
 
   onSessionOpened(async () => {
     if (useFirstRunStore.getState().session?.profile.role !== 'owner') return;
@@ -28,12 +30,13 @@ export function installLocation() {
     if (state !== 'active') return;
     void syncTracking();
     void flushDeviceUploads();
+    void refreshArea();
   });
 
   useFirstRunStore.subscribe((state, previous) => {
     if (!previous.firstRunDone && state.firstRunDone) void syncTracking();
     if (previous.hasDeviceToken && !state.hasDeviceToken) {
-      void stopTracking().then(clearLocationSettings);
+      void stopTracking().then(clearLocationSettings).then(forgetArea);
     }
   });
 
@@ -43,5 +46,6 @@ export function installLocation() {
     if (before.enabled !== after.enabled || before.interval_minutes !== after.interval_minutes) {
       void syncTracking();
     }
+    if (!before.share_area && after.share_area) void refreshArea();
   });
 }

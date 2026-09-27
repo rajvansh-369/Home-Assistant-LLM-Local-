@@ -1,8 +1,10 @@
 // 5.1 Settings, a tab. Profile section: who is unlocked, and Lock (back to 2.1). Assistant section:
 // choose who answers chats. Local is Zephyr on the home computer; Mark-L (named in the admin panel)
 // is Gemini through the same computer. The choice applies on this phone at once and reaches Laravel
-// now if unlocked, else at the next unlock.
-import { Cloud, Cpu, HouseWifi, Lock } from 'lucide-react-native';
+// now if unlocked, else at the next unlock. The Owner also sees Home and location, which opens 5.3
+// (reminders plan §3).
+import { router } from 'expo-router';
+import { Cloud, Cpu, History, House, HouseWifi, Lock } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -10,14 +12,18 @@ import {
   Avatar,
   ChoiceCard,
   InfoCallout,
+  LinkRow,
   Screen,
   SmallPill,
   StatusLine,
   Text,
   TitleBlock,
+  ToggleCard,
   type FieldStatus,
 } from '@/components';
 import { useFirstRunStore } from '@/features/first-run/store';
+import { location as locationCopy } from '@/features/location/copy';
+import { pausedUntil, useLocationStore } from '@/features/location/settings';
 import { DevFacts } from '@/features/settings/DevFacts';
 import { lockSession } from '@/features/profiles/actions';
 import { whoIsUsing } from '@/features/profiles/copy';
@@ -27,6 +33,41 @@ import type { LlmEngine } from '@/services/api';
 import { colors, profileColorKey, radii, spacing } from '@/theme';
 
 const ICONS = { local: Cpu, markl: Cloud } as const;
+
+/** 5.1 Home and location, Owner only (reminders plan §3). */
+function HomeAndLocation() {
+  const home = useFirstRunStore((state) => state.home);
+  const settings = useLocationStore((state) => state.settings);
+  const rows = locationCopy.settingsRows;
+  const paused = pausedUntil(settings);
+  const history = !settings.enabled
+    ? rows.off
+    : paused
+      ? rows.paused(paused)
+      : rows.historyDetail(settings.interval_minutes, settings.retention_days);
+  return (
+    <View style={styles.section}>
+      <Text variant="label" tone="secondary" accessibilityRole="header">
+        {rows.section}
+      </Text>
+      <ToggleCard>
+        {home ? (
+          <LinkRow
+            icon={House}
+            title={rows.home}
+            subtitle={rows.homeDetail(home.address, home.radius_m)}
+          />
+        ) : null}
+        <LinkRow
+          icon={History}
+          title={rows.history}
+          subtitle={history}
+          onPress={() => router.push('/location')}
+        />
+      </ToggleCard>
+    </View>
+  );
+}
 
 export default function Settings() {
   const engine = useFirstRunStore((state) => state.llmEngine);
@@ -99,6 +140,7 @@ export default function Settings() {
       </View>
       {status ? <StatusLine status={status} /> : null}
       <InfoCallout icon={HouseWifi} text={copy.homeWifi} />
+      {profile?.role === 'owner' ? <HomeAndLocation /> : null}
       {__DEV__ ? <DevFacts /> : null}
     </Screen>
   );

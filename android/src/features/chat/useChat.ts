@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useFirstRunStore } from '@/features/first-run/store';
 import { useHomeModeStore } from '@/features/home-mode/store';
+import { areaLine } from '@/features/location/area';
 import { ChatError, type ChatMessage } from '@/services/llm/chat';
 import type { ChatEvent } from '@/services/llm/sse';
 
@@ -198,12 +199,15 @@ export function useChat(mode: ChatMode, initialUuid: string | null) {
         chat = createChat(question);
         setChatUuid(chat);
       }
+      // Never for Guest (reminders plan decision 10); the flag records it, not the city.
+      const area = mode === 'guest' ? null : areaLine();
       const request = buildMessages({
         personality: profile?.personality,
+        area,
         history: turnsBefore(latest.current, latest.current.length),
         question,
       });
-      const user = newMessage('user', question);
+      const user = { ...newMessage('user', question), ...(area ? { context: ['area'] } : {}) };
       const reply = newMessage('assistant', '');
       add(chat, [user, reply]);
       void run(chat, reply.client_uuid, request, [user.client_uuid, reply.client_uuid], '');
