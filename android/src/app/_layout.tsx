@@ -14,9 +14,12 @@ import { bootFirstRun } from '@/features/first-run/actions';
 import { useFirstRunStore } from '@/features/first-run/store';
 import { useHomeMode } from '@/features/home-mode/useHomeMode';
 import { useAutoLock } from '@/features/profiles/useAutoLock';
+import { installReminders } from '@/features/reminders/install';
 import { syncHomeGeofence } from '@/services/geofence';
-// Defines the geofence task at module scope, so it exists when Android wakes the app (plan §7).
+// Defines the background tasks at module scope, so they exist when Android wakes the app (plan §7,
+// reminders plan §6).
 import '@/tasks/geofence-task';
+import { registerNotificationTask } from '@/tasks/notification-task';
 import { colors } from '@/theme/colors';
 import { fontAssets } from '@/theme/fonts';
 
@@ -36,7 +39,11 @@ export default function RootLayout() {
     bootFirstRun()
       // Geofences may not survive a reboot or an update: register again while allowed (§7).
       .then(() => syncHomeGeofence(useFirstRunStore.getState().home).catch(() => false))
-      .catch(() => useFirstRunStore.getState().set({ booted: true }));
+      .catch(() => useFirstRunStore.getState().set({ booted: true }))
+      .finally(() => {
+        void registerNotificationTask();
+        installReminders(() => {});
+      });
   }, []);
 
   useEffect(() => {
