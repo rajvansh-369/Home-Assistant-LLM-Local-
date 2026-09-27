@@ -54,7 +54,9 @@ export function useServerCheck(input: string, allowDevHttp: boolean = __DEV__) {
         const { ms } = await withTimeout(api.checkServer(result.url), SERVER_CHECK_TIMEOUT_MS);
         if (id === requestId.current) setCheck({ kind: 'ok', url: result.url, ms });
       } catch {
-        if (id === requestId.current) setCheck({ kind: 'failed' });
+        if (id !== requestId.current) return;
+        checkedInput.current = null; // the next blur tries again
+        setCheck({ kind: 'failed' });
       }
     },
     [allowDevHttp],

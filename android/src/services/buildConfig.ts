@@ -15,5 +15,9 @@ export const homeLlmHost: string | null =
 /** GOOGLE_MAPS_API_KEY was set at build time; Google Maps crashes without one. */
 export const hasMapsKey = extra.hasMapsKey === true;
 
+/** app.config.ts `version`, sent as `app_version` when the phone signs in. */
+export const appVersion: string | undefined =
+  typeof Constants.expoConfig?.version === 'string' ? Constants.expoConfig.version : undefined;
+
 /** Release builds enforce the cleartext rule; debug builds allow any http host. */
 export const isReleaseBuild = !__DEV__;

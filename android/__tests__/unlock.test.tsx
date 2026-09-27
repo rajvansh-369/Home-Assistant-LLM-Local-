@@ -65,14 +65,14 @@ test('shows the Owner and submits on the 6th digit', async () => {
 test('a wrong PIN clears the dots and says so; the 5th locks the keypad with a countdown', async () => {
   await render(<UnlockOwner />);
 
-  for (let attempt = 1; attempt <= 5; attempt++) {
+  for (let attempt = 1; attempt <= 4; attempt++) {
     await typePin('000000');
     await waitFor(() => expect(screen.getByText(copy.wrongPin)).toBeTruthy(), wait);
     expect(screen.getByLabelText(copy.digitsEntered(0))).toBeTruthy();
   }
 
-  // The 6th try hits the lock: 429 with retry_after.
-  await typePin('123456');
+  // The 5th wrong try starts the lock, as Laravel does: 429 with retry_after.
+  await typePin('000000');
   await waitFor(() => expect(screen.getByText(/^Locked\. Try again in \d+ s$/)).toBeTruthy(), wait);
   expect(screen.getByRole('button', { name: '1' }).props.accessibilityState).toMatchObject({
     disabled: true,

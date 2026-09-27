@@ -1,7 +1,9 @@
-// Request and response shapes for the calls in plan §6. The spec lists routes but not bodies,
-// so every field name here is an assumption to check against the Laravel controllers (Phase 7).
+// Request and response shapes for the calls in plan §6, checked against the Laravel controllers,
+// form requests and API resources in ../backend (Phase 7). Only the fields the app reads are typed;
+// Laravel sends more (listed in the comments).
 
-export type ProfileRole = 'owner' | 'member' | 'guest';
+/** The Owner and Guest are created by the server; member and restricted by the Owner later. */
+export type ProfileRole = 'owner' | 'member' | 'restricted' | 'guest';
 
 /** Who answers chats on the home PC; sent to zypherLL as `engine`. */
 export type LlmEngine = 'local' | 'markl';
@@ -15,16 +17,22 @@ export const DEFAULT_ENGINES: EngineOption[] = [
   { id: 'markl', name: 'Mark-L' },
 ];
 
+/**
+ * `GET /profiles` sends only these four (ProfileSummaryResource). The full profile (unlock, PATCH,
+ * /me: ProfileResource) adds has_pin, personality, web_mode, memory_enabled, sampling, max_tokens,
+ * auto_lock_minutes and timestamps.
+ */
 export type Profile = {
   id: number;
   name: string;
-  /** Hex colour, e.g. the Mint swatch value. */
+  /** Hex colour. Laravel stores and returns it upper-cased (#7FD9B8). */
   color: string;
   role: ProfileRole;
   /** In the full profile (unlock, PATCH, /me); the profile picker list leaves it out. */
   llm_engine?: LlmEngine;
 };
 
+/** PlaceResource; Laravel also returns id and updated_at. */
 export type Place = {
   name: 'Home';
   address: string;
@@ -35,8 +43,10 @@ export type Place = {
   llm_url: string;
 };
 
-export type LoginBody = { email: string; password: string; device_name: string };
+/** `device_name` is at most 100 characters; `app_version` at most 40 and optional. */
+export type LoginBody = { email: string; password: string; device_name: string; app_version?: string };
 export type RegisterBody = LoginBody & { name: string };
+/** Laravel also returns household_id, user { id, name, email } and device { id, name }. */
 export type TokenResponse = { token: string };
 
 export type CreateProfileBody = {
@@ -52,6 +62,7 @@ export type UpdateProfileBody = Partial<Pick<CreateProfileBody, 'name' | 'color'
   llm_engine?: LlmEngine;
 };
 
+/** Laravel also returns household_id. */
 export type UnlockResponse = {
   profile_token: string;
   llm_token: string;

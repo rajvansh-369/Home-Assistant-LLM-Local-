@@ -1,16 +1,11 @@
-// The API the app uses. Mocks until Phase 7 connects the real Laravel server.
+// The API the app uses: the real Laravel server, or the in-app mock with EXPO_PUBLIC_USE_MOCK_API=1.
+import { realApi } from './client';
 import { mockApi } from './mock';
 import type { AsterApi } from './types';
 
 export const useMockApi = process.env.EXPO_PUBLIC_USE_MOCK_API === '1';
 
-const notConnected = (): never => {
-  throw new Error('The real API client arrives in Phase 7. Set EXPO_PUBLIC_USE_MOCK_API=1.');
-};
-
-export const api: AsterApi = useMockApi
-  ? mockApi
-  : new Proxy({} as AsterApi, { get: () => notConnected });
+export const api: AsterApi = useMockApi ? mockApi : realApi;
 
 export { ApiError, DEFAULT_ENGINES } from './types';
 export type {

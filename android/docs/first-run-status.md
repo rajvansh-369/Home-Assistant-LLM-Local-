@@ -1,7 +1,7 @@
 # First run: status
 
-Where the Aster first run stands after Phase 8 (25 Sep 2026). The plan is
-`docs/aster-first-run-plan.md`; section numbers below point into it.
+Where the Aster first run stands after Phase 7 (27 Sep 2026; Phase 8 was done first, on mocks).
+The plan is `docs/aster-first-run-plan.md`; section numbers below point into it.
 
 ## What's built
 
@@ -14,14 +14,78 @@ Where the Aster first run stands after Phase 8 (25 Sep 2026). The plan is
 | 1.4 Set home | `(first-run)/set-home` | Done. Map, search, locate, radius, Wi-Fi prefill, LLM validation and Test, Save. |
 | 1.5 Permissions | `(first-run)/permissions` | Done. Six rows with true status, blocked rows open settings, refresh on return, Finish and Skip. |
 | 3.1 Home placeholder | `home` | Lists the saved facts, the skipped permissions and the geofence status. Reset and the gallery are dev-only. |
+| 5.1 Settings (engine only) | `settings` | Opened from Home. Picks who answers chats: Local (offline, Zephyr on the home PC) or Mark-L (online, Gemini through the same PC), under the admin panel's names. Saved to Laravel when unlocked, otherwise at the next unlock. |
 
 Around the screens: launch routing (§5) as the pure `resolveFirstRunRoute`, the Zustand store
-(persisted facts in AsyncStorage, secrets in SecureStore, tokens in memory), the mock Laravel
-server, the zypherLL `/health` check (always real), the cleartext config plugin, the local Kotlin
-module `modules/aster-system`, and the home geofence task.
+(persisted facts in AsyncStorage, secrets in SecureStore, tokens in memory), the real Laravel
+client and the mock server behind `EXPO_PUBLIC_USE_MOCK_API`, the zypherLL `/health` check (always
+real), the cleartext config plugin, the local Kotlin module `modules/aster-system`, and the home
+geofence task.
 
-**Phase 7 (real Laravel API) has not been done.** `src/services/api/index.ts` still throws when
-`EXPO_PUBLIC_USE_MOCK_API=0`. Everything below was checked against the mock server.
+## Phase 7: the real Laravel API
+
+- `src/services/api/client.ts` is the real client: `{server}/api`, JSON in and out,
+  `Accept: application/json`, the route's bearer token, 15 s timeout (5 s for `GET /up`). Every
+  failure becomes one `ApiError`: status 0 for no reply (with `timedOut`), Laravel's 422 field
+  errors, and the 429 wait from `retry_after` or the `Retry-After` header.
+- `src/services/api/index.ts` picks it when `EXPO_PUBLIC_USE_MOCK_API=0` (now the default in
+  `.env.example`); `1` keeps the in-app mock. Jest always runs on the mock, except the two new
+  suites below.
+- `device_name` is manufacturer and model from expo-device ("Google Pixel 7"), without repeating
+  a maker the model name already has, cut to Laravel's 100 characters. Sign-in and register also
+  send `app_version` (the app config version), which Laravel keeps on the device row.
+- The existing-household chain, the Set home prefill and the 401 sign-out ("Please sign in
+  again.") were already built on the mock in Phases 2–4; they now run against Laravel unchanged.
+- `scripts/dev-api.mjs` wasn't written: the Laravel app in `../backend` runs.
+- Tests: `__tests__/api-client.test.ts` (URLs, headers, the `data` wrapper, 422, 429 from body and
+  header, 401/403/5xx, no reply, both timeouts) and `__tests__/real-api-chains.test.ts` (the new-
+  and existing-household chains of §5 and the 401 sign-out, through the real client against a
+  fake Laravel that checks each route's token).
+
+### API shapes, checked against Laravel
+
+Read from `../backend` (routes, form requests, resources, `PinGuard`, `ProfileSessions`) and
+confirmed with curl against `php artisan serve`:
+
+| Call | What Laravel does |
+|---|---|
+| `POST /auth/register`, `/auth/login` | Body `name` (register), `email`, `password`, `device_name`, optional `app_version`. 201/200 `{ token, household_id, user, device }`. Wrong login: 422 on `email`, "Email or password is wrong.". Suspended: 403. Throttled: 429 with `retry_after`. |
+| Register when a household exists | Only refused (403 "Registration is closed.") with `ASTER_REGISTRATION=single`. The default, `open`, lets any new email make a new household; a taken email is 422 on `email`. |
+| `GET /profiles` | `{ data: [{ id, name, color, role }] }`, including the Guest Laravel creates with the Owner. |
+| `POST /profiles` | Colour must be `#RRGGBB`; Laravel upper-cases it, and the app matches swatches case-blind. `auto_lock_minutes` 1–60 or null. 201 `{ data: profile }`. |
+| `POST /profiles/{id}/unlock` | `{ profile_token, llm_token, expires_at, household_id, profile, engines }`, not wrapped in `data`. Wrong PIN: 422 `{ errors: { pin }, attempts_left }`; the fifth gives 429 with `retry_after` 30 (doubling for later lockouts within 24 h, up to 1 h). |
+| `GET` / `PUT /places/home` | Owner profile token. 404 "No home is saved yet." when none. `PUT` is always 200. Also returns `id` and `updated_at`. |
+| `PATCH /profiles/{id}` | Owner profile token (also used by 5.1 for `llm_engine`). A device token gets 403. |
+| Unknown or revoked token | 401 `{ message: "Unauthenticated." }`. The wrong kind of token gets 403. |
+
+Roles include `restricted` (types updated). Laravel now has `POST /auth/logout`; the app doesn't
+call it yet (§9 decision 10).
+
+### Device check (27 Sep 2026)
+
+x86_64 debug build on the Android 16 emulator, Metro with `EXPO_PUBLIC_USE_MOCK_API=0`, Laravel
+from `php artisan serve` on the PC (MySQL from XAMPP), server `http://10.0.2.2:8000`:
+
+- New household (register mode): 1.3 ran register, create Owner, unlock and `GET /places/home`
+  (404); Laravel stored the device as "Google sdk_gphone64_x86_64" with `app_version` 1.0.0, the
+  Owner in Sky with `auto_lock_minutes` 2, and a Guest.
+- Back to 1.3 (edit mode), Peach, Save profile: `PATCH /profiles/{id}` with the profile token.
+- 1.4: search, map, circle and Wi-Fi prefill ("AndroidWifi"); Save home stored the place. 1.5
+  Skip reached Home.
+- 5.1 Settings: Mark-L showed "Saved." and the profile's `llm_engine` became `markl` on Laravel.
+- Reset first run, then sign in to the same household: a wrong password shows "Email or password
+  is wrong."; the right one goes to 2.2 with the Owner. Four wrong PINs read "Wrong PIN. Try
+  again.", the fifth locks with a countdown; after it, the right PIN opens 1.4 prefilled from
+  Laravel (address, 150 m, Wi-Fi, LLM address).
+- Device token deleted on the server, then Sign in: `GET /profiles` got 401 and 1.2 shows
+  "Please sign in again." with the token gone.
+- No password, PIN or token in the Metro log or logcat.
+- Found and fixed: after a failed server check, leaving the field didn't check the same address
+  again, so one slow reply stuck as "Can't reach this server" until the address was edited. The
+  first `/up` from the emulator to `php artisan serve` took 10 s (the PHP dev server; later ones
+  took ~0.1 s), which is how it showed up.
+
+Screenshots: `docs/screens/phase-7/`.
 
 ## Phase 8 changes
 
@@ -90,8 +154,10 @@ Added proposed strings: `common.noConnection`, `createOwner.fingerprintLater`,
    refuses all plain HTTP and 1.4 says so.
 8. **Geofence timing.** Registered when 1.5 sees "Allow all the time" with a saved home, after Save
    home if already allowed, and on every app start.
-9. **JSON shapes.** Assumed in `src/services/api/types.ts`; unconfirmed until Phase 7.
-10. **Sign-out.** None yet; signing in again leaves the old device token valid.
+9. **JSON shapes.** Confirmed against the Laravel controllers in Phase 7 (table above); kept in
+    `src/services/api/types.ts`.
+10. **Sign-out.** Laravel now has `POST /auth/logout`, but the app has no sign-out yet, so signing
+    in again leaves the old device token valid.
 11. **Maps provider.** react-native-maps with Google. `GOOGLE_MAPS_API_KEY` is empty in the current
     `.env`, so the map frame is blank (by design, instead of a crash); search, locate and the address
     line still work.
@@ -135,7 +201,9 @@ Screenshots: `docs/screens/phase-6/` and `docs/screens/phase-8/393-release-*`.
 - Expo Go opens the app, but only for UI checks. It lacks `modules/aster-system` and TaskManager,
   so Notification access, battery and the geofence do nothing there (a dev warning says so), and
   SMS and background location may be refused. Use a development build for 1.5.
-- Phase 7 not done: no real Laravel client, so the §10 server items are verified on mocks only.
+- Dev builds allow plain http only to `localhost` and `10.0.2.2` (§4.2), so a phone can't use
+  `http://192.168.x.x:8000` for a Laravel on the PC. Use `adb reverse tcp:8000 tcp:8000` and
+  `http://localhost:8000`, or an https address.
 - No Maps key in `.env`: the pin, geofence circle and camera fit weren't seen on a device in this
   pass.
 - "Use my current location" failed on the emulator even with location on (the fused provider had a
@@ -150,8 +218,10 @@ Screenshots: `docs/screens/phase-6/` and `docs/screens/phase-8/393-release-*`.
   field itself always stays visible.
 - TalkBack was checked through the accessibility tree (`uiautomator dump --compressed`), not by
   listening with TalkBack on.
-- 2.2 locks on the sixth attempt: the fifth wrong PIN still reads "Wrong PIN. Try again." and the
-  next one returns 429. That matches §6 ("allows 5 tries, then locks").
+- 2.2 locks on the fifth wrong PIN: Laravel's `PinGuard` answers it with 429 itself. The mock
+  used to lock one try later; it now matches.
+- Dev builds with an `http://` server show "Reachable · HTTPS · {ms} ms" (the canvas string); only
+  https is reachable in release builds, so this is dev-only.
 - Dev only: with reduced motion on, Reanimated shows a LogBox warning toast; on Windows, Metro
   sometimes misses edits and new files (restart Metro).
 
@@ -164,7 +234,12 @@ npm run android             # builds and installs the dev build
 npm test && npm run typecheck && npm run lint
 ```
 
-Mock triggers are listed at the top of `src/services/api/mock.ts`: for example, the password
+Against the real Laravel on this PC (`EXPO_PUBLIC_USE_MOCK_API=0`): start MySQL, then
+`php artisan serve --port=8000` in `../backend`. On the emulator enter `http://10.0.2.2:8000` at
+1.2; on a USB phone run `adb reverse tcp:8000 tcp:8000` and enter `http://localhost:8000`.
+Changing `EXPO_PUBLIC_*` values needs a Metro restart with `--clear`.
+
+With `EXPO_PUBLIC_USE_MOCK_API=1`, mock triggers are listed at the top of `src/services/api/mock.ts`: for example, the password
 "wrong" gives 422, an email starting with "owner" signs in to a household whose Owner has PIN
 123456, and five wrong PINs lock for 30 s. In dev builds, "Reset first run" on Home clears
 storage, the secure store and the mock server; long-press the Welcome wordmark for the component

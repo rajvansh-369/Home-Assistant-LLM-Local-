@@ -11,7 +11,7 @@
 //   Register, email starting with "exists"    403 household exists (also once any household exists)
 //   Register, email starting with "taken"     422 on email (already taken)
 //   Register, password shorter than 8         422 on password
-//   Unlock, wrong PIN                         422; the 5th wrong try locks for 30 s, then 429 with retry_after
+//   Unlock, wrong PIN                         422; the 5th wrong try gets 429 with retry_after 30 (as Laravel)
 //   Anything else                             works
 //
 // Tokens the mock hands out are random strings; a token the mock doesn't know gives 401.
@@ -225,20 +225,23 @@ export const mockApi: AsterApi = {
     const state = await load();
     requireDevice(state, deviceToken);
     const now = Date.now();
-    if (state.unlock.lockedUntil > now) {
-      throw new ApiError(429, 'Too many tries.', {
+    const locked = () =>
+      new ApiError(429, 'Too many wrong PINs.', {
         retryAfter: Math.ceil((state.unlock.lockedUntil - now) / 1000),
       });
-    }
+    if (state.unlock.lockedUntil > now) throw locked();
     const profile = state.profiles.find((p) => p.id === id);
     if (!profile) throw new ApiError(404, 'Not found.');
     if (profile.pinHash !== scramble(pin)) {
       state.unlock.failures += 1;
+      // Like Laravel's PinGuard: the 5th wrong try itself starts the lockout.
       if (state.unlock.failures >= MAX_UNLOCK_TRIES) {
         state.unlock = { failures: 0, lockedUntil: now + UNLOCK_LOCK_MS };
+        await save(state);
+        throw locked();
       }
       await save(state);
-      throw invalid('pin', 'The PIN is wrong.');
+      throw invalid('pin', 'Wrong PIN.');
     }
     state.unlock = { failures: 0, lockedUntil: 0 };
     const profileToken = newToken();

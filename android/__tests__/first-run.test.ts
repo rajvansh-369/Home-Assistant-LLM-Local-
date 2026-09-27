@@ -129,20 +129,24 @@ describe('mock server errors (plan §6)', () => {
     await expect(mockApi.register(server, body)).rejects.toMatchObject({ status: 403 });
   });
 
-  test('five wrong PINs lock unlock for 30 s with 429', async () => {
+  test('the fifth wrong PIN locks unlock for 30 s with 429', async () => {
     const { token } = await mockApi.login(server, {
       email: 'owner@example.test',
       password: 'pw',
       device_name: 't',
     });
     const [profile] = await mockApi.listProfiles(server, token);
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 4; i++) {
       await expect(
         mockApi.unlockProfile(server, token, profile.id, '999999'),
       ).rejects.toMatchObject({ status: 422 });
     }
+    const fifth = await mockApi.unlockProfile(server, token, profile.id, '999999').catch((e) => e);
+    expect(fifth).toBeInstanceOf(ApiError);
+    expect(fifth.status).toBe(429);
+    expect(fifth.retryAfter).toBe(30);
+    // During the lockout even the right PIN is refused.
     const locked = await mockApi.unlockProfile(server, token, profile.id, '123456').catch((e) => e);
-    expect(locked).toBeInstanceOf(ApiError);
     expect(locked.status).toBe(429);
     expect(locked.retryAfter).toBeGreaterThan(0);
     expect(locked.retryAfter).toBeLessThanOrEqual(30);

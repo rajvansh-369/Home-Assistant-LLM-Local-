@@ -5,6 +5,7 @@ import * as Device from 'expo-device';
 import { afterUnlockSyncEngine } from '@/features/settings/actions';
 import { api, ApiError, type Place, type Profile } from '@/services/api';
 import { resetMockServer } from '@/services/api/mock';
+import { appVersion } from '@/services/buildConfig';
 import { syncHomeGeofence } from '@/services/geofence';
 import type { PermissionKey } from '@/services/permissions';
 import * as secure from '@/services/secure';
@@ -18,7 +19,24 @@ const AUTO_LOCK_MINUTES = 2;
 
 const store = () => useFirstRunStore.getState();
 const nextRoute = (): FirstRunRoute => resolveFirstRunRoute(firstRunFacts(store()));
-const deviceName = () => Device.modelName ?? 'Android phone';
+
+/**
+ * The name Laravel keeps for this phone's device token: manufacturer and model ("Google Pixel 7"),
+ * without repeating a maker the model name already starts with, cut to Laravel's 100 characters.
+ */
+export function deviceName(
+  manufacturer: string | null = Device.manufacturer,
+  model: string | null = Device.modelName,
+): string {
+  const maker = manufacturer?.trim() ?? '';
+  const name = model?.trim() ?? '';
+  const label = !name
+    ? maker
+    : !maker || name.toLowerCase().startsWith(maker.toLowerCase())
+      ? name
+      : `${maker} ${name}`;
+  return (label || 'Android phone').slice(0, 100);
+}
 
 function colorKey(hex: string): ProfileColor {
   const match = (Object.keys(profileColors) as ProfileColor[]).find(
@@ -100,7 +118,12 @@ export async function signIn({ server, email, password }: Credentials): Promise<
   // Going back never repeats a server write: sign in again only if server or email changed.
   const alreadySignedIn = state.hasDeviceToken && state.serverUrl === server && state.email === email;
   if (!alreadySignedIn) {
-    const { token } = await api.login(server, { email, password, device_name: deviceName() });
+    const { token } = await api.login(server, {
+      email,
+      password,
+      device_name: deviceName(),
+      app_version: appVersion,
+    });
     await secure.setDeviceToken(token);
     store().set({
       serverUrl: server,
@@ -172,6 +195,7 @@ export async function createOwner(input: OwnerInput): Promise<FirstRunRoute> {
         email: pending.email,
         password: pending.password,
         device_name: deviceName(),
+        app_version: appVersion,
       }));
     } catch (error) {
       throw registerFailure(error);

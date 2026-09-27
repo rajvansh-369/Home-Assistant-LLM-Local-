@@ -4,7 +4,8 @@ import SignIn from '@/app/(first-run)/sign-in';
 import { resetFirstRun } from '@/features/first-run/actions';
 import { signIn as copy } from '@/features/first-run/copy';
 import { useFirstRunStore } from '@/features/first-run/store';
-import { setMockLatency } from '@/services/api/mock';
+import { ApiError } from '@/services/api';
+import { mockApi, setMockLatency } from '@/services/api/mock';
 
 const mockPush = jest.fn();
 
@@ -59,6 +60,18 @@ test('shows the https and unreachable states', async () => {
   await fireEvent.changeText(server, 'https://unreachable.test');
   await waitFor(() => expect(screen.getByText(copy.unreachable)).toBeTruthy(), wait);
   expect(submitButton().props.accessibilityState).toMatchObject({ disabled: true });
+});
+
+test('after a failed check, leaving the field checks the same address again', async () => {
+  jest.spyOn(mockApi, 'checkServer').mockRejectedValueOnce(new ApiError(0, 'Timed out', { timedOut: true }));
+  await render(<SignIn />);
+  const server = screen.getByLabelText(copy.serverLabel);
+
+  await fireEvent.changeText(server, 'https://aster.test');
+  await waitFor(() => expect(screen.getByText(copy.unreachable)).toBeTruthy(), wait);
+
+  await fireEvent(server, 'blur');
+  await waitFor(() => expect(screen.getByText(reachable)).toBeTruthy(), wait);
 });
 
 test('maps wrong credentials and 429 to the §4.2 copy', async () => {
