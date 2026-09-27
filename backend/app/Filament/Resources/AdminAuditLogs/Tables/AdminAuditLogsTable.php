@@ -2,12 +2,12 @@
 
 namespace App\Filament\Resources\AdminAuditLogs\Tables;
 
+use App\Filament\Tables\HouseholdColumns;
 use App\Models\Admin;
 use App\Models\AdminAuditLog;
 use App\Services\AdminAudit;
 use Carbon\CarbonImmutable;
 use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\TextInput;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -16,7 +16,10 @@ use Illuminate\Database\Eloquent\Builder;
 
 class AdminAuditLogsTable
 {
-    public static function configure(Table $table): Table
+    /**
+     * @param  bool  $showHousehold  false on a household page, where every row is that household's
+     */
+    public static function configure(Table $table, bool $showHousehold = true): Table
     {
         $tz = config('aster.admin.timezone');
 
@@ -30,7 +33,7 @@ class AdminAuditLogsTable
                     in_array($state, [AdminAudit::HOUSEHOLD_SUSPENDED, AdminAudit::DEVICE_REVOKED, AdminAudit::ADMIN_DEACTIVATED], true) => 'danger',
                     default => 'gray',
                 }),
-                TextColumn::make('user_id')->label('Household')->formatStateUsing(fn (?int $state): string => 'h'.$state)->placeholder('—'),
+                HouseholdColumns::column()->visible($showHousehold),
                 TextColumn::make('subject')
                     ->state(fn (AdminAuditLog $record): ?string => $record->subject_type === null ? null : class_basename($record->subject_type).' #'.$record->subject_id)
                     ->placeholder('—'),
@@ -48,13 +51,7 @@ class AdminAuditLogsTable
                     ->options(fn () => Admin::query()->orderBy('name')->pluck('name', 'id')->all()),
                 SelectFilter::make('action')
                     ->options(array_combine(AdminAudit::ACTIONS, AdminAudit::ACTIONS)),
-                Filter::make('household')
-                    ->schema([TextInput::make('household')->label('Household id')->placeholder('h7')])
-                    ->query(function (Builder $query, array $data): Builder {
-                        $id = ltrim(strtolower(trim((string) ($data['household'] ?? ''))), 'h');
-
-                        return ctype_digit($id) ? $query->where('user_id', (int) $id) : $query;
-                    }),
+                ...($showHousehold ? [HouseholdColumns::filter()] : []),
                 Filter::make('created_at')
                     ->label('Date')
                     ->schema([

@@ -8,6 +8,7 @@ use App\Enums\LocationEvent;
 use App\Enums\MessageSource;
 use App\Enums\SpeakMode;
 use App\Models\ActivityLog;
+use App\Models\Admin;
 use App\Models\AuthEvent;
 use App\Models\ChatMessage;
 use App\Models\Conversation;
@@ -26,10 +27,16 @@ use Illuminate\Support\Str;
 /**
  * Sample data for local development: the Rohan household from the plan,
  * plus 25 random households so the admin dashboard has numbers to show.
- * Every profile except Guest has PIN 123456.
+ * Every profile except Guest has PIN 123456. The admin sets up an
+ * authenticator app at first sign-in, like one made with aster:create-admin.
  */
 class DemoSeeder extends Seeder
 {
+    /** Prefilled on the local /admin sign-in form (App\Filament\Pages\Auth\Login). */
+    public const ADMIN_EMAIL = 'admin@example.com';
+
+    public const ADMIN_PASSWORD = 'password';
+
     private const HOME_LAT = 12.9352;
 
     private const HOME_LNG = 77.6245;
@@ -38,6 +45,7 @@ class DemoSeeder extends Seeder
     {
         // One transaction: much faster than committing every insert.
         DB::transaction(function (): void {
+            Admin::factory()->create(['name' => 'Admin', 'email' => self::ADMIN_EMAIL, 'password' => self::ADMIN_PASSWORD]);
             $this->seedRohan();
 
             for ($i = 0; $i < 25; $i++) {

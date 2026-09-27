@@ -146,4 +146,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(DeviceActivityDay::class);
     }
+
+    /** @return HasMany<AdminAuditLog, $this> */
+    public function auditLogs(): HasMany
+    {
+        return $this->hasMany(AdminAuditLog::class);
+    }
 }

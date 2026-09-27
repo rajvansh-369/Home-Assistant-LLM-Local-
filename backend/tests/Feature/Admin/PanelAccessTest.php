@@ -1,9 +1,10 @@
 <?php
 
+use App\Filament\Pages\Auth\Login;
 use App\Models\Admin;
 use App\Models\Profile;
 use App\Models\User;
-use Filament\Auth\Pages\Login;
+use Database\Seeders\DemoSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
@@ -14,6 +15,24 @@ beforeEach(fn () => Filament::setCurrentPanel('admin'));
 it('sends a visitor to the admin sign-in page', function () {
     $this->get('/admin')->assertRedirect('/admin/login');
     $this->get('/admin/login')->assertOk()->assertSee('Aster Admin');
+});
+
+it('fills in the demo admin on the sign-in form only when running locally', function () {
+    Livewire::test(Login::class)
+        ->assertSet('data.email', null)
+        ->assertSet('data.password', null);
+
+    $this->app['env'] = 'local';
+    $admin = Admin::factory()->create(['email' => DemoSeeder::ADMIN_EMAIL, 'password' => DemoSeeder::ADMIN_PASSWORD]);
+
+    Livewire::test(Login::class)
+        ->assertSet('data.email', 'admin@example.com')
+        ->assertSet('data.password', 'password')
+        ->call('authenticate')
+        ->assertHasNoErrors();
+
+    // No authenticator app yet, so the prefilled form signs straight in and setup follows.
+    expect(auth('admin')->id())->toBe($admin->id);
 });
 
 it('has no sign-up or password reset pages', function () {

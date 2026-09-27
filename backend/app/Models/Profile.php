@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -71,6 +72,12 @@ class Profile extends Model
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class);
+    }
+
+    /** @return HasManyThrough<ChatMessage, Conversation, $this> */
+    public function messages(): HasManyThrough
+    {
+        return $this->hasManyThrough(ChatMessage::class, Conversation::class);
     }
 
     public function isOwner(): bool

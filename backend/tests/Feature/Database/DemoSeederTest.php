@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ProfileRole;
+use App\Models\Admin;
 use App\Models\ChatMessage;
 use App\Models\DeviceActivityDay;
 use App\Models\Location;
@@ -26,4 +27,10 @@ it('seeds the demo households on a fresh database', function () {
         ->and(Location::where('user_id', $rohan->id)->count())->toBeGreaterThan(0)
         ->and(ChatMessage::count())->toBeGreaterThan(8)
         ->and(DeviceActivityDay::count())->toBeGreaterThan(26);
+
+    $admin = Admin::sole();
+    expect($admin->email)->toBe('admin@example.com')
+        ->and(Hash::check('password', $admin->password))->toBeTrue()
+        ->and($admin->is_active)->toBeTrue()
+        ->and($admin->hasMultiFactorSetUp())->toBeFalse();
 });

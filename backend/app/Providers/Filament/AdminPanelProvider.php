@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Auth\AppAuthentication;
+use App\Filament\Pages\Auth\Login;
 use App\Http\Middleware\AdminIpAllowlist;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -35,7 +36,7 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->brandName('Aster Admin')
             ->authGuard('admin')
-            ->login()
+            ->login(Login::class)
             ->multiFactorAuthentication([
                 AppAuthentication::make()->recoverable(),
             ], isRequired: true)
