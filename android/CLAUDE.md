@@ -4,8 +4,10 @@
 
 Aster is a React Native (Expo, TypeScript, expo-router) app for Android: a household AI
 assistant that talks to a Laravel API (`../backend`) and a home-network LLM, zypherLL (`../llm`).
-Built: the first run (1.1–1.5, 2.2 first-run mode) and home mode with chat: 2.1 Who's using,
-2.2 for any profile, 2.5 Guest, 3.1/3.2 Home, 3.3 Chats, 3.4/3.5 streaming chat, 5.1 Settings.
+Built: the first run (1.1–1.5, 2.2 first-run mode), home mode with chat (2.1 Who's using,
+2.2 for any profile, 2.5 Guest, 3.1/3.2 Home, 3.3 Chats, 3.4/3.5 streaming chat, 5.1 Settings),
+and reminders and location (3.1/3.2 "Coming up", the reminder editor, reminder notifications,
+location points and uploads, 5.3 Location).
 It runs as a development build (`npx expo run:android`), never Expo Go. Dark theme only.
 
 Plans and source of truth: `docs/aster-first-run-plan.md` (first run, phases in §8),
@@ -37,6 +39,8 @@ src/app/                     routes (expo-router); only screens and _layout file
   guest.tsx                  2.5 Guest chat
   (tabs)/                    home (3.1/3.2), chats (3.3), settings (5.1)
   chat/[id].tsx              3.4 Chat (`new`, `private` or a chat's client_uuid)
+  reminder/[id].tsx          add / edit a reminder (`new` or its client_uuid)
+  location.tsx               5.3 Location (Owner only)
   dev/gallery.tsx            component gallery, dev builds only
 src/theme/                   colors, typography, spacing, map style
 src/components/              shared components (plan §3)
@@ -44,11 +48,14 @@ src/features/first-run/      copy.ts, validators.ts, routing.ts, store.ts (also 
 src/features/profiles/       2.1/2.2/2.5: actions, profiles cache, UnlockView, auto-lock
 src/features/home-mode/      mode rules, controller (Wi-Fi, area, /health), status chip
 src/features/chat/           chat cache, upload queue, sync, prompt, streaming turn, ChatView
+src/features/reminders/      reminders store, queue, sync, alarms, Coming up, editor
+src/features/location/       settings, tracking, points, device uploads, area, 5.3
 src/services/api/            client (real Laravel), types, mock
 src/services/llm/            health.ts, chat.ts (streaming via expo/fetch), sse.ts
 src/services/permissions/    one entry per Permissions row
 src/services/secure.ts       expo-secure-store wrapper
-src/tasks/                   geofence-task.ts
+src/services/notifications.ts expo-notifications: reminder channel, category, alarms
+src/tasks/                   geofence, location updates, notification actions (headless too)
 modules/aster-system/        local Expo module (Kotlin)
 plugins/                     config plugins (with-home-llm-cleartext.js)
 __tests__/                   jest tests (never inside src/app)

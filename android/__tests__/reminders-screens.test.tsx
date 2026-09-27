@@ -143,9 +143,10 @@ describe('editor', () => {
   test('a time picked in the past is refused', async () => {
     await render(<ReminderEditor id="new" />);
     await fireEvent.changeText(screen.getByLabelText(copy.editor.what), 'Too late');
-    await fireEvent.press(screen.getByRole('button', { name: /^Time, / }));
+    // A past day: a past clock time alone may land tomorrow (the default is an hour from now).
+    await fireEvent.press(screen.getByRole('button', { name: /^Day, / }));
     const { onChange } = pickerOpen.mock.calls[0][0];
-    const past = new Date(Date.now() - 2 * HOUR);
+    const past = new Date(Date.now() - 26 * HOUR);
     await act(async () =>
       onChange!({ type: 'set', nativeEvent: { timestamp: past.getTime(), utcOffset: 0 } }, past),
     );

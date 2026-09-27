@@ -1,8 +1,10 @@
 // Home geofence task (plan §7 Geofence). Defined at module scope and imported from the root
 // layout, so it exists when Android wakes the app for an event. It records enter and exit with a
-// timestamp, and tells home mode (src/features/home-mode) when the app is running. It also saves an
-// arrived / left point with its activity event (reminders plan §5), and arriving rings the armed
-// arrive-home reminders while leaving arms them (§4).
+// timestamp, and tells home mode (src/features/home-mode) when the app is running. On a real
+// arrival or departure it also saves an arrived / left point with its activity event (reminders
+// plan §5), and arriving rings the armed arrive-home reminders while leaving arms them (§4).
+// expo-location registers with an initial trigger, so every registration reports where the phone
+// is; that, or a repeat of the last event, isn't a transition and only updates home mode.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GeofencingEventType, type LocationRegion } from 'expo-location';
 
@@ -45,12 +47,22 @@ export async function recordGeofenceEvent(event: GeofenceEvent): Promise<void> {
   listeners.forEach((listener) => listener(event));
 }
 
+/**
+ * One geofence event. Returns true when it was a transition (the last recorded event was the
+ * other one) and the arrival or departure was acted on.
+ */
+export async function onHomeGeofence(type: GeofenceEvent['type'], now = new Date()) {
+  const previous = (await readGeofenceEvents()).at(-1)?.type ?? null;
+  await recordGeofenceEvent({ type, at: now.toISOString() });
+  if (previous === null || previous === type) return false;
+  await recordHomeEvent(type, now.getTime()).catch(() => {});
+  await (type === 'enter' ? ringArriveHome(now) : armArriveHome()).catch(() => {});
+  return true;
+}
+
 type GeofenceData = { eventType: GeofencingEventType; region: LocationRegion };
 
 TaskManager?.defineTask<GeofenceData>(HOME_GEOFENCE_TASK, async ({ data, error }) => {
   if (error || !data) return;
-  const type = data.eventType === GeofencingEventType.Enter ? 'enter' : 'exit';
-  await recordGeofenceEvent({ type, at: new Date().toISOString() });
-  await recordHomeEvent(type).catch(() => {});
-  await (type === 'enter' ? ringArriveHome() : armArriveHome()).catch(() => {});
+  await onHomeGeofence(data.eventType === GeofencingEventType.Enter ? 'enter' : 'exit');
 });

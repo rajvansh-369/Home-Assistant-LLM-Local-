@@ -286,6 +286,20 @@ describe('notification buttons', () => {
     expect(onServer.status).toBe('done');
   });
 
+  test('Done on a reminder that rang logs reminder_fired, even before the app looked', async () => {
+    jest.spyOn(api, 'postActivity').mockRejectedValue(new ApiError(0, 'Network request failed'));
+    const uuid = await addReminder(time(HOUR), false);
+    await markDone(uuid, new Date(Date.now() + 2 * HOUR));
+    expect((await readDeviceUploads()).events).toEqual([
+      expect.objectContaining({ type: 'reminder_fired', meta: { trigger: 'time' } }),
+    ]);
+
+    // Done before it was due: it never rang, so nothing is logged.
+    const early = await addReminder(time(HOUR), false);
+    await markDone(early);
+    expect((await readDeviceUploads()).events).toHaveLength(1);
+  });
+
   test('a snooze button with no data still finds its reminder', async () => {
     const uuid = await addReminder(time(HOUR), false);
     await handleAlarmResponse({

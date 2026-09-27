@@ -17,10 +17,12 @@ import { syncTracking } from '@/features/location/tracking';
 import { readDeviceUploads, resetDeviceUploadsRuntime } from '@/features/location/uploads';
 import { lockSession, loadProfiles, unlockProfile } from '@/features/profiles/actions';
 import { api, ApiError } from '@/services/api';
+import { onHomeGeofence } from '@/tasks/geofence-task';
 import { mockApi, setMockLatency } from '@/services/api/mock';
 
 jest.mock('expo-location', () => ({
   Accuracy: { Balanced: 3 },
+  GeofencingEventType: { Enter: 1, Exit: 2 },
   getLastKnownPositionAsync: jest.fn(async () => null),
   getBackgroundPermissionsAsync: jest.fn(async () => ({ granted: true })),
   hasStartedLocationUpdatesAsync: jest.fn(async () => false),
@@ -233,5 +235,20 @@ describe('starting and stopping', () => {
     });
     expect(await syncTracking()).toBe('off');
     expect(location.startLocationUpdatesAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe('geofence transitions', () => {
+  test("the registration's initial report and repeats are not arrivals or departures", async () => {
+    expect(await onHomeGeofence('enter')).toBe(false);
+    expect(await onHomeGeofence('enter')).toBe(false);
+    expect(await readDeviceUploads()).toMatchObject({ points: [], events: [] });
+
+    expect(await onHomeGeofence('exit')).toBe(true);
+    expect(await onHomeGeofence('exit')).toBe(false);
+    expect(await onHomeGeofence('enter')).toBe(true);
+    const { points, events } = await readDeviceUploads();
+    expect(points.map((p) => p.event)).toEqual(['left', 'arrived']);
+    expect(events.map((e) => e.type)).toEqual(['left_home', 'arrived_home']);
   });
 });

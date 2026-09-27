@@ -115,11 +115,24 @@ export async function editReminder(
   await reconcileAlarms();
 }
 
+/**
+ * A time reminder that came due has rung, even if the app hasn't looked since: log it once
+ * (reconcileAlarms does the same for reminders nobody touched).
+ */
+async function noteRang(reminder: LocalReminder, now: Date) {
+  if (reminder.trigger !== 'time' || !reminder.dueAt) return;
+  const due = Date.parse(reminder.dueAt);
+  if (due > now.getTime() || (reminder.firedAt && Date.parse(reminder.firedAt) >= due)) return;
+  await updateReminder(reminder.clientUuid, (r) => ({ ...r, firedAt: r.dueAt }));
+  await queueEvents([firedEvent(reminder, new Date(due))]);
+}
+
 /** Done, from the editor or the notification: stops its alarms and tells Laravel. */
 export async function markDone(clientUuid: string, now = new Date()) {
   await ensureRemindersLoaded();
   const reminder = store().reminders[clientUuid];
   if (!reminder || reminder.status !== 'pending') return;
+  await noteRang(reminder, now);
   await updateReminder(clientUuid, (r) => ({
     ...r,
     status: 'done',
@@ -158,6 +171,7 @@ export async function snooze(clientUuid: string, now = new Date()) {
   await ensureRemindersLoaded();
   const reminder = store().reminders[clientUuid];
   if (!reminder || reminder.status !== 'pending') return;
+  await noteRang(reminder, now);
   await cancelAlarm(clientUuid);
   await cancelAlarm(snoozeId(clientUuid));
   await updateReminder(clientUuid, (r) => ({
