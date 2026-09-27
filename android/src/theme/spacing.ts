@@ -127,6 +127,9 @@ export const sizes = {
   orbSmall: 24,
   orbMedium: 48,
   awayMap: 132,
+  /** 2.5 header: the dashed Guest circle and the End pill. */
+  guestAvatar: 38,
+  endPill: 40,
 } as const;
 
 export const iconSizes = {

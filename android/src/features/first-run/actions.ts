@@ -3,13 +3,14 @@
 import * as Device from 'expo-device';
 
 import { afterUnlockSyncEngine } from '@/features/settings/actions';
-import { api, ApiError, type Place, type Profile } from '@/services/api';
+import { useProfilesStore } from '@/features/profiles/store';
+import { api, ApiError, type Place, type Profile, type UnlockResponse } from '@/services/api';
 import { resetMockServer } from '@/services/api/mock';
 import { appVersion } from '@/services/buildConfig';
 import { syncHomeGeofence } from '@/services/geofence';
 import type { PermissionKey } from '@/services/permissions';
 import * as secure from '@/services/secure';
-import { profileColors, type ProfileColor } from '@/theme';
+import { profileColorKey, profileColors, type ProfileColor } from '@/theme';
 
 import { signIn as signInCopy } from './copy';
 import { resolveFirstRunRoute, type FirstRunRoute } from './routing';
@@ -38,14 +39,7 @@ export function deviceName(
   return (label || 'Android phone').slice(0, 100);
 }
 
-function colorKey(hex: string): ProfileColor {
-  const match = (Object.keys(profileColors) as ProfileColor[]).find(
-    (key) => profileColors[key].toLowerCase() === hex.toLowerCase(),
-  );
-  return match ?? 'mint';
-}
-
-function requireServer(): string {
+export function requireServer(): string {
   const { serverUrl } = store();
   if (!serverUrl) throw new Error('No server address');
   return serverUrl;
@@ -58,7 +52,7 @@ async function requireDeviceToken(): Promise<string> {
 }
 
 /** Plan §5: a 401 on a device-token call signs the phone out and returns to 1.2. */
-async function withDeviceToken<T>(call: (token: string) => Promise<T>): Promise<T> {
+export async function withDeviceToken<T>(call: (token: string) => Promise<T>): Promise<T> {
   try {
     return await call(await requireDeviceToken());
   } catch (error) {
@@ -165,7 +159,7 @@ export function canOpenCreateOwner(): boolean {
 const toOwner = (profile: Profile) => ({
   id: profile.id,
   name: profile.name,
-  color: colorKey(profile.color),
+  color: profileColorKey(profile.color),
 });
 
 export type OwnerInput = {
@@ -278,22 +272,44 @@ export async function saveOwner(input: Omit<OwnerInput, 'pin'>): Promise<FirstRu
   return nextRoute();
 }
 
+type SessionListener = () => void | Promise<void>;
+const sessionListeners = new Set<SessionListener>();
+
+/** Runs after every unlock or Guest session, e.g. to refresh the chat cache. Returns an unsubscribe. */
+export function onSessionOpened(listener: SessionListener): () => void {
+  sessionListeners.add(listener);
+  return () => sessionListeners.delete(listener);
+}
+
+/** Keeps the tokens and the unlocked profile in memory (never on disk) after unlock or Guest. */
+export async function openSession(result: UnlockResponse) {
+  const { profile } = result;
+  store().set({
+    session: {
+      profileToken: result.profile_token,
+      llmToken: result.llm_token,
+      expiresAt: result.expires_at,
+      profile,
+    },
+    engines: result.engines,
+    // The Owner's name or colour may have changed on another phone.
+    ...(profile.role === 'owner' ? { owner: toOwner(profile) } : {}),
+  });
+  if (profile.role !== 'guest') await afterUnlockSyncEngine(profile);
+  for (const listener of sessionListeners) {
+    await Promise.resolve(listener()).catch(() => {});
+  }
+}
+
 /** 1.3 and 2.2: unlock the Owner and keep the tokens in memory. Throws ApiError 422 / 429. */
 export async function unlockOwner(pin: string): Promise<FirstRunRoute> {
   const server = requireServer();
   const { owner } = store();
   if (!owner) return '/create-owner';
   const result = await withDeviceToken((token) => api.unlockProfile(server, token, owner.id, pin));
-  const session = {
-    profileToken: result.profile_token,
-    llmToken: result.llm_token,
-    expiresAt: result.expires_at,
-    profile: result.profile,
-  };
-  store().set({ session, engines: result.engines });
-  await afterUnlockSyncEngine(result.profile);
+  await openSession(result);
   if (!store().home) {
-    const place = await api.getHomePlace(server, session.profileToken).catch(() => null);
+    const place = await api.getHomePlace(server, result.profile_token).catch(() => null);
     store().set({ homePrefill: place });
   }
   return nextRoute();
@@ -326,6 +342,8 @@ export async function resetFirstRun() {
     secure.clearSecureStore(),
     resetMockServer(),
     useFirstRunStore.persist.clearStorage(),
+    useProfilesStore.persist.clearStorage(),
   ]);
   store().resetAll();
+  useProfilesStore.getState().set({ profiles: [] });
 }

@@ -3,6 +3,8 @@ import type { LlmEngine } from '@/services/api';
 
 export const settings = {
   title: 'Settings',
+  profile: 'Profile',
+  lock: 'Lock',
   assistant: 'Assistant',
   assistantHelp: 'Who answers your chats. Switch any time; it applies to your next message.',
   engines: {

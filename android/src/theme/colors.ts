@@ -33,6 +33,14 @@ export const profileColors = {
 
 export type ProfileColor = keyof typeof profileColors;
 
+/** The swatch for a hex colour from Laravel (upper-case there); Mint for anything else. */
+export function profileColorKey(hex: string): ProfileColor {
+  const match = (Object.keys(profileColors) as ProfileColor[]).find(
+    (key) => profileColors[key].toLowerCase() === hex.toLowerCase(),
+  );
+  return match ?? 'mint';
+}
+
 /** Laravel gives the Guest profile this colour; 2.1 draws Guest as a dashed card instead. */
 export const guestColor = '#9299A1';
 

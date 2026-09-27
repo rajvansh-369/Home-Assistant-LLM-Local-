@@ -3,17 +3,20 @@
 import { Tabs } from 'expo-router/js-tabs';
 
 import { TabBar } from '@/components';
+import { SessionGate } from '@/features/profiles/SessionGate';
 import { colors } from '@/theme';
 
 export default function TabsLayout() {
   return (
-    <Tabs
-      tabBar={(props) => <TabBar {...props} />}
-      screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.bg } }}
-    >
-      <Tabs.Screen name="home" />
-      <Tabs.Screen name="chats" />
-      <Tabs.Screen name="settings" />
-    </Tabs>
+    <SessionGate>
+      <Tabs
+        tabBar={(props) => <TabBar {...props} />}
+        screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.bg } }}
+      >
+        <Tabs.Screen name="home" />
+        <Tabs.Screen name="chats" />
+        <Tabs.Screen name="settings" />
+      </Tabs>
+    </SessionGate>
   );
 }

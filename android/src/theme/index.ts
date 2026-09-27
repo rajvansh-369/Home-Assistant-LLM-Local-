@@ -5,7 +5,7 @@ import { motion } from './motion';
 import { iconSizes, radii, sizes, spacing, strokes } from './spacing';
 import { typography } from './typography';
 
-export { colors, mapColors, orbColors, profileColors } from './colors';
+export { colors, guestColor, mapColors, orbColors, profileColorKey, profileColors } from './colors';
 export type { ColorToken, ProfileColor } from './colors';
 export { fontAssets, fonts } from './fonts';
 export { mapStyle } from './mapStyle';

@@ -8,6 +8,7 @@
 //   Password "throttle"                       login: 429, retry_after 30
 //   Sign in, no household yet                 creates a household with no profiles (goes to 1.3)
 //   Sign in, email starting with "owner"      ... and also an Owner "Test Owner" with PIN 123456 (goes to 2.2)
+//   Sign in, email starting with "family"     ... the Owner, a Member "Test Member" with PIN 222222, and Guest
 //   Register, email starting with "exists"    403 household exists (also once any household exists)
 //   Register, email starting with "taken"     422 on email (already taken)
 //   Register, password shorter than 8         422 on password
@@ -35,6 +36,7 @@ import {
 
 const STORAGE_KEY = 'aster.mock-server';
 const SEEDED_PIN = '123456';
+const SEEDED_MEMBER_PIN = '222222';
 const MAX_UNLOCK_TRIES = 5;
 const UNLOCK_LOCK_MS = 30_000;
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
@@ -203,7 +205,7 @@ export const mockApi: AsterApi = {
       }
     } else {
       state.household = { email, passwordHash: scramble(password) };
-      if (email.startsWith('owner')) {
+      if (email.startsWith('owner') || email.startsWith('family')) {
         state.profiles.push({
           id: state.nextId++,
           name: 'Test Owner',
@@ -212,6 +214,16 @@ export const mockApi: AsterApi = {
           pinHash: scramble(SEEDED_PIN),
           auto_lock_minutes: 2,
         });
+        if (email.startsWith('family')) {
+          state.profiles.push({
+            id: state.nextId++,
+            name: 'Test Member',
+            color: profileColors.sky,
+            role: 'member',
+            pinHash: scramble(SEEDED_MEMBER_PIN),
+            auto_lock_minutes: null,
+          });
+        }
         state.profiles.push(guestProfile(state));
       }
     }

@@ -4,8 +4,7 @@
 const DEV_HTTP_HOSTS = ['localhost', '10.0.2.2'];
 
 export type ServerUrlResult =
-  | { ok: true; url: string }
-  | { ok: false; reason: 'empty' | 'invalid' | 'https' };
+  { ok: true; url: string } | { ok: false; reason: 'empty' | 'invalid' | 'https' };
 
 /** Trims spaces and trailing slashes. */
 export function normalizeServerUrl(input: string): string {

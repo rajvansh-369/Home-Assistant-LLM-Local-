@@ -19,7 +19,9 @@ export function llmFieldStatus(
 ): FieldStatus | undefined {
   if (!result.ok || !result.warning) return undefined;
   if (result.warning === 'blocked') {
-    return test?.kind === 'blocked' ? undefined : { tone: 'danger', text: blockedText(homeLlmHost) };
+    return test?.kind === 'blocked'
+      ? undefined
+      : { tone: 'danger', text: blockedText(homeLlmHost) };
   }
   return { tone: 'warning', text: copy.publicLlm };
 }
