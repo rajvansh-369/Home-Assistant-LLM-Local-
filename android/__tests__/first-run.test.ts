@@ -59,6 +59,7 @@ test('the persisted slice never contains a token, PIN or password', async () => 
       'firstRunDone',
       'home',
       'llmEngine',
+      'llmEngineProfileId',
       'llmEngineSynced',
       'lockWhenLeave',
       'owner',

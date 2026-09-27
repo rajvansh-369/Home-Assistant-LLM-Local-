@@ -116,7 +116,8 @@ type Credentials = { server: string; email: string; password: string };
 export async function signIn({ server, email, password }: Credentials): Promise<FirstRunRoute> {
   const state = store();
   // Going back never repeats a server write: sign in again only if server or email changed.
-  const alreadySignedIn = state.hasDeviceToken && state.serverUrl === server && state.email === email;
+  const alreadySignedIn =
+    state.hasDeviceToken && state.serverUrl === server && state.email === email;
   if (!alreadySignedIn) {
     const { token } = await api.login(server, {
       email,
@@ -287,9 +288,10 @@ export async function unlockOwner(pin: string): Promise<FirstRunRoute> {
     profileToken: result.profile_token,
     llmToken: result.llm_token,
     expiresAt: result.expires_at,
+    profile: result.profile,
   };
   store().set({ session, engines: result.engines });
-  await afterUnlockSyncEngine(result.profile.llm_engine);
+  await afterUnlockSyncEngine(result.profile);
   if (!store().home) {
     const place = await api.getHomePlace(server, session.profileToken).catch(() => null);
     store().set({ homePrefill: place });

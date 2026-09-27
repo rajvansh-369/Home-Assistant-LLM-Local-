@@ -13,4 +13,9 @@ export const motion = {
   shakeStepMs: 50,
   /** 2.2 "PIN accepted" pause before moving on. */
   unlockContinueMs: 600,
+  /** Status dot pulse (canvas `aster-pulse`: 2.2 s, grows 2.6 times and fades by 70 %). */
+  pulseMs: 2200,
+  pulseScale: 2.6,
+  /** The blinking cursor while an answer streams (proposed). */
+  cursorMs: 500,
 } as const;

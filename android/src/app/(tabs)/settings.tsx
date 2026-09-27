@@ -1,13 +1,11 @@
-// 5.1 Settings, Assistant section: choose who answers chats. Local is Zephyr on the home computer;
-// Mark-L (named in the admin panel) is Gemini through the same computer. The choice applies on
-// this phone at once and reaches Laravel now if unlocked, else at the next unlock.
-import { router } from 'expo-router';
+// 5.1 Settings, a tab. Assistant section: choose who answers chats. Local is Zephyr on the home
+// computer; Mark-L (named in the admin panel) is Gemini through the same computer. The choice
+// applies on this phone at once and reaches Laravel now if unlocked, else at the next unlock.
 import { Cloud, Cpu, HouseWifi } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import {
-  BackButton,
   ChoiceCard,
   InfoCallout,
   Screen,
@@ -20,14 +18,9 @@ import { useFirstRunStore } from '@/features/first-run/store';
 import { chooseLlmEngine } from '@/features/settings/actions';
 import { settings as copy } from '@/features/settings/copy';
 import type { LlmEngine } from '@/services/api';
-import { sizes, spacing } from '@/theme';
+import { spacing } from '@/theme';
 
 const ICONS = { local: Cpu, markl: Cloud } as const;
-
-function goBack() {
-  if (router.canGoBack()) router.back();
-  else router.replace('/home');
-}
 
 export default function Settings() {
   const engine = useFirstRunStore((state) => state.llmEngine);
@@ -57,11 +50,7 @@ export default function Settings() {
 
   return (
     <Screen
-      header={
-        <View style={styles.backRow}>
-          <BackButton onPress={goBack} />
-        </View>
-      }
+      inTabs
     >
       <TitleBlock title={copy.title} />
       <View style={styles.section}>
@@ -92,11 +81,6 @@ export default function Settings() {
 }
 
 const styles = StyleSheet.create({
-  backRow: {
-    height: sizes.header,
-    paddingHorizontal: spacing.headerX,
-    justifyContent: 'center',
-  },
   section: { gap: 4 },
   choices: { gap: spacing.permissionRowsApart },
 });

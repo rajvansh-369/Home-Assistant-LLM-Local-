@@ -5,6 +5,11 @@
 import {
   ApiError,
   type AsterApi,
+  type Conversation,
+  type ConversationPage,
+  type LlmTokenResponse,
+  type Message,
+  type MessagePage,
   type Place,
   type Profile,
   type TokenResponse,
@@ -25,7 +30,12 @@ export function apiUrl(server: string, path: string): string {
   return `${server.trim().replace(/\/+$/, '')}${path}`;
 }
 
-async function send(server: string, method: Method, path: string, options: RequestOptions): Promise<Reply> {
+async function send(
+  server: string,
+  method: Method,
+  path: string,
+  options: RequestOptions,
+): Promise<Reply> {
   const { token, body, timeoutMs = TIMEOUT_MS } = options;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -65,12 +75,14 @@ function parseJson(text: string): unknown {
 
 function toApiError({ status, json }: Reply, retryAfterHeader: string | null): ApiError {
   const body = (json && typeof json === 'object' ? json : {}) as Record<string, unknown>;
-  const message = typeof body.message === 'string' && body.message ? body.message : `HTTP ${status}`;
+  const message =
+    typeof body.message === 'string' && body.message ? body.message : `HTTP ${status}`;
 
   const fieldErrors: Record<string, string[]> = {};
   if (body.errors && typeof body.errors === 'object') {
     for (const [field, messages] of Object.entries(body.errors as Record<string, unknown>)) {
-      if (Array.isArray(messages)) fieldErrors[field] = messages.filter((m) => typeof m === 'string');
+      if (Array.isArray(messages))
+        fieldErrors[field] = messages.filter((m) => typeof m === 'string');
     }
   }
 
@@ -113,11 +125,16 @@ export const realApi: AsterApi = {
   },
 
   async updateProfile(server, profileToken, id, body) {
-    return data<Profile>(await call(server, 'PATCH', `/profiles/${id}`, { token: profileToken, body }));
+    return data<Profile>(
+      await call(server, 'PATCH', `/profiles/${id}`, { token: profileToken, body }),
+    );
   },
 
   async unlockProfile(server, deviceToken, id, pin) {
-    const reply = await call(server, 'POST', `/profiles/${id}/unlock`, { token: deviceToken, body: { pin } });
+    const reply = await call(server, 'POST', `/profiles/${id}/unlock`, {
+      token: deviceToken,
+      body: { pin },
+    });
     return reply.json as UnlockResponse;
   },
 
@@ -131,6 +148,61 @@ export const realApi: AsterApi = {
   },
 
   async putHomePlace(server, profileToken, place) {
-    return data<Place>(await call(server, 'PUT', '/places/home', { token: profileToken, body: place }));
+    return data<Place>(
+      await call(server, 'PUT', '/places/home', { token: profileToken, body: place }),
+    );
+  },
+
+  async guestSession(server, deviceToken) {
+    return (await call(server, 'POST', '/guest-sessions', { token: deviceToken }))
+      .json as UnlockResponse;
+  },
+
+  async lockProfile(server, profileToken, id) {
+    await call(server, 'POST', `/profiles/${id}/lock`, { token: profileToken });
+  },
+
+  async refreshLlmToken(server, profileToken) {
+    return (await call(server, 'POST', '/llm-token', { token: profileToken }))
+      .json as LlmTokenResponse;
+  },
+
+  async updateMe(server, profileToken, body) {
+    return data<Profile>(await call(server, 'PATCH', '/me', { token: profileToken, body }));
+  },
+
+  async listConversations(server, profileToken, cursor) {
+    const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+    return (await call(server, 'GET', `/conversations${query}`, { token: profileToken }))
+      .json as ConversationPage;
+  },
+
+  async createConversation(server, profileToken, body) {
+    return data<Conversation>(
+      await call(server, 'POST', '/conversations', { token: profileToken, body }),
+    );
+  },
+
+  async deleteConversation(server, profileToken, id) {
+    await call(server, 'DELETE', `/conversations/${id}`, { token: profileToken });
+  },
+
+  async listMessages(server, profileToken, conversationId, after) {
+    const query = after ? `?after=${after}&limit=100` : '?limit=100';
+    const path = `/conversations/${conversationId}/messages${query}`;
+    return (await call(server, 'GET', path, { token: profileToken })).json as MessagePage;
+  },
+
+  async postMessages(server, profileToken, conversationId, messages) {
+    const path = `/conversations/${conversationId}/messages`;
+    return data<{ id: number; client_uuid: string }[]>(
+      await call(server, 'POST', path, { token: profileToken, body: { messages } }),
+    );
+  },
+
+  async updateMessage(server, profileToken, id, body) {
+    return data<Message>(
+      await call(server, 'PATCH', `/chat-messages/${id}`, { token: profileToken, body }),
+    );
   },
 };

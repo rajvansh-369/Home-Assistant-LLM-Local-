@@ -16,8 +16,16 @@ export const mapStyle: MapStyleElement[] = [
     stylers: [{ visibility: 'on' }, { color: mapColors.park }],
   },
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: mapColors.minorRoad }] },
-  { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: mapColors.majorRoad }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: mapColors.majorRoad }] },
+  {
+    featureType: 'road.arterial',
+    elementType: 'geometry',
+    stylers: [{ color: mapColors.majorRoad }],
+  },
+  {
+    featureType: 'road.highway',
+    elementType: 'geometry',
+    stylers: [{ color: mapColors.majorRoad }],
+  },
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: mapColors.water }] },
 ];

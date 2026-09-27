@@ -54,8 +54,7 @@ export default function RootLayout() {
             {/* index only resolves launch routing and replaces itself (plan §5). */}
             <Stack.Screen name="index" options={{ animation: 'none' }} />
             <Stack.Screen name="(first-run)" />
-            <Stack.Screen name="home" />
-            <Stack.Screen name="settings" />
+            <Stack.Screen name="(tabs)" />
             <Stack.Screen name="dev/gallery" />
           </Stack>
         </KeyboardProvider>

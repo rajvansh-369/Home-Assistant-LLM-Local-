@@ -33,6 +33,9 @@ export const profileColors = {
 
 export type ProfileColor = keyof typeof profileColors;
 
+/** Laravel gives the Guest profile this colour; 2.1 draws Guest as a dashed card instead. */
+export const guestColor = '#9299A1';
+
 // Welcome orb and brand mark (§3.17, §3.18).
 export const orbColors = {
   coreStart: '#E4FCF3',

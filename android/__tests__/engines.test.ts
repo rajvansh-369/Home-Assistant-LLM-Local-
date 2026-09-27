@@ -31,8 +31,19 @@ test('unlock keeps the engine names across restarts and starts on Local', async 
   expect(store().engines).toEqual(DEFAULT_ENGINES);
   expect(pickPersisted(store()).engines).toEqual(DEFAULT_ENGINES);
   expect(pickPersisted(store()).llmEngine).toBe('local');
-  // The session holds tokens only.
-  expect(Object.keys(store().session!).sort()).toEqual(['expiresAt', 'llmToken', 'profileToken']);
+  // The session holds the tokens and the unlocked profile; none of it is persisted.
+  expect(Object.keys(store().session!).sort()).toEqual([
+    'expiresAt',
+    'llmToken',
+    'profile',
+    'profileToken',
+  ]);
+  expect(store().session!.profile).toMatchObject({
+    name: 'Test Owner',
+    role: 'owner',
+    llm_engine: 'local',
+  });
+  expect(pickPersisted(store())).not.toHaveProperty('session');
 });
 
 test('choosing while unlocked saves to the server at once', async () => {

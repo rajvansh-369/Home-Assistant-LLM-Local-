@@ -4,7 +4,12 @@ import { fonts } from './fonts';
 
 type TextVariantStyle = Pick<
   TextStyle,
-  'fontFamily' | 'fontSize' | 'lineHeight' | 'letterSpacing' | 'textTransform' | 'includeFontPadding'
+  | 'fontFamily'
+  | 'fontSize'
+  | 'lineHeight'
+  | 'letterSpacing'
+  | 'textTransform'
+  | 'includeFontPadding'
 >;
 
 const style = (
@@ -51,6 +56,26 @@ export const typography = {
   monoSmall: style(fonts.mono500, 12, 16),
   pin: style(fonts.mono400, 22, 28, 8.8),
   badge: style(fonts.mono600, 10, 12, 0.6, { textTransform: 'uppercase' }),
+  // Home and chat (docs/aster-home-chat-plan.md §3).
+  /** 2.1 "Who's using Aster?": 32, line 1.1, -0.015em. */
+  titleLarge: style(fonts.display700, 32, 35, -0.48),
+  /** 3.1 greeting: 28, line 1.1, -0.015em. */
+  heading: style(fonts.display700, 28, 31, -0.42),
+  /** 2.1 card names. */
+  cardName: style(fonts.body700, 17, 24),
+  /** 3.4 header title. */
+  headerTitle: style(fonts.body700, 16, 22),
+  /** Card and banner titles (3.1 "Missed while you were away", 3.2 distance). */
+  cardTitle: style(fonts.body700, 16, 22),
+  /** Tab bar labels. */
+  tab: style(fonts.body700, 12, 16),
+  /** Section labels such as "Coming up" and "Today": mono 11, 0.08em, caps. */
+  caps: style(fonts.mono600, 11, 14, 0.88, { textTransform: 'uppercase' }),
+  /** Chat text: 15 on a 1.5 line. */
+  message: style(fonts.body400, 15, 23),
+  /** Initials in 72 (2.1) and 46 (3.1) avatars. */
+  avatarMedium: style(fonts.display700, 30, 36),
+  avatarTiny: style(fonts.display700, 19, 24),
 } as const satisfies Record<string, TextVariantStyle>;
 
 export type TextVariant = keyof typeof typography;
@@ -64,5 +89,10 @@ export const cappedVariants: readonly TextVariant[] = [
   'avatar',
   'avatarSmall',
   'key',
+  'titleLarge',
+  'heading',
+  'avatarMedium',
+  'avatarTiny',
+  'tab',
 ];
 export const maxFontSizeMultiplier = 1.3;

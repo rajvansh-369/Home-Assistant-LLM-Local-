@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
-import Settings from '@/app/settings';
+import Settings from '@/app/(tabs)/settings';
 import { resetFirstRun, signIn, unlockOwner } from '@/features/first-run/actions';
 import { useFirstRunStore } from '@/features/first-run/store';
 import { settings as copy } from '@/features/settings/copy';
@@ -30,10 +30,14 @@ test('lists both engines with Local picked', async () => {
   await render(<Settings />);
 
   expect(screen.getByRole('header', { name: copy.title })).toBeTruthy();
-  expect(screen.getByRole('radio', { name: 'Local, Offline' }).props.accessibilityState).toMatchObject({
+  expect(
+    screen.getByRole('radio', { name: 'Local, Offline' }).props.accessibilityState,
+  ).toMatchObject({
     checked: true,
   });
-  expect(screen.getByRole('radio', { name: 'Mark-L, Online' }).props.accessibilityState).toMatchObject({
+  expect(
+    screen.getByRole('radio', { name: 'Mark-L, Online' }).props.accessibilityState,
+  ).toMatchObject({
     checked: false,
   });
   expect(screen.getByText(copy.homeWifi)).toBeTruthy();
@@ -58,7 +62,9 @@ test('picking Mark-L while unlocked saves it', async () => {
 
   await waitFor(() => expect(screen.getByText(copy.saved)).toBeTruthy());
   expect(useFirstRunStore.getState().llmEngine).toBe('markl');
-  expect(screen.getByRole('radio', { name: 'Mark-L, Online' }).props.accessibilityState).toMatchObject({
+  expect(
+    screen.getByRole('radio', { name: 'Mark-L, Online' }).props.accessibilityState,
+  ).toMatchObject({
     checked: true,
   });
 });
@@ -71,10 +77,4 @@ test('picking while locked says it syncs at the next unlock', async () => {
 
   await waitFor(() => expect(screen.getByText(copy.pending)).toBeTruthy());
   expect(useFirstRunStore.getState().llmEngineSynced).toBe(false);
-});
-
-test('back goes back', async () => {
-  await render(<Settings />);
-  fireEvent.press(screen.getByRole('button', { name: 'Back' }));
-  expect(mockBack).toHaveBeenCalled();
 });

@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
-import Home from '@/app/home';
+import Home from '@/app/(tabs)/home';
 import { finishFirstRun, resetFirstRun, signIn, unlockOwner } from '@/features/first-run/actions';
 import { homePlaceholder as copy, permissions } from '@/features/first-run/copy';
 import { useFirstRunStore } from '@/features/first-run/store';

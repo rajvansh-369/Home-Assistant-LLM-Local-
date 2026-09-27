@@ -47,6 +47,13 @@ export const spacing = {
   searchBarRight: 6,
   searchBarGap: 10,
   addressRowGap: 12,
+  // Home and chat.
+  homeTop: 6,
+  profileGridGap: 14,
+  chipGap: 8,
+  chatX: 20,
+  chatGap: 16,
+  composerX: 12,
   /** Wi-Fi hint or test result, then the Test pill (proposed: the canvas has no value). */
   testRowGap: 8,
 } as const;
@@ -102,6 +109,24 @@ export const sizes = {
   /** Space kept clear when fitting the circle: the search bar (12 + 48) plus 12 below it. */
   mapFitTop: 72,
   mapFitSide: 24,
+  // Home and chat (docs/aster-home-chat-plan.md §3).
+  tabBar: 84,
+  tabPillWidth: 60,
+  tabPillHeight: 30,
+  profileAvatar: 72,
+  homeAvatar: 46,
+  lockBadge: 20,
+  statusChip: 34,
+  statusDot: 8,
+  suggestionChip: 38,
+  composerEntry: 56,
+  chatInput: 48,
+  iconButton: 44,
+  sendButton: 44,
+  screenHeader: 60,
+  orbSmall: 24,
+  orbMedium: 48,
+  awayMap: 132,
 } as const;
 
 export const iconSizes = {
@@ -120,6 +145,15 @@ export const iconSizes = {
   testHint: 15,
   /** 5.1 ChoiceCard's radio mark. */
   choiceMark: 22,
+  tab: 22,
+  roleLock: 14,
+  lockBadge: 11,
+  guestCard: 32,
+  headerAction: 20,
+  send: 20,
+  composerEntry: 20,
+  rate: 16,
+  source: 14,
 } as const;
 
 export const strokes = {
@@ -142,6 +176,13 @@ export const radii = {
   badge: 6,
   key: 20,
   pill: 999,
+  card: 24,
+  listCard: 20,
+  bubble: 20,
+  bubbleTail: 6,
+  banner: 16,
+  /** The chat field: a pill at one line, rounded corners when it grows. */
+  composer: 24,
 } as const;
 
 // Touch-target helper: hitSlop that grows a control of `size` to 44.

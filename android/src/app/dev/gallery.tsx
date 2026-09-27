@@ -7,11 +7,15 @@ import {
   Cloud,
   Cpu,
   Fingerprint,
+  House,
   Lock,
   MapPin,
   MessageSquare,
   Mic,
+  MoreVertical,
+  Plus,
   RotateCw,
+  Search,
   Server,
   Users,
   Volume2,
@@ -26,22 +30,33 @@ import {
   Avatar,
   BackButton,
   BrandMark,
+  ChatBubble,
   ChoiceCard,
+  Composer,
+  ConversationRow,
+  DateDivider,
   FeatureRow,
   HomeMap,
   HomePin,
+  IconButton,
   IconTile,
   InfoCallout,
   Keypad,
+  OrbDot,
   PermissionRow,
   PinDots,
   PrimaryButton,
+  ProfileCard,
   ProgressSegments,
   Screen,
+  ScreenHeader,
   Segmented,
   SmallPill,
+  StatusChip,
   StepHeader,
+  SuggestionChip,
   SwatchPicker,
+  TabButton,
   Switch,
   Text,
   TextField,
@@ -59,6 +74,9 @@ import {
   unlock,
   welcome,
 } from '@/features/first-run/copy';
+import { chat as chatCopy, chats as chatsCopy } from '@/features/chat/copy';
+import { home as homeCopy, homeStatus, tabs } from '@/features/home/copy';
+import { guest as guestCopy, whoIsUsing } from '@/features/profiles/copy';
 import { colors, type ProfileColor } from '@/theme';
 
 const radiusOptions = setHome.radii.map((m) => ({ value: m, label: setHome.radiusLabel(m) }));
@@ -83,9 +101,19 @@ function GalleryContent() {
   const [step, setStep] = useState(2);
   const [keypadPin, setKeypadPin] = useState('');
   const [shake, setShake] = useState(0);
+  const [message, setMessage] = useState('');
+  const [webOn, setWebOn] = useState(true);
+  const [streaming, setStreaming] = useState(false);
+  const [tab, setTab] = useState(0);
 
   return (
-    <Screen header={<View style={styles.header}><BackButton onPress={() => router.back()} /></View>}>
+    <Screen
+      header={
+        <View style={styles.header}>
+          <BackButton onPress={() => router.back()} />
+        </View>
+      }
+    >
       <Section label="Text variants">
         <Text variant="display">{welcome.headline}</Text>
         <Text variant="title">{signIn.title}</Text>
@@ -180,7 +208,12 @@ function GalleryContent() {
           importantForAutofill="no"
           helper={createOwner.pinHelper}
         />
-        <TextField label={createOwner.nameLabel} value={name} onChangeText={setName} placeholder={createOwner.namePlaceholder} />
+        <TextField
+          label={createOwner.nameLabel}
+          value={name}
+          onChangeText={setName}
+          placeholder={createOwner.namePlaceholder}
+        />
         <TextField label={createOwner.pinLabel} variant="pin" editable={false} />
       </Section>
 
@@ -229,7 +262,13 @@ function GalleryContent() {
             value={lockWhenLeave}
             onValueChange={setLockWhenLeave}
           />
-          <ToggleRow icon={Fingerprint} title={createOwner.fingerprint} value={false} onValueChange={() => {}} disabled />
+          <ToggleRow
+            icon={Fingerprint}
+            title={createOwner.fingerprint}
+            value={false}
+            onValueChange={() => {}}
+            disabled
+          />
         </ToggleCard>
       </Section>
 
@@ -266,11 +305,23 @@ function GalleryContent() {
           selected={engine === 'markl'}
           onPress={() => setEngine('markl')}
         />
-        <ChoiceCard icon={Cloud} title="Disabled" description="Can't be picked." selected={false} onPress={() => {}} disabled />
+        <ChoiceCard
+          icon={Cloud}
+          title="Disabled"
+          description="Can't be picked."
+          selected={false}
+          onPress={() => {}}
+          disabled
+        />
       </Section>
 
       <Section label="Segmented">
-        <Segmented label={setHome.homeArea} options={radiusOptions} value={radius} onChange={setRadius} />
+        <Segmented
+          label={setHome.homeArea}
+          options={radiusOptions}
+          value={radius}
+          onChange={setRadius}
+        />
       </Section>
 
       <Section label="HomePin; HomeMap search bar: idle, searching, locating (map off)">
@@ -287,7 +338,11 @@ function GalleryContent() {
             onSearch={() => {}}
             onLocate={() => {}}
             finding={finding}
-            labels={{ map: setHome.mapLabel, search: setHome.searchLabel, locate: setHome.locateLabel }}
+            labels={{
+              map: setHome.mapLabel,
+              search: setHome.searchLabel,
+              locate: setHome.locateLabel,
+            }}
             mapEnabled={false}
           />
         ))}
@@ -332,6 +387,104 @@ function GalleryContent() {
         />
       </Section>
 
+      <Section label="Home and chat: OrbDot 24 / 48, ProfileCard, StatusChip (ready, busy, off, pressable)">
+        <View style={styles.row}>
+          <OrbDot size={24} />
+          <OrbDot size={48} />
+          <Avatar color="lilac" name="Name" size="card" />
+          <Avatar color="peach" name="Name" size="header" />
+        </View>
+        <View style={styles.row}>
+          <ProfileCard name="Name" note={whoIsUsing.roles.owner} color="mint" onPress={() => {}} />
+          <ProfileCard
+            name={whoIsUsing.guest}
+            note={whoIsUsing.guestNote}
+            guest
+            onPress={() => {}}
+          />
+        </View>
+        <StatusChip tone="ready" label={homeStatus.ready('zephyr-7b')} />
+        <StatusChip tone="busy" label={homeStatus.loading} />
+        <StatusChip tone="off" label={homeStatus.away} />
+        <StatusChip
+          tone="ready"
+          icon={House}
+          label={homeStatus.readyShort('zephyr-7b')}
+          onPress={() => {}}
+        />
+        <InfoCallout icon={Clock} tone="warning" text={homeCopy.loadingBanner} />
+        <InfoCallout icon={Lock} tone="neutral" text={guestCopy.callout} />
+      </Section>
+
+      <Section label="TabButton (tap), SuggestionChip, ScreenHeader, IconButton">
+        <View style={styles.row}>
+          {[tabs.home, tabs.chats, tabs.settings].map((label, i) => (
+            <TabButton
+              key={label}
+              label={label}
+              icon={[House, MessageSquare, Server][i]}
+              active={tab === i}
+              onPress={() => setTab(i)}
+            />
+          ))}
+        </View>
+        <View style={styles.row}>
+          {homeCopy.suggestions.map((s) => (
+            <SuggestionChip key={s} label={s} onPress={() => {}} />
+          ))}
+        </View>
+        <View style={styles.bleed}>
+          <ScreenHeader title={chatsCopy.title} large>
+            <IconButton icon={Search} label={chatsCopy.search} onPress={() => {}} />
+            <IconButton icon={Plus} label={chatsCopy.newChat} onPress={() => {}} />
+          </ScreenHeader>
+          <ScreenHeader
+            title="Chat title"
+            subtitle={chatCopy.subtitle('zephyr-7b')}
+            onBack={() => {}}
+          >
+            <IconButton icon={MoreVertical} label={chatCopy.moreOptions} onPress={() => {}} />
+          </ScreenHeader>
+        </View>
+      </Section>
+
+      <Section label="Chat: DateDivider, ChatBubble, ConversationRow, Composer (type; send streams; stop)">
+        <DateDivider label={chatCopy.today} />
+        <ChatBubble text="A question someone asked." />
+        <View style={styles.listCard}>
+          <ConversationRow
+            first
+            title="Chat title"
+            time="7:58 PM"
+            preview="The first line of the answer."
+            onPress={() => {}}
+          />
+          <ConversationRow
+            title="Waiting to upload"
+            time="Tue"
+            preview="Another answer."
+            pendingLabel={chatsCopy.waitingUpload}
+            onPress={() => {}}
+          />
+        </View>
+        <View style={styles.bleed}>
+          <Composer
+            value={message}
+            onChangeText={setMessage}
+            onSend={() => setStreaming(true)}
+            onStop={() => setStreaming(false)}
+            streaming={streaming}
+            web={{ on: webOn, onToggle: () => setWebOn(!webOn) }}
+          />
+          <Composer
+            value=""
+            onChangeText={() => {}}
+            onSend={() => {}}
+            unavailable={homeCopy.away.chatAtHome}
+          />
+        </View>
+      </Section>
+
       <Section label="PermissionRow: Allow (tap), note, Allowed, disabled">
         <PermissionRow
           icon={Bell}
@@ -341,9 +494,25 @@ function GalleryContent() {
           note={allowed ? undefined : permissions.restrictedHint}
         />
         <PermissionRow icon={MessageSquare} {...permissions.rows.sms} allowed onAllow={() => {}} />
-        <PermissionRow icon={MapPin} {...permissions.rows.location} allowed={false} onAllow={() => {}} allowDisabled />
-        <PermissionRow icon={Mic} {...permissions.rows.microphone} allowed={false} onAllow={() => {}} />
-        <PermissionRow icon={Zap} {...permissions.rows.background} allowed={false} onAllow={() => {}} />
+        <PermissionRow
+          icon={MapPin}
+          {...permissions.rows.location}
+          allowed={false}
+          onAllow={() => {}}
+          allowDisabled
+        />
+        <PermissionRow
+          icon={Mic}
+          {...permissions.rows.microphone}
+          allowed={false}
+          onAllow={() => {}}
+        />
+        <PermissionRow
+          icon={Zap}
+          {...permissions.rows.background}
+          allowed={false}
+          onAllow={() => {}}
+        />
         <PermissionRow icon={Users} {...permissions.rows.contacts} allowed onAllow={() => {}} />
       </Section>
     </Screen>
@@ -375,4 +544,11 @@ const styles = StyleSheet.create({
   featureRows: { gap: 10 },
   avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 20 },
   swatchColumn: { gap: 12 },
+  listCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
 });

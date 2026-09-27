@@ -17,6 +17,8 @@ type ScreenProps = {
   /** Welcome uses 24 sides, 8 top and 28 bottom. */
   variant?: 'default' | 'welcome';
   contentStyle?: StyleProp<ViewStyle>;
+  /** Inside the tab bar, which already clears the bottom inset. */
+  inTabs?: boolean;
 };
 
 export function Screen({
@@ -27,10 +29,14 @@ export function Screen({
   footerGap = spacing.footerGap,
   variant = 'default',
   contentStyle,
+  inTabs = false,
 }: ScreenProps) {
   const padding = variant === 'welcome' ? styles.welcomePadding : styles.defaultPadding;
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'bottom', 'left', 'right']}>
+    <SafeAreaView
+      style={styles.root}
+      edges={inTabs ? ['top', 'left', 'right'] : ['top', 'bottom', 'left', 'right']}
+    >
       {header}
       <KeyboardAwareScrollView
         style={styles.root}

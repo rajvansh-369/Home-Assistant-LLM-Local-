@@ -12,19 +12,22 @@
 //   Register, email starting with "taken"     422 on email (already taken)
 //   Register, password shorter than 8         422 on password
 //   Unlock, wrong PIN                         422; the 5th wrong try gets 429 with retry_after 30 (as Laravel)
+//   Creating the Owner                        also creates a Guest profile (as Laravel)
 //   Anything else                             works
 //
 // Tokens the mock hands out are random strings; a token the mock doesn't know gives 401.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { profileColors } from '@/theme/colors';
+import { guestColor, profileColors } from '@/theme/colors';
 
 import {
   ApiError,
   type AsterApi,
+  type Conversation,
   type CreateProfileBody,
   DEFAULT_ENGINES,
+  type Message,
   type Place,
   type Profile,
   type UpdateProfileBody,
@@ -37,14 +40,20 @@ const UNLOCK_LOCK_MS = 30_000;
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
 
 type MockProfile = Profile & { pinHash: string; auto_lock_minutes: number | null };
+type MockConversation = Conversation & { deleted: boolean };
+type MockMessage = Message & { conversation_id: number };
 
 type MockState = {
   household: { email: string; passwordHash: string } | null;
   deviceTokens: string[];
   profileTokens: string[];
+  /** Profile token to profile id. */
+  tokenProfiles: Record<string, number>;
   profiles: MockProfile[];
   place: Place | null;
   unlock: { failures: number; lockedUntil: number };
+  conversations: MockConversation[];
+  messages: MockMessage[];
   nextId: number;
 };
 
@@ -52,10 +61,22 @@ const emptyState = (): MockState => ({
   household: null,
   deviceTokens: [],
   profileTokens: [],
+  tokenProfiles: {},
   profiles: [],
   place: null,
   unlock: { failures: 0, lockedUntil: 0 },
+  conversations: [],
+  messages: [],
   nextId: 1,
+});
+
+const guestProfile = (state: MockState): MockProfile => ({
+  id: state.nextId++,
+  name: 'Guest',
+  color: guestColor,
+  role: 'guest',
+  pinHash: '',
+  auto_lock_minutes: null,
 });
 
 let latency: [number, number] = [400, 800];
@@ -101,17 +122,57 @@ function requireDevice(state: MockState, token: string) {
   if (!state.deviceTokens.includes(token)) throw unauthenticated();
 }
 
-function requireProfile(state: MockState, token: string) {
+/** Returns the token's profile id. */
+function requireProfile(state: MockState, token: string): number {
   if (!state.profileTokens.includes(token)) throw unauthenticated();
+  return state.tokenProfiles[token] ?? 0;
 }
 
-const publicProfile = ({ id, name, color, role }: MockProfile): Profile => ({ id, name, color, role });
+const publicProfile = ({ id, name, color, role }: MockProfile): Profile => ({
+  id,
+  name,
+  color,
+  role,
+});
 
 /** The full profile, as unlock and PATCH return it. */
 const fullProfile = (profile: MockProfile): Profile => ({
   ...publicProfile(profile),
   llm_engine: profile.llm_engine ?? 'local',
+  personality: profile.personality ?? null,
+  auto_lock_minutes: profile.auto_lock_minutes,
+  web_mode: profile.role === 'owner' || profile.role === 'member' ? 'auto' : 'never',
 });
+
+function openSession(state: MockState, profile: MockProfile) {
+  const profileToken = newToken();
+  state.profileTokens.push(profileToken);
+  state.tokenProfiles[profileToken] = profile.id;
+  return {
+    profile_token: profileToken,
+    llm_token: newToken(),
+    expires_at: new Date(Date.now() + TOKEN_TTL_MS).toISOString(),
+    engines: DEFAULT_ENGINES,
+    profile: fullProfile(profile),
+  };
+}
+
+/** Laravel's time format: UTC, whole seconds, a Z. */
+const nowIso = () => `${new Date().toISOString().slice(0, 19)}Z`;
+
+function ownConversation(state: MockState, profileId: number, id: number): MockConversation {
+  const conversation = state.conversations.find((c) => c.id === id && c.profile_id === profileId);
+  if (!conversation || conversation.deleted) throw new ApiError(404, 'Not found.');
+  return conversation;
+}
+
+function conversationOut(
+  state: MockState,
+  { deleted: _deleted, ...conversation }: MockConversation,
+) {
+  const count = state.messages.filter((m) => m.conversation_id === conversation.id).length;
+  return { ...conversation, message_count: count };
+}
 
 function validateProfile(body: UpdateProfileBody) {
   if (body.name !== undefined && body.name.trim() === '') {
@@ -151,6 +212,7 @@ export const mockApi: AsterApi = {
           pinHash: scramble(SEEDED_PIN),
           auto_lock_minutes: 2,
         });
+        state.profiles.push(guestProfile(state));
       }
     }
     const token = newToken();
@@ -200,9 +262,9 @@ export const mockApi: AsterApi = {
       pinHash: scramble(body.pin),
       auto_lock_minutes: body.auto_lock_minutes,
     };
-    state.profiles.push(profile);
+    state.profiles.push(profile, guestProfile(state));
     await save(state);
-    return publicProfile(profile);
+    return fullProfile(profile);
   },
 
   async updateProfile(_server, profileToken, id, body) {
@@ -232,6 +294,8 @@ export const mockApi: AsterApi = {
     if (state.unlock.lockedUntil > now) throw locked();
     const profile = state.profiles.find((p) => p.id === id);
     if (!profile) throw new ApiError(404, 'Not found.');
+    if (profile.role === 'guest')
+      throw invalid('pin', 'Guest opens without a PIN; use a Guest session.');
     if (profile.pinHash !== scramble(pin)) {
       state.unlock.failures += 1;
       // Like Laravel's PinGuard: the 5th wrong try itself starts the lockout.
@@ -244,16 +308,9 @@ export const mockApi: AsterApi = {
       throw invalid('pin', 'Wrong PIN.');
     }
     state.unlock = { failures: 0, lockedUntil: 0 };
-    const profileToken = newToken();
-    state.profileTokens.push(profileToken);
+    const session = openSession(state, profile);
     await save(state);
-    return {
-      profile_token: profileToken,
-      llm_token: newToken(),
-      expires_at: new Date(now + TOKEN_TTL_MS).toISOString(),
-      engines: DEFAULT_ENGINES,
-      profile: fullProfile(profile),
-    };
+    return session;
   },
 
   async getHomePlace(_server, profileToken) {
@@ -273,5 +330,148 @@ export const mockApi: AsterApi = {
     state.place = place;
     await save(state);
     return place;
+  },
+
+  async guestSession(_server, deviceToken) {
+    await delay();
+    const state = await load();
+    requireDevice(state, deviceToken);
+    const guest = state.profiles.find((p) => p.role === 'guest');
+    if (!guest) throw new ApiError(404, 'This household has no Guest profile yet.');
+    const session = openSession(state, guest);
+    await save(state);
+    return session;
+  },
+
+  async lockProfile(_server, profileToken, id) {
+    await delay();
+    const state = await load();
+    if (requireProfile(state, profileToken) !== id) {
+      throw new ApiError(403, 'You can only lock your own profile.');
+    }
+    state.profileTokens = state.profileTokens.filter((t) => t !== profileToken);
+    delete state.tokenProfiles[profileToken];
+    await save(state);
+  },
+
+  async refreshLlmToken(_server, profileToken) {
+    await delay();
+    requireProfile(await load(), profileToken);
+    return { llm_token: newToken(), expires_at: new Date(Date.now() + TOKEN_TTL_MS).toISOString() };
+  },
+
+  async updateMe(_server, profileToken, body) {
+    await delay();
+    const state = await load();
+    const id = requireProfile(state, profileToken);
+    const profile = state.profiles.find((p) => p.id === id);
+    if (!profile) throw unauthenticated();
+    if (body.llm_engine !== undefined) profile.llm_engine = body.llm_engine;
+    await save(state);
+    return fullProfile(profile);
+  },
+
+  async listConversations(_server, profileToken) {
+    await delay();
+    const state = await load();
+    const profileId = requireProfile(state, profileToken);
+    const data = state.conversations
+      .filter((c) => c.profile_id === profileId && !c.deleted)
+      .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+      .map((c) => conversationOut(state, c));
+    return { data, meta: { next_cursor: null } };
+  },
+
+  async createConversation(_server, profileToken, { client_uuid, title }) {
+    await delay();
+    const state = await load();
+    const profileId = requireProfile(state, profileToken);
+    let conversation = state.conversations.find((c) => c.client_uuid === client_uuid);
+    if (conversation && (conversation.deleted || conversation.profile_id !== profileId)) {
+      throw invalid('client_uuid', 'This client_uuid is already in use.');
+    }
+    if (!conversation) {
+      const at = nowIso();
+      conversation = {
+        id: state.nextId++,
+        client_uuid,
+        profile_id: profileId,
+        title: title.slice(0, 120),
+        last_message_at: null,
+        message_count: 0,
+        created_at: at,
+        updated_at: at,
+        deleted: false,
+      };
+      state.conversations.push(conversation);
+      await save(state);
+    }
+    return conversationOut(state, conversation);
+  },
+
+  async deleteConversation(_server, profileToken, id) {
+    await delay();
+    const state = await load();
+    const conversation = ownConversation(state, requireProfile(state, profileToken), id);
+    conversation.deleted = true;
+    conversation.updated_at = nowIso();
+    state.messages = state.messages.filter((m) => m.conversation_id !== id);
+    await save(state);
+  },
+
+  async listMessages(_server, profileToken, conversationId, after = 0) {
+    await delay();
+    const state = await load();
+    ownConversation(state, requireProfile(state, profileToken), conversationId);
+    const rest = state.messages.filter((m) => m.conversation_id === conversationId && m.id > after);
+    const data = rest.slice(0, 100).map(({ conversation_id: _c, ...message }) => message);
+    return { data, meta: { has_more: rest.length > 100 } };
+  },
+
+  async postMessages(_server, profileToken, conversationId, messages) {
+    await delay();
+    const state = await load();
+    const conversation = ownConversation(
+      state,
+      requireProfile(state, profileToken),
+      conversationId,
+    );
+    const stored = messages.map((body) => {
+      let message = state.messages.find((m) => m.client_uuid === body.client_uuid);
+      if (message && message.conversation_id !== conversationId) {
+        throw invalid('messages', 'This client_uuid belongs to another conversation.');
+      }
+      if (message) {
+        Object.assign(message, body);
+      } else {
+        message = {
+          ...body,
+          id: state.nextId++,
+          created_at: nowIso(),
+          conversation_id: conversationId,
+        };
+        state.messages.push(message);
+      }
+      if (!conversation.last_message_at || body.sent_at > conversation.last_message_at) {
+        conversation.last_message_at = body.sent_at;
+      }
+      return { id: message.id, client_uuid: message.client_uuid };
+    });
+    conversation.updated_at = nowIso();
+    await save(state);
+    return stored;
+  },
+
+  async updateMessage(_server, profileToken, id, body) {
+    await delay();
+    const state = await load();
+    const profileId = requireProfile(state, profileToken);
+    const message = state.messages.find((m) => m.id === id);
+    if (!message) throw new ApiError(404, 'Not found.');
+    ownConversation(state, profileId, message.conversation_id);
+    Object.assign(message, body);
+    await save(state);
+    const { conversation_id: _c, ...out } = message;
+    return out;
   },
 };

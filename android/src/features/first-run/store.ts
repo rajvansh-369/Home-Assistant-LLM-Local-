@@ -10,6 +10,7 @@ import {
   type EngineOption,
   type LlmEngine,
   type Place,
+  type Profile,
 } from '@/services/api/types';
 import type { PermissionKey } from '@/services/permissions';
 import type { ProfileColor } from '@/theme';
@@ -34,13 +35,21 @@ export type PersistedFirstRun = {
   firstRunDone: boolean;
   /** 5.1 Assistant: who answers chats, sent to zypherLL as `engine`. */
   llmEngine: LlmEngine;
+  /** The profile `llmEngine` belongs to: the one last unlocked (or the Owner before any). */
+  llmEngineProfileId: number | null;
   /** False while a choice made without a session still has to reach Laravel. */
   llmEngineSynced: boolean;
   /** The admin panel's names for the engines, refreshed at every unlock. */
   engines: EngineOption[];
 };
 
-export type Session = { profileToken: string; llmToken: string; expiresAt: string };
+/** The unlocked profile, from unlock or `/guest-sessions`; its tokens live only in memory. */
+export type Session = {
+  profileToken: string;
+  llmToken: string;
+  expiresAt: string;
+  profile: Profile;
+};
 
 export type MemoryFirstRun = {
   /** Persisted slice loaded and device token checked. */
@@ -82,6 +91,7 @@ export const initialPersisted: PersistedFirstRun = {
   permissionsSkipped: [],
   firstRunDone: false,
   llmEngine: 'local',
+  llmEngineProfileId: null,
   llmEngineSynced: true,
   engines: DEFAULT_ENGINES,
 };
