@@ -85,3 +85,34 @@ export async function askZypher(input: AskInput): Promise<ChatResult> {
     }
   }
 }
+
+/**
+ * Thumbs up or down on an answer zypherLL remembered (`memory_id`, local engine only):
+ * `POST {llm_url}/v1/memory/{id}/rate`. A 401 gets a fresh llm_token and one retry. Resolves false
+ * when the home PC didn't take it.
+ */
+export async function rateAnswer(memoryId: number, rating: 'good' | 'bad'): Promise<boolean> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { session, home } = store();
+    if (!session || !home) return false;
+    try {
+      const response = await fetch(
+        `${home.llm_url.replace(/\/+$/, '')}/v1/memory/${memoryId}/rate`,
+        {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.llmToken}`,
+          },
+          body: JSON.stringify({ rating }),
+        },
+      );
+      if (response.ok) return true;
+      if (response.status !== 401 || attempt > 0 || !(await refreshLlmToken())) return false;
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}

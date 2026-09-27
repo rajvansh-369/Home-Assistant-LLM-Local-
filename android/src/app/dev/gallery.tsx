@@ -26,6 +26,7 @@ import { useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import {
+  AssistantMessage,
   AsterOrb,
   Avatar,
   BackButton,
@@ -451,6 +452,16 @@ function GalleryContent() {
       <Section label="Chat: DateDivider, ChatBubble, ConversationRow, Composer (type; send streams; stop)">
         <DateDivider label={chatCopy.today} />
         <ChatBubble text="A question someone asked." />
+        <AssistantMessage content="" streaming status={chatCopy.status.searching} />
+        <AssistantMessage
+          content="An answer with a web source [1]."
+          sources={[{ n: 1, title: 'A source', url: 'https://example.com/page' }]}
+          live
+          rating="good"
+          onRate={() => {}}
+        />
+        <AssistantMessage content="An answer cut at its limit" onContinue={() => {}} />
+        <AssistantMessage content="Half an answer" error={chatCopy.errors.noReply} />
         <View style={styles.listCard}>
           <ConversationRow
             first

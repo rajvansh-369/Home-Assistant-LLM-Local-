@@ -1,3 +1,4 @@
+export { AssistantMessage } from './AssistantMessage';
 export { AsterOrb } from './AsterOrb';
 export { Avatar } from './Avatar';
 export { AwayMap } from './AwayMap';

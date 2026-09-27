@@ -1,16 +1,17 @@
-// 2.5 Guest chat (docs/aster-home-chat-plan.md §4.3). The chat itself arrives in Phase H6; End (or
-// Android back) locks the Guest session and returns to 2.1.
-import { Redirect, useFocusEffect } from 'expo-router';
+// 2.5 Guest chat (docs/aster-home-chat-plan.md §4.3): a chat with memory and web off that is never
+// kept or uploaded. End (or Android back) locks the Guest session and returns to 2.1, and the chat
+// is gone with the screen.
+import { Redirect, router, useFocusEffect } from 'expo-router';
 import { EyeOff, LogOut, User } from 'lucide-react-native';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { BackHandler, Pressable, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { InfoCallout, ScreenHeader, Text } from '@/components';
+import { ChatView } from '@/features/chat/ChatView';
 import { isUnlocked, useFirstRunStore } from '@/features/first-run/store';
 import { lockSession } from '@/features/profiles/actions';
 import { guest as copy } from '@/features/profiles/copy';
-import { colors, iconSizes, radii, sizes, spacing, strokes } from '@/theme';
+import { colors, iconSizes, radii, sizes, strokes } from '@/theme';
 
 function GuestAvatar() {
   return (
@@ -40,33 +41,45 @@ function EndButton({ onPress }: { onPress: () => void }) {
 
 export default function Guest() {
   const session = useFirstRunStore((state) => state.session);
+  const [ending, setEnding] = useState(false);
+
+  const end = useCallback(() => {
+    setEnding(true);
+    lockSession();
+    if (router.canGoBack()) router.back();
+    else router.replace('/who');
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
       const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-        lockSession();
+        end();
         return true;
       });
       return () => subscription.remove();
-    }, []),
+    }, [end]),
   );
 
-  if (!isUnlocked(session) || session!.profile.role !== 'guest') return <Redirect href="/who" />;
+  if (!isUnlocked(session) || session!.profile.role !== 'guest') {
+    return ending ? null : <Redirect href="/who" />;
+  }
 
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'bottom', 'left', 'right']}>
-      <ScreenHeader title={copy.title} subtitle={copy.subtitle} leading={<GuestAvatar />}>
-        <EndButton onPress={lockSession} />
-      </ScreenHeader>
-      <View style={styles.callout}>
-        <InfoCallout icon={EyeOff} tone="neutral" text={copy.callout} />
-      </View>
-    </SafeAreaView>
+    <ChatView
+      mode="guest"
+      chatUuid={null}
+      placeholder={copy.placeholder}
+      banner={<InfoCallout icon={EyeOff} tone="neutral" text={copy.callout} />}
+      header={() => (
+        <ScreenHeader title={copy.title} subtitle={copy.subtitle} leading={<GuestAvatar />}>
+          <EndButton onPress={end} />
+        </ScreenHeader>
+      )}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
   avatar: {
     width: sizes.guestAvatar,
     height: sizes.guestAvatar,
@@ -93,5 +106,4 @@ const styles = StyleSheet.create({
     minWidth: sizes.touchTarget,
   },
   endPressed: { backgroundColor: colors.track },
-  callout: { paddingHorizontal: spacing.chatX - 4, paddingTop: 4 },
 });

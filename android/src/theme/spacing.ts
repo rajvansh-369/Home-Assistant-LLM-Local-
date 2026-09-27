@@ -131,6 +131,11 @@ export const sizes = {
   /** 2.5 header: the dashed Guest circle and the End pill. */
   guestAvatar: 38,
   endPill: 40,
+  /** 3.4 answer extras: the status chip, source numbers and rating thumbs. */
+  answerChip: 28,
+  sourceNumber: 22,
+  rateWidth: 36,
+  rateHeight: 32,
 } as const;
 
 export const iconSizes = {
