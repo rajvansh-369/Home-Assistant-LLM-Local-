@@ -8,8 +8,10 @@ Built: the first run (1.1–1.5, 2.2 first-run mode) and home mode with chat: 2.
 2.2 for any profile, 2.5 Guest, 3.1/3.2 Home, 3.3 Chats, 3.4/3.5 streaming chat, 5.1 Settings.
 It runs as a development build (`npx expo run:android`), never Expo Go. Dark theme only.
 
-Plans and source of truth: `docs/aster-first-run-plan.md` (first run, phases in §8) and
-`docs/aster-home-chat-plan.md` (home mode and chat, phases H1–H7). Status: `docs/*-status.md`.
+Plans and source of truth: `docs/aster-first-run-plan.md` (first run, phases in §8),
+`docs/aster-home-chat-plan.md` (home mode and chat, phases H1–H7) and
+`docs/aster-reminders-location-plan.md` (reminders and location, phases R1–R6).
+Status: `docs/*-status.md`.
 
 ## Commands
 
@@ -62,5 +64,5 @@ docs/                        plan, design images, screenshots, status
 - Android only. Skip iOS work.
 - Never log tokens, PINs or passwords.
 - Custom fonts: set `fontFamily` per weight (see `src/theme/fonts.ts`), never `fontWeight`.
-- The two plans in `docs/` are the source of truth; report any deviation instead of making it
+- The plans in `docs/` are the source of truth; report any deviation instead of making it
   silently.

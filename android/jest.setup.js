@@ -61,3 +61,50 @@ jest.mock('react-native-maps', () => {
     PROVIDER_GOOGLE: 'google',
   };
 });
+
+// expo-notifications has no native side under Jest: an in-memory schedule and tray. Tests read
+// and reset them through `__scheduled`, `__presented` and `__reset`.
+jest.mock('expo-notifications', () => {
+  const scheduled = new Map();
+  const presented = new Map();
+  const permission = { granted: true, canAskAgain: true, status: 'granted' };
+  return {
+    __scheduled: scheduled,
+    __presented: presented,
+    __permission: permission,
+    __reset() {
+      scheduled.clear();
+      presented.clear();
+      Object.assign(permission, { granted: true, canAskAgain: true, status: 'granted' });
+    },
+    DEFAULT_ACTION_IDENTIFIER: 'expo.modules.notifications.actions.DEFAULT',
+    AndroidImportance: { MIN: 1, LOW: 2, DEFAULT: 3, HIGH: 4, MAX: 5 },
+    SchedulableTriggerInputTypes: { DATE: 'date', TIME_INTERVAL: 'timeInterval' },
+    setNotificationHandler: jest.fn(),
+    setNotificationChannelAsync: jest.fn(async () => null),
+    setNotificationCategoryAsync: jest.fn(async () => null),
+    getPermissionsAsync: jest.fn(async () => ({ ...permission })),
+    requestPermissionsAsync: jest.fn(async () => ({ ...permission })),
+    scheduleNotificationAsync: jest.fn(async ({ identifier, content, trigger }) => {
+      const id = identifier ?? `n${scheduled.size + presented.size + 1}`;
+      if (trigger && trigger.type === 'date')
+        scheduled.set(id, { identifier: id, content, trigger });
+      else presented.set(id, { identifier: id, content });
+      return id;
+    }),
+    getAllScheduledNotificationsAsync: jest.fn(async () => [...scheduled.values()]),
+    cancelScheduledNotificationAsync: jest.fn(async (id) => void scheduled.delete(id)),
+    dismissNotificationAsync: jest.fn(async (id) => void presented.delete(id)),
+    registerTaskAsync: jest.fn(async () => null),
+    addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+    getLastNotificationResponseAsync: jest.fn(async () => null),
+    clearLastNotificationResponseAsync: jest.fn(async () => undefined),
+  };
+});
+
+// Android's date and time dialogs; tests call the onChange they were given.
+jest.mock('@react-native-community/datetimepicker', () => ({
+  __esModule: true,
+  default: () => null,
+  DateTimePickerAndroid: { open: jest.fn(), dismiss: jest.fn() },
+}));

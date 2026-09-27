@@ -4,14 +4,19 @@
 // Laravel's 422 field errors, and the 429 wait from `retry_after` or the Retry-After header.
 import {
   ApiError,
+  type ActivityBatchResult,
   type AsterApi,
   type Conversation,
   type ConversationPage,
   type LlmTokenResponse,
+  type LocationBatchResult,
+  type LocationDay,
+  type LocationSettings,
   type Message,
   type MessagePage,
   type Place,
   type Profile,
+  type Reminder,
   type TokenResponse,
   type UnlockResponse,
 } from './types';
@@ -203,6 +208,53 @@ export const realApi: AsterApi = {
   async updateMessage(server, profileToken, id, body) {
     return data<Message>(
       await call(server, 'PATCH', `/chat-messages/${id}`, { token: profileToken, body }),
+    );
+  },
+
+  async listReminders(server, profileToken) {
+    return data<Reminder[]>(await call(server, 'GET', '/reminders', { token: profileToken }));
+  },
+
+  async createReminder(server, profileToken, body) {
+    return data<Reminder>(await call(server, 'POST', '/reminders', { token: profileToken, body }));
+  },
+
+  async updateReminder(server, profileToken, id, body) {
+    return data<Reminder>(
+      await call(server, 'PATCH', `/reminders/${id}`, { token: profileToken, body }),
+    );
+  },
+
+  async deleteReminder(server, profileToken, id) {
+    await call(server, 'DELETE', `/reminders/${id}`, { token: profileToken });
+  },
+
+  async postLocations(server, deviceToken, points) {
+    return (
+      await call(server, 'POST', '/locations/batch', { token: deviceToken, body: { points } })
+    ).json as LocationBatchResult;
+  },
+
+  async postActivity(server, deviceToken, events) {
+    return (await call(server, 'POST', '/activity/batch', { token: deviceToken, body: { events } }))
+      .json as ActivityBatchResult;
+  },
+
+  async getLocations(server, profileToken, date, tz) {
+    const query = `?date=${encodeURIComponent(date)}&tz=${encodeURIComponent(tz)}`;
+    return (await call(server, 'GET', `/locations${query}`, { token: profileToken }))
+      .json as LocationDay;
+  },
+
+  async getLocationSettings(server, profileToken) {
+    return data<LocationSettings>(
+      await call(server, 'GET', '/location-settings', { token: profileToken }),
+    );
+  },
+
+  async putLocationSettings(server, profileToken, body) {
+    return data<LocationSettings>(
+      await call(server, 'PUT', '/location-settings', { token: profileToken, body }),
     );
   },
 };

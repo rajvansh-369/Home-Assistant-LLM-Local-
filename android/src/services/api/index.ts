@@ -9,6 +9,7 @@ export const api: AsterApi = useMockApi ? mockApi : realApi;
 
 export { ApiError, DEFAULT_ENGINES } from './types';
 export type {
+  ActivityEventBody,
   AsterApi,
   Conversation,
   CreateProfileBody,
@@ -17,6 +18,11 @@ export type {
   LlmEngine,
   HealthServer,
   LlmHealth,
+  LocationDay,
+  LocationEvent,
+  LocationPoint,
+  LocationPointBody,
+  LocationSettings,
   LoginBody,
   Message,
   MessageBody,
@@ -24,6 +30,9 @@ export type {
   Profile,
   ProfileRole,
   RegisterBody,
+  Reminder,
+  ReminderStatus,
+  ReminderTrigger,
   Source,
   TokenResponse,
   UnlockResponse,

@@ -16,6 +16,7 @@ if (!GOOGLE_MAPS_API_KEY) {
 const HOME_LLM_HOST = process.env.HOME_LLM_HOST?.trim() ?? '';
 
 const BACKGROUND = '#0C1015';
+const ACCENT = '#6EECC1';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -44,6 +45,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       // NetInfo's Wi-Fi name on 1.4.
       'android.permission.ACCESS_WIFI_STATE',
       'android.permission.ACCESS_NETWORK_STATE',
+      // Reminders ring on time (reminders plan decision 4). Granted on Android 12–13; from 14
+      // the user allows it under "Alarms & reminders", else alarms may be a few minutes late.
+      'android.permission.SCHEDULE_EXACT_ALARM',
     ],
   },
   plugins: [
@@ -51,12 +55,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // The Aster orb on the dark background (Android 12+ splash icon).
     ['expo-splash-screen', { backgroundColor: BACKGROUND, image: './assets/splash-icon.png', imageWidth: 120 }],
     'expo-secure-store',
-    // "Allow all the time" for the home geofence. The location foreground service belongs to a
-    // later row (spoken alerts), so it stays off for now.
+    // "Allow all the time" for the home geofence, and the foreground service that saves a point
+    // every interval with an ongoing notification (reminders plan §5).
     [
       'expo-location',
-      { isAndroidBackgroundLocationEnabled: true, isAndroidForegroundServiceEnabled: false },
+      { isAndroidBackgroundLocationEnabled: true, isAndroidForegroundServiceEnabled: true },
     ],
+    // Reminder alarms and their Done / Snooze actions (reminders plan §4).
+    ['expo-notifications', { icon: './assets/notification-icon.png', color: ACCENT }],
+    // Android's date and time dialogs for the reminder editor.
+    '@react-native-community/datetimepicker',
     ['react-native-maps', { androidGoogleMapsApiKey: GOOGLE_MAPS_API_KEY }],
     ['./plugins/with-home-llm-cleartext.js', { host: HOME_LLM_HOST }],
   ],

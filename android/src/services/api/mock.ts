@@ -14,6 +14,8 @@
 //   Register, password shorter than 8         422 on password
 //   Unlock, wrong PIN                         422; the 5th wrong try gets 429 with retry_after 30 (as Laravel)
 //   Creating the Owner                        also creates a Guest profile (as Laravel)
+//   Reminders as Guest or Restricted          403 (as Laravel)
+//   Locations while tracking is off or paused points are discarded (as Laravel)
 //   Anything else                             works
 //
 // Tokens the mock hands out are random strings; a token the mock doesn't know gives 401.
@@ -23,15 +25,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { guestColor, profileColors } from '@/theme/colors';
 
 import {
+  type ActivityEventBody,
   ApiError,
   type AsterApi,
   type Conversation,
   type CreateProfileBody,
   DEFAULT_ENGINES,
+  type LocationPoint,
+  type LocationSettings,
   type Message,
   type Place,
   type Profile,
+  type Reminder,
   type UpdateProfileBody,
+  type UpdateReminderBody,
 } from './types';
 
 const STORAGE_KEY = 'aster.mock-server';
@@ -44,6 +51,9 @@ const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
 type MockProfile = Profile & { pinHash: string; auto_lock_minutes: number | null };
 type MockConversation = Conversation & { deleted: boolean };
 type MockMessage = Message & { conversation_id: number };
+type MockReminder = Reminder & { profile_id: number; deleted: boolean };
+type MockPoint = LocationPoint & { client_uuid: string };
+type MockActivity = ActivityEventBody & { id: number };
 
 type MockState = {
   household: { email: string; passwordHash: string } | null;
@@ -56,7 +66,20 @@ type MockState = {
   unlock: { failures: number; lockedUntil: number };
   conversations: MockConversation[];
   messages: MockMessage[];
+  reminders: MockReminder[];
+  points: MockPoint[];
+  locationSettings: LocationSettings;
+  activity: MockActivity[];
   nextId: number;
+};
+
+/** Laravel creates these with the household. */
+export const DEFAULT_LOCATION_SETTINGS: LocationSettings = {
+  enabled: true,
+  interval_minutes: 15,
+  retention_days: 30,
+  share_area: false,
+  paused_until: null,
 };
 
 const emptyState = (): MockState => ({
@@ -69,6 +92,10 @@ const emptyState = (): MockState => ({
   unlock: { failures: 0, lockedUntil: 0 },
   conversations: [],
   messages: [],
+  reminders: [],
+  points: [],
+  locationSettings: { ...DEFAULT_LOCATION_SETTINGS },
+  activity: [],
   nextId: 1,
 });
 
@@ -174,6 +201,60 @@ function conversationOut(
 ) {
   const count = state.messages.filter((m) => m.conversation_id === conversation.id).length;
   return { ...conversation, message_count: count };
+}
+
+/** The token's profile, which must be allowed reminders (EnsureCanUseReminders). */
+function requireReminderProfile(state: MockState, token: string): number {
+  const id = requireProfile(state, token);
+  const role = state.profiles.find((p) => p.id === id)?.role;
+  if (role !== 'owner' && role !== 'member') {
+    throw new ApiError(403, "Restricted profiles can't use reminders.");
+  }
+  return id;
+}
+
+function requireOwner(state: MockState, token: string) {
+  const id = requireProfile(state, token);
+  if (state.profiles.find((p) => p.id === id)?.role !== 'owner') {
+    throw new ApiError(403, 'This action is unauthorized.');
+  }
+}
+
+function ownReminder(state: MockState, profileId: number, id: number): MockReminder {
+  const reminder = state.reminders.find((r) => r.id === id && r.profile_id === profileId);
+  if (!reminder || reminder.deleted) throw new ApiError(404, 'Not found.');
+  return reminder;
+}
+
+const reminderOut = ({ profile_id: _p, deleted: _d, ...reminder }: MockReminder): Reminder =>
+  reminder;
+
+function validateReminder(fields: UpdateReminderBody) {
+  if (fields.title !== undefined && (fields.title.trim() === '' || fields.title.length > 200)) {
+    throw invalid('title', 'The title field must be between 1 and 200 characters.');
+  }
+  if (fields.due_at != null && Number.isNaN(Date.parse(fields.due_at))) {
+    throw invalid('due_at', 'The due at field must be a valid date.');
+  }
+}
+
+/** Laravel stores times in UTC and sends them back in its own format. */
+const toApiTime = (iso: string | null | undefined) =>
+  iso == null ? null : `${new Date(iso).toISOString().slice(0, 19)}Z`;
+
+/** YYYY-MM-DD of an instant in an IANA zone. */
+const dayIn = (iso: string, tz: string) =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(iso));
+
+function tracking(settings: LocationSettings, now = Date.now()): boolean {
+  return (
+    settings.enabled && (settings.paused_until == null || Date.parse(settings.paused_until) <= now)
+  );
 }
 
 function validateProfile(body: UpdateProfileBody) {
@@ -485,5 +566,160 @@ export const mockApi: AsterApi = {
     await save(state);
     const { conversation_id: _c, ...out } = message;
     return out;
+  },
+
+  async listReminders(_server, profileToken) {
+    await delay();
+    const state = await load();
+    const profileId = requireReminderProfile(state, profileToken);
+    return state.reminders
+      .filter((r) => r.profile_id === profileId && !r.deleted)
+      .sort((a, b) => a.id - b.id)
+      .map(reminderOut);
+  },
+
+  async createReminder(_server, profileToken, body) {
+    await delay();
+    const state = await load();
+    const profileId = requireReminderProfile(state, profileToken);
+    validateReminder(body);
+    if (body.trigger === 'time' && body.due_at == null) {
+      throw invalid('due_at', 'A time reminder needs a due_at.');
+    }
+    const existing = state.reminders.find((r) => r.client_uuid === body.client_uuid);
+    if (existing) {
+      if (existing.profile_id !== profileId || existing.deleted) {
+        throw invalid(
+          'client_uuid',
+          existing.deleted ? 'This reminder was deleted.' : 'This client_uuid is already in use.',
+        );
+      }
+      return reminderOut(existing);
+    }
+    const at = nowIso();
+    const reminder: MockReminder = {
+      id: state.nextId++,
+      client_uuid: body.client_uuid,
+      title: body.title,
+      due_at: toApiTime(body.due_at),
+      trigger: body.trigger,
+      status: body.status ?? 'pending',
+      created_at: at,
+      updated_at: at,
+      profile_id: profileId,
+      deleted: false,
+    };
+    state.reminders.push(reminder);
+    await save(state);
+    return reminderOut(reminder);
+  },
+
+  async updateReminder(_server, profileToken, id, body) {
+    await delay();
+    const state = await load();
+    const reminder = ownReminder(state, requireReminderProfile(state, profileToken), id);
+    validateReminder(body);
+    const next = {
+      ...reminder,
+      ...body,
+      due_at: body.due_at !== undefined ? toApiTime(body.due_at) : reminder.due_at,
+    };
+    if (next.trigger === 'time' && next.due_at == null) {
+      throw invalid('due_at', 'A time reminder needs a due_at.');
+    }
+    Object.assign(reminder, next, { updated_at: nowIso() });
+    await save(state);
+    return reminderOut(reminder);
+  },
+
+  async deleteReminder(_server, profileToken, id) {
+    await delay();
+    const state = await load();
+    ownReminder(state, requireReminderProfile(state, profileToken), id).deleted = true;
+    await save(state);
+  },
+
+  async postLocations(_server, deviceToken, points) {
+    await delay();
+    const state = await load();
+    requireDevice(state, deviceToken);
+    if (points.length === 0 || points.length > 500) {
+      throw invalid('points', 'The points field must have between 1 and 500 items.');
+    }
+    const known = new Set(state.points.map((p) => p.client_uuid));
+    const fresh = points.filter((p) => !known.has(p.client_uuid));
+    if (!tracking(state.locationSettings)) {
+      return { accepted: 0, duplicates: points.length - fresh.length, discarded: fresh.length };
+    }
+    for (const point of fresh) {
+      state.points.push({
+        id: state.nextId++,
+        client_uuid: point.client_uuid,
+        lat: point.lat,
+        lng: point.lng,
+        accuracy_m: point.accuracy_m ?? null,
+        event: point.event,
+        place_id: point.place_id ?? null,
+        recorded_at: toApiTime(point.recorded_at)!,
+      });
+    }
+    await save(state);
+    return { accepted: fresh.length, duplicates: points.length - fresh.length, discarded: 0 };
+  },
+
+  async postActivity(_server, deviceToken, events) {
+    await delay();
+    const state = await load();
+    requireDevice(state, deviceToken);
+    const profileIds = new Set(state.profiles.map((p) => p.id));
+    if (events.some((e) => e.profile_id != null && !profileIds.has(e.profile_id))) {
+      throw invalid('events', 'The selected profile id is invalid.');
+    }
+    const known = new Set(state.activity.map((a) => a.client_uuid));
+    const fresh = events.filter((e) => !known.has(e.client_uuid));
+    state.activity.push(...fresh.map((event) => ({ ...event, id: state.nextId++ })));
+    await save(state);
+    return { accepted: fresh.length, duplicates: events.length - fresh.length };
+  },
+
+  async getLocations(_server, profileToken, date, tz) {
+    await delay();
+    const state = await load();
+    requireOwner(state, profileToken);
+    const data = state.points
+      .filter((p) => dayIn(p.recorded_at, tz) === date)
+      .sort((a, b) => a.recorded_at.localeCompare(b.recorded_at) || a.id - b.id)
+      .map(({ client_uuid: _c, ...point }) => point);
+    return { data, meta: { date, tz, count: data.length } };
+  },
+
+  async getLocationSettings(_server, profileToken) {
+    await delay();
+    const state = await load();
+    requireOwner(state, profileToken);
+    return state.locationSettings;
+  },
+
+  async putLocationSettings(_server, profileToken, body) {
+    await delay();
+    const state = await load();
+    requireOwner(state, profileToken);
+    const { interval_minutes: interval, retention_days: retention } = body;
+    if (interval !== undefined && (interval < 15 || interval > 120)) {
+      throw invalid('interval_minutes', 'The interval minutes field must be between 15 and 120.');
+    }
+    if (retention !== undefined && (retention < 1 || retention > 90)) {
+      throw invalid('retention_days', 'The retention days field must be between 1 and 90.');
+    }
+    state.locationSettings = {
+      ...state.locationSettings,
+      ...body,
+      paused_until:
+        body.paused_until !== undefined
+          ? toApiTime(body.paused_until)
+          : state.locationSettings.paused_until,
+    };
+    await save(state);
+    return state.locationSettings;
   },
 };

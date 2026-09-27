@@ -38,8 +38,10 @@ export type Profile = {
   web_mode?: 'auto' | 'never';
 };
 
-/** PlaceResource; Laravel also returns id and updated_at. */
+/** PlaceResource; Laravel also returns updated_at. */
 export type Place = {
+  /** Laravel's id, sent as a location point's place_id. Missing on copies made before R4. */
+  id?: number;
   name: 'Home';
   address: string;
   lat: number;
@@ -144,6 +146,97 @@ export type UpdateMessageBody = {
   finish_reason?: FinishReason | null;
 };
 
+// Reminders and location (docs/aster-reminders-location-plan.md, backend plan §5).
+
+export type ReminderTrigger = 'time' | 'arrive_home';
+export type ReminderStatus = 'pending' | 'done' | 'cancelled';
+
+/** ReminderResource. `due_at` is set for time reminders, null for arrive-home ones. */
+export type Reminder = {
+  id: number;
+  client_uuid: string;
+  title: string;
+  due_at: string | null;
+  trigger: ReminderTrigger;
+  status: ReminderStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+/** `POST /reminders`: 201 when new, 200 when the client_uuid exists. */
+export type CreateReminderBody = {
+  client_uuid: string;
+  /** At most 200 characters. */
+  title: string;
+  trigger: ReminderTrigger;
+  /** Required when trigger is time. */
+  due_at: string | null;
+  status?: ReminderStatus;
+};
+
+export type UpdateReminderBody = Partial<
+  Pick<CreateReminderBody, 'title' | 'trigger' | 'due_at' | 'status'>
+>;
+
+export type LocationEvent = 'periodic' | 'arrived' | 'left';
+
+/** One point of `POST /locations/batch` (1–500 a call, device token). */
+export type LocationPointBody = {
+  client_uuid: string;
+  lat: number;
+  lng: number;
+  accuracy_m?: number | null;
+  event: LocationEvent;
+  place_id?: number | null;
+  recorded_at: string;
+};
+
+/** `discarded`: points Laravel dropped because tracking was off or paused. */
+export type LocationBatchResult = { accepted: number; duplicates: number; discarded: number };
+
+/** PointResource, from `GET /locations?date=&tz=`. */
+export type LocationPoint = {
+  id: number;
+  lat: number;
+  lng: number;
+  accuracy_m: number | null;
+  event: LocationEvent;
+  place_id: number | null;
+  recorded_at: string;
+};
+
+export type LocationDay = {
+  data: LocationPoint[];
+  meta: { date: string; tz: string; count: number };
+};
+
+/** LocationSettingResource (Owner only); Laravel also returns updated_at. */
+export type LocationSettings = {
+  enabled: boolean;
+  /** 15–120. */
+  interval_minutes: number;
+  /** 1–90. */
+  retention_days: number;
+  /** "Use my area in answers". */
+  share_area: boolean;
+  paused_until: string | null;
+};
+
+/** One event of `POST /activity/batch` (1–500 a call, device token). */
+export type ActivityEventBody = {
+  client_uuid: string;
+  profile_id?: number | null;
+  /** Lowercase letters and underscores, at most 40: arrived_home, left_home, reminder_fired. */
+  type: string;
+  /** At most 200 characters. */
+  summary: string;
+  /** At most 2 KB as JSON. */
+  meta?: Record<string, unknown> | null;
+  occurred_at: string;
+};
+
+export type ActivityBatchResult = { accepted: number; duplicates: number };
+
 /** Every failed call becomes an ApiError. `status` 0 means no HTTP reply (network or timeout). */
 export class ApiError extends Error {
   readonly status: number;
@@ -244,6 +337,46 @@ export interface AsterApi {
     id: number,
     body: UpdateMessageBody,
   ): Promise<Message>;
+
+  /** The unlocked profile's reminders, every status. 403 for Restricted and Guest. */
+  listReminders(server: string, profileToken: string): Promise<Reminder[]>;
+  /** Safe to retry (client_uuid). */
+  createReminder(server: string, profileToken: string, body: CreateReminderBody): Promise<Reminder>;
+  updateReminder(
+    server: string,
+    profileToken: string,
+    id: number,
+    body: UpdateReminderBody,
+  ): Promise<Reminder>;
+  deleteReminder(server: string, profileToken: string, id: number): Promise<void>;
+
+  /** Device token; safe to retry (client_uuid). */
+  postLocations(
+    server: string,
+    deviceToken: string,
+    points: LocationPointBody[],
+  ): Promise<LocationBatchResult>;
+  /** Device token; safe to retry (client_uuid). */
+  postActivity(
+    server: string,
+    deviceToken: string,
+    events: ActivityEventBody[],
+  ): Promise<ActivityBatchResult>;
+  /** Owner. `date` is YYYY-MM-DD in the IANA zone `tz`. */
+  getLocations(
+    server: string,
+    profileToken: string,
+    date: string,
+    tz: string,
+  ): Promise<LocationDay>;
+  /** Owner. */
+  getLocationSettings(server: string, profileToken: string): Promise<LocationSettings>;
+  /** Owner; send only the fields that change. */
+  putLocationSettings(
+    server: string,
+    profileToken: string,
+    body: Partial<LocationSettings>,
+  ): Promise<LocationSettings>;
 }
 
 /**
