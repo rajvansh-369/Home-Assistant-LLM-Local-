@@ -5,7 +5,13 @@ process.env.EXPO_PUBLIC_USE_MOCK_API = '1';
 jest.mock('react-native-worklets', () => require('react-native-worklets/src/mock'));
 require('react-native-reanimated').setUpTests();
 
-jest.mock('react-native-keyboard-controller', () => require('react-native-keyboard-controller/jest'));
+jest.mock('react-native-keyboard-controller', () =>
+  require('react-native-keyboard-controller/jest'),
+);
+
+jest.mock('@react-native-community/netinfo', () =>
+  require('@react-native-community/netinfo/jest/netinfo-mock.js'),
+);
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -38,9 +44,20 @@ jest.mock('react-native-maps', () => {
   const { createElement, forwardRef } = require('react');
   const { View } = require('react-native');
   const MapView = forwardRef(function MapView(props, ref) {
-    return createElement(View, { ref, testID: 'map', accessibilityLabel: props.accessibilityLabel }, props.children);
+    return createElement(
+      View,
+      { ref, testID: 'map', accessibilityLabel: props.accessibilityLabel },
+      props.children,
+    );
   });
   const Shape = () => null;
   const Marker = (props) => createElement(View, null, props.children);
-  return { __esModule: true, default: MapView, Circle: Shape, Marker, Polyline: Shape, PROVIDER_GOOGLE: 'google' };
+  return {
+    __esModule: true,
+    default: MapView,
+    Circle: Shape,
+    Marker,
+    Polyline: Shape,
+    PROVIDER_GOOGLE: 'google',
+  };
 });

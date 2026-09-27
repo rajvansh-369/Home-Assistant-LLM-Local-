@@ -4,6 +4,7 @@
 export const chats = {
   title: 'Chats',
   search: 'Search chats',
+  closeSearch: 'Close search', // (proposed)
   searchPlaceholder: 'Search chats', // (proposed)
   newChat: 'New chat',
   privacy: (name: string) => `Only in ${name}'s profile · saved to your server`,

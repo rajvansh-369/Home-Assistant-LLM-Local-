@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { installChatSession } from '@/features/chat/actions';
 import { bootFirstRun } from '@/features/first-run/actions';
 import { useFirstRunStore } from '@/features/first-run/store';
 import { useHomeMode } from '@/features/home-mode/useHomeMode';
@@ -20,6 +21,7 @@ import { colors } from '@/theme/colors';
 import { fontAssets } from '@/theme/fonts';
 
 SplashScreen.preventAutoHideAsync();
+installChatSession();
 SystemUI.setBackgroundColorAsync(colors.bg);
 
 export default function RootLayout() {
