@@ -176,6 +176,7 @@ export const homePlaceholder = {
     geofence: 'Home geofence',
     lastGeofenceEvent: 'Last geofence event',
     assistant: 'Assistant',
+    homeMode: 'Home mode',
   },
   geofenceEvent: (type: 'enter' | 'exit', at: string) =>
     `${type === 'enter' ? 'Arrived' : 'Left'} · ${at}`,

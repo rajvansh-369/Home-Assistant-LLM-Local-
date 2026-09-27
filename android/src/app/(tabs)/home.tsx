@@ -1,99 +1,218 @@
-// 3.1 Home placeholder: the first run's destination. Shows the saved first-run facts (never
-// secrets). "Lock when I leave" is only armed from here on, once first run is finished (plan §5);
-// the real auto-lock arrives with row 2.
+// 3.1 Home and 3.2 Home away (docs/aster-home-chat-plan.md §4.4, §4.5): one route whose layout
+// follows home mode. At home: the status chip, a banner while the model loads or the home PC
+// doesn't answer, suggestions and "Ask Aster anything". Away: the map card with the distance, and
+// a disabled composer. The avatar locks and returns to 2.1.
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { AlertTriangle, Clock, Lock, MapPin, MessageCircle, WifiOff } from 'lucide-react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { PrimaryButton, Screen, Text, TextLink, TitleBlock } from '@/components';
-import { resetFirstRun } from '@/features/first-run/actions';
-import { common, homePlaceholder as copy, permissions } from '@/features/first-run/copy';
+import { Avatar, AwayMap, Composer, InfoCallout, SuggestionChip, Text } from '@/components';
 import { useFirstRunStore } from '@/features/first-run/store';
-import { isHomeGeofenceRunning } from '@/services/geofence';
-import { readGeofenceEvents, type GeofenceEvent } from '@/tasks/geofence-task';
-import { spacing } from '@/theme';
+import { home as copy } from '@/features/home/copy';
+import { HomeStatusChip } from '@/features/home-mode/HomeStatusChip';
+import { isAtHome, type HomeMode } from '@/features/home-mode/mode';
+import { useHomeModeStore } from '@/features/home-mode/store';
+import { lockSession } from '@/features/profiles/actions';
+import { hasMapsKey } from '@/services/buildConfig';
+import { colors, iconSizes, profileColorKey, radii, sizes, spacing, strokes } from '@/theme';
 
-async function reset() {
-  await resetFirstRun();
-  router.replace('/welcome');
+function startChat(question?: string) {
+  router.push({
+    pathname: '/chat/[id]',
+    params: question ? { id: 'new', q: question } : { id: 'new' },
+  });
+}
+
+function Banner({ mode }: { mode: HomeMode }) {
+  if (mode.kind === 'loading')
+    return <InfoCallout icon={Clock} tone="warning" text={copy.loadingBanner} live />;
+  if (mode.kind === 'noServer')
+    return <InfoCallout icon={WifiOff} tone="warning" text={copy.noServerBanner} live />;
+  if (mode.kind === 'failed') {
+    return (
+      <InfoCallout icon={AlertTriangle} tone="warning" text={copy.failedBanner(mode.error)} live />
+    );
+  }
+  return null;
+}
+
+function AwayCard({ mode }: { mode: HomeMode }) {
+  const home = useFirstRunStore((state) => state.home);
+  const away = mode.kind === 'away' ? mode : null;
+  const km = away?.distanceM != null ? (away.distanceM / 1000).toFixed(1) : null;
+  const me = away?.me ?? null;
+  return (
+    <View style={styles.awayCard}>
+      {home ? (
+        <AwayMap
+          home={{ latitude: home.lat, longitude: home.lng }}
+          radiusM={home.radius_m}
+          me={me}
+          label={km ? copy.away.mapLabel(km) : copy.away.mapLabelNoDistance}
+          mapEnabled={hasMapsKey}
+        />
+      ) : null}
+      <View style={styles.awayText}>
+        <View style={styles.awayTitle}>
+          <MapPin size={iconSizes.search} color={colors.textSecondary} strokeWidth={strokes.icon} />
+          <Text variant="cardTitle" accessibilityRole="header">
+            {km ? copy.away.distance(km) : copy.away.noDistance}
+          </Text>
+        </View>
+        <Text variant="bodySmall" tone="secondary">
+          {copy.away.body}
+        </Text>
+      </View>
+    </View>
+  );
 }
 
 export default function Home() {
-  const facts = useFirstRunStore();
-  const [geofence, setGeofence] = useState<boolean | null>(null);
-  const [lastEvent, setLastEvent] = useState<GeofenceEvent | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    isHomeGeofenceRunning()
-      .then((running) => active && setGeofence(running))
-      .catch(() => active && setGeofence(false));
-    readGeofenceEvents()
-      .then((events) => active && setLastEvent(events.at(-1) ?? null))
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const onOff = (value: boolean) => (value ? copy.yes : copy.no);
-  const skipped = facts.permissionsSkipped.map((key) => permissions.rows[key].title).join(', ');
-  const engineName = facts.engines.find((e) => e.id === facts.llmEngine)?.name ?? facts.llmEngine;
-  const rows: [string, string][] = [
-    [copy.facts.server, facts.serverUrl ?? copy.none],
-    [copy.facts.email, facts.email ?? copy.none],
-    [copy.facts.owner, facts.owner ? `${facts.owner.name} · ${common.colourNames[facts.owner.color]}` : copy.none],
-    [
-      copy.facts.home,
-      facts.home ? `${facts.home.address} · ${facts.home.radius_m} m` : copy.none,
-    ],
-    [copy.facts.wifi, facts.home?.wifi_ssid ?? copy.none],
-    [copy.facts.llm, facts.home?.llm_url ?? copy.none],
-    [copy.facts.fingerprint, onOff(facts.fingerprintEnabled)],
-    [copy.facts.lockWhenLeave, onOff(facts.lockWhenLeave)],
-    [copy.facts.permissionsDone, onOff(facts.permissionsDone)],
-    [copy.facts.skipped, skipped || copy.none],
-    [copy.facts.geofence, geofence === null ? copy.none : onOff(geofence)],
-    [
-      copy.facts.lastGeofenceEvent,
-      lastEvent ? copy.geofenceEvent(lastEvent.type, new Date(lastEvent.at).toLocaleString()) : copy.none,
-    ],
-    [copy.facts.assistant, engineName],
-  ];
+  const profile = useFirstRunStore((state) => state.session?.profile);
+  const mode = useHomeModeStore((state) => state.mode);
+  const atHome = isAtHome(mode);
+  const now = new Date();
 
   return (
-    <Screen
-      footer={
-        <>
-          <TextLink label={copy.settings} onPress={() => router.push('/settings')} />
-          {__DEV__ ? (
-            <>
-              <PrimaryButton label={copy.reset} onPress={reset} />
-              <TextLink label={copy.gallery} onPress={() => router.push('/dev/gallery')} />
-            </>
-          ) : null}
-        </>
-      }
-    >
-      <TitleBlock title={copy.title} subtitle={copy.subtitle} />
-      <Text variant="label" tone="secondary" accessibilityRole="header">
-        {copy.savedFacts}
-      </Text>
-      <View style={styles.list}>
-        {rows.map(([label, value]) => (
-          // One TalkBack stop per fact: "Server, https://…".
-          <View key={label} accessible accessibilityLabel={`${label}, ${value}`}>
-            <Text variant="helper" tone="muted">
-              {label}
+    <SafeAreaView style={styles.root} edges={['top', 'left', 'right']}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text variant="monoSmall" tone="muted">
+              {copy.dateLine(now)}
             </Text>
-            <Text variant="body">{value}</Text>
+            <Text variant="heading" accessibilityRole="header">
+              {copy.greeting(now.getHours(), profile?.name ?? '')}
+            </Text>
           </View>
-        ))}
-      </View>
-    </Screen>
+          <Pressable
+            onPress={lockSession}
+            accessibilityRole="button"
+            accessibilityLabel={copy.switchOrLock}
+            style={styles.avatarButton}
+          >
+            <Avatar
+              color={profileColorKey(profile?.color ?? '')}
+              name={profile?.name ?? ''}
+              size="header"
+            />
+            <View style={styles.lockBadge}>
+              <Lock
+                size={iconSizes.lockBadge}
+                color={colors.textSecondary}
+                strokeWidth={strokes.icon}
+              />
+            </View>
+          </Pressable>
+        </View>
+
+        {atHome ? (
+          <>
+            <View style={styles.chips}>
+              <HomeStatusChip onPress={() => router.navigate('/settings')} />
+            </View>
+            <Banner mode={mode} />
+          </>
+        ) : (
+          <AwayCard mode={mode} />
+        )}
+
+        {atHome ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.suggestions}
+            style={styles.bleed}
+          >
+            {copy.suggestions.map((question) => (
+              <SuggestionChip
+                key={question}
+                label={question}
+                disabled={mode.kind !== 'ready'}
+                onPress={() => startChat(question)}
+              />
+            ))}
+          </ScrollView>
+        ) : null}
+      </ScrollView>
+
+      {atHome ? (
+        <View style={styles.entryRow}>
+          <Pressable
+            onPress={() => startChat()}
+            accessibilityRole="button"
+            accessibilityLabel={copy.askAnything}
+            style={({ pressed }) => [styles.entry, pressed && styles.entryPressed]}
+          >
+            <MessageCircle
+              size={iconSizes.composerEntry}
+              color={colors.textMuted}
+              strokeWidth={strokes.icon}
+            />
+            <Text variant="body" tone="muted">
+              {copy.askAnything}
+            </Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Composer
+          value=""
+          onChangeText={() => {}}
+          onSend={() => {}}
+          unavailable={copy.away.chatAtHome}
+        />
+      )}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { gap: spacing.featureRowsApart },
+  root: { flex: 1, backgroundColor: colors.bg },
+  content: {
+    paddingHorizontal: spacing.screenX,
+    paddingTop: spacing.homeTop,
+    paddingBottom: 16,
+    gap: 16,
+  },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerText: { flex: 1, minWidth: 0, gap: 2 },
+  avatarButton: { width: sizes.homeAvatar, height: sizes.homeAvatar },
+  lockBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: sizes.lockBadge,
+    height: sizes.lockBadge,
+    borderRadius: radii.pill,
+    backgroundColor: colors.track,
+    borderWidth: 2,
+    borderColor: colors.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chips: { flexDirection: 'row', gap: spacing.chipGap, marginTop: -2 },
+  bleed: { marginHorizontal: -spacing.screenX },
+  suggestions: { gap: spacing.chipGap, paddingHorizontal: spacing.screenX },
+  awayCard: {
+    borderRadius: radii.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  awayText: { paddingTop: 14, paddingHorizontal: 16, paddingBottom: 16, gap: 6 },
+  awayTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  entryRow: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14 },
+  entry: {
+    height: sizes.composerEntry,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 20,
+  },
+  entryPressed: { backgroundColor: colors.track },
 });

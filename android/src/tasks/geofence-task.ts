@@ -1,6 +1,6 @@
 // Home geofence task (plan §7 Geofence). Defined at module scope and imported from the root
-// layout, so it exists when Android wakes the app for an event. For now it only records enter and
-// exit with a timestamp; the Wi-Fi check, /health and home mode come with row 3.
+// layout, so it exists when Android wakes the app for an event. It records enter and exit with a
+// timestamp, and tells home mode (src/features/home-mode) when the app is running.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GeofencingEventType, type LocationRegion } from 'expo-location';
 
@@ -26,9 +26,18 @@ export async function readGeofenceEvents(): Promise<GeofenceEvent[]> {
   return raw ? (JSON.parse(raw) as GeofenceEvent[]) : [];
 }
 
+const listeners = new Set<(event: GeofenceEvent) => void>();
+
+/** Called after each recorded event while the app's JS is running. Returns an unsubscribe. */
+export function onGeofenceEvent(listener: (event: GeofenceEvent) => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
 export async function recordGeofenceEvent(event: GeofenceEvent): Promise<void> {
   const events = [...(await readGeofenceEvents()), event].slice(-MAX_EVENTS);
   await AsyncStorage.setItem(GEOFENCE_EVENTS_KEY, JSON.stringify(events));
+  listeners.forEach((listener) => listener(event));
 }
 
 type GeofenceData = { eventType: GeofencingEventType; region: LocationRegion };

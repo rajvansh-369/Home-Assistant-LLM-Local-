@@ -9,7 +9,13 @@ export const tabs = {
   main: 'Main',
 } as const;
 
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 export const home = {
+  /** "Wed, 23 Sep" (canvas), in the phone's time zone. */
+  dateLine: (date: Date) =>
+    `${WEEKDAYS[date.getDay()]}, ${date.getDate()} ${MONTHS[date.getMonth()]}`,
   greeting: (hour: number, name: string) => {
     const part =
       hour >= 5 && hour < 12 ? 'morning' : hour >= 12 && hour < 17 ? 'afternoon' : 'evening';

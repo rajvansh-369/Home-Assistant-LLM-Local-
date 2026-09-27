@@ -15,6 +15,7 @@ export type {
   EngineOption,
   FinishReason,
   LlmEngine,
+  HealthServer,
   LlmHealth,
   LoginBody,
   Message,

@@ -18,6 +18,7 @@ import {
   type FieldStatus,
 } from '@/components';
 import { useFirstRunStore } from '@/features/first-run/store';
+import { DevFacts } from '@/features/settings/DevFacts';
 import { lockSession } from '@/features/profiles/actions';
 import { whoIsUsing } from '@/features/profiles/copy';
 import { chooseLlmEngine } from '@/features/settings/actions';
@@ -98,6 +99,7 @@ export default function Settings() {
       </View>
       {status ? <StatusLine status={status} /> : null}
       <InfoCallout icon={HouseWifi} text={copy.homeWifi} />
+      {__DEV__ ? <DevFacts /> : null}
     </Screen>
   );
 }

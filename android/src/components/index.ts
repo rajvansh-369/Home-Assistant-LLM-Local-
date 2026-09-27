@@ -1,5 +1,6 @@
 export { AsterOrb } from './AsterOrb';
 export { Avatar } from './Avatar';
+export { AwayMap } from './AwayMap';
 export type { AvatarSize } from './Avatar';
 export { BrandMark } from './BrandMark';
 export { ChatBubble, DateDivider } from './ChatBubble';

@@ -1,7 +1,7 @@
 // zypherLL health check for the 1.4 Test pill (plan §4.4, §6). Always a real fetch, mock mode
 // included: the home LLM isn't part of the mock server.
 import { checkLlmUrl } from '@/features/first-run/validators';
-import type { LlmHealth } from '@/services/api/types';
+import type { HealthServer, LlmHealth } from '@/services/api/types';
 import { homeLlmHost, isReleaseBuild } from '@/services/buildConfig';
 
 export const LLM_HEALTH_TIMEOUT_MS = 3000;
@@ -21,6 +21,16 @@ const defaults: HealthOptions = {
 const text = (value: unknown) =>
   typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
 
+/** `engines`, `engine` and `busy`, when the server sends them (zypherLL with Mark-L). */
+function serverInfo(data: Record<string, unknown>): { server?: HealthServer } {
+  if (typeof data.engines !== 'object' || data.engines === null) return {};
+  const engines: Record<string, string> = {};
+  for (const [name, state] of Object.entries(data.engines as Record<string, unknown>)) {
+    if (typeof state === 'string') engines[name] = state;
+  }
+  return { server: { engines, engine: text(data.engine), busy: data.busy === true } };
+}
+
 /**
  * Reads a `/health` reply. zypherLL answers 200 `{ status: "loading" | "ready" | "error", error }`
  * with no model name; the plan (§6) also expects `model` and a 500 for a failed load, so both
@@ -29,12 +39,13 @@ const text = (value: unknown) =>
 export function parseHealth(status: number, body: unknown, ms: number): LlmHealth {
   const data = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {};
   const error = text(data.error) ?? text(data.message) ?? text(data.detail);
+  const server = serverInfo(data);
   if (status >= 500 || (status === 200 && data.status === 'error')) {
-    return { kind: 'failed', error: error ?? `HTTP ${status}` };
+    return { kind: 'failed', error: error ?? `HTTP ${status}`, ...server };
   }
   if (status === 200 && data.status === 'ready')
-    return { kind: 'ready', model: text(data.model), ms };
-  if (status === 200 && data.status === 'loading') return { kind: 'loading', ms };
+    return { kind: 'ready', model: text(data.model), ms, ...server };
+  if (status === 200 && data.status === 'loading') return { kind: 'loading', ms, ...server };
   return { kind: 'unexpected', status };
 }
 

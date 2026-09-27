@@ -246,11 +246,21 @@ export interface AsterApi {
   ): Promise<Message>;
 }
 
+/**
+ * What a zypherLL with two engines adds to `/health`: each engine's state ("ready", "loading",
+ * "error", "unconfigured", …), the default engine, and whether it is answering someone now.
+ */
+export type HealthServer = {
+  engines: Record<string, string>;
+  engine: string | null;
+  busy: boolean;
+};
+
 export type LlmHealth =
-  /** zypherLL's /health has no model name, so `model` is null there. */
-  | { kind: 'ready'; model: string | null; ms: number }
-  | { kind: 'loading'; ms: number }
-  | { kind: 'failed'; error: string }
+  /** `model` is the default engine's model id ("zephyr-7b"); older servers leave it out. */
+  | { kind: 'ready'; model: string | null; ms: number; server?: HealthServer }
+  | { kind: 'loading'; ms: number; server?: HealthServer }
+  | { kind: 'failed'; error: string; server?: HealthServer }
   | { kind: 'no-reply' }
   /** Release build, plain http to a host other than HOME_LLM_HOST (plan §7). */
   | { kind: 'blocked' }

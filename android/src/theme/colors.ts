@@ -67,4 +67,6 @@ export const mapColors = {
   geofenceFill: 'rgba(110,236,193,0.12)',
   geofenceStroke: colors.accent,
   searchShadow: 'rgba(0,0,0,0.35)',
+  /** 3.2: the phone's position (canvas #82C7F0 with a light ring). */
+  me: '#82C7F0',
 } as const;
