@@ -1,0 +1,44 @@
+// What the phone sends zypherLL for a turn (docs/aster-home-chat-plan.md §6, decision 8): the
+// profile's personality as a system message, the last 10 messages of the chat, then the question.
+// zypherLL appends a client system message to its own prompt, which already has the date and the
+// profile's notes.
+import type { ChatMessage } from '@/services/llm/chat';
+
+export const CONTEXT_MESSAGES = 10;
+
+/** After an out-of-GPU-memory reply: send this much history instead (integration spec). */
+export const OOM_CONTEXT_MESSAGES = 4;
+export const OOM_MAX_TOKENS = 1024;
+
+export type Turn = { role: 'user' | 'assistant'; content: string };
+
+export function buildMessages({
+  personality,
+  history,
+  question,
+  limit = CONTEXT_MESSAGES,
+}: {
+  personality?: string | null;
+  history: Turn[];
+  question: string;
+  limit?: number;
+}): ChatMessage[] {
+  const system = personality?.trim()
+    ? [{ role: 'system' as const, content: personality.trim() }]
+    : [];
+  const recent = history.filter((turn) => turn.content.trim() !== '').slice(-limit);
+  return [...system, ...recent, { role: 'user', content: question }];
+}
+
+/** Continue: the same messages, with the partial answer as the last assistant message. */
+export function continueMessages(messages: ChatMessage[], partial: string): ChatMessage[] {
+  return [...messages, { role: 'assistant', content: partial }];
+}
+
+/** The same turn with less history, for a retry after "out of GPU memory". */
+export function trimForMemory(messages: ChatMessage[]): ChatMessage[] {
+  const system = messages.filter((m) => m.role === 'system');
+  const rest = messages.filter((m) => m.role !== 'system');
+  // The last message is the question (or the partial answer being continued): always kept.
+  return [...system, ...rest.slice(-(OOM_CONTEXT_MESSAGES + 1))];
+}
