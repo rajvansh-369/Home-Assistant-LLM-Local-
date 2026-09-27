@@ -1,7 +1,8 @@
 // 3.1 Home and 3.2 Home away (docs/aster-home-chat-plan.md §4.4, §4.5): one route whose layout
 // follows home mode. At home: the status chip, a banner while the model loads or the home PC
 // doesn't answer, suggestions and "Ask Aster anything". Away: the map card with the distance, and
-// a disabled composer. The avatar locks and returns to 2.1.
+// a disabled composer. The avatar locks and returns to 2.1. Both show "Coming up" (reminders plan
+// §3).
 import { router } from 'expo-router';
 import { AlertTriangle, Clock, Lock, MapPin, MessageCircle, WifiOff } from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -14,6 +15,7 @@ import { HomeStatusChip } from '@/features/home-mode/HomeStatusChip';
 import { isAtHome, type HomeMode } from '@/features/home-mode/mode';
 import { useHomeModeStore } from '@/features/home-mode/store';
 import { lockSession } from '@/features/profiles/actions';
+import { ComingUp } from '@/features/reminders/ComingUp';
 import { hasMapsKey } from '@/services/buildConfig';
 import { colors, iconSizes, profileColorKey, radii, sizes, spacing, strokes } from '@/theme';
 
@@ -117,6 +119,8 @@ export default function Home() {
         ) : (
           <AwayCard mode={mode} />
         )}
+
+        <ComingUp atHome={atHome} />
 
         {atHome ? (
           <ScrollView

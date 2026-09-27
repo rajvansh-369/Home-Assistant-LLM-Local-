@@ -1,5 +1,5 @@
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
@@ -11,10 +11,11 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { installChatSession } from '@/features/chat/actions';
 import { bootFirstRun } from '@/features/first-run/actions';
-import { useFirstRunStore } from '@/features/first-run/store';
+import { isUnlocked, useFirstRunStore } from '@/features/first-run/store';
 import { useHomeMode } from '@/features/home-mode/useHomeMode';
 import { useAutoLock } from '@/features/profiles/useAutoLock';
 import { installReminders } from '@/features/reminders/install';
+import { useRemindersStore } from '@/features/reminders/store';
 import { syncHomeGeofence } from '@/services/geofence';
 // Defines the background tasks at module scope, so they exist when Android wakes the app (plan §7,
 // reminders plan §6).
@@ -24,6 +25,14 @@ import { colors } from '@/theme/colors';
 import { fontAssets } from '@/theme/fonts';
 
 SplashScreen.preventAutoHideAsync();
+
+/** A tap on a reminder's notification opens it, when its profile is the one unlocked. */
+function openReminder(clientUuid: string) {
+  const { session } = useFirstRunStore.getState();
+  const reminder = useRemindersStore.getState().reminders[clientUuid];
+  if (!isUnlocked(session) || reminder?.profileId !== session!.profile.id) return;
+  router.push({ pathname: '/reminder/[id]', params: { id: clientUuid } });
+}
 installChatSession();
 SystemUI.setBackgroundColorAsync(colors.bg);
 
@@ -42,7 +51,7 @@ export default function RootLayout() {
       .catch(() => useFirstRunStore.getState().set({ booted: true }))
       .finally(() => {
         void registerNotificationTask();
-        installReminders(() => {});
+        installReminders(openReminder);
       });
   }, []);
 
@@ -72,6 +81,7 @@ export default function RootLayout() {
             <Stack.Screen name="guest" />
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="chat/[id]" />
+            <Stack.Screen name="reminder/[id]" />
             <Stack.Screen name="dev/gallery" />
           </Stack>
         </KeyboardProvider>
