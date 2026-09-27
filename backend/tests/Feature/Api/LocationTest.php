@@ -108,6 +108,14 @@ describe('index', function () {
             ->assertJsonPath('meta', ['date' => '2026-09-24', 'tz' => 'Asia/Kolkata', 'count' => 2]);
     });
 
+    it('accepts the old zone names phones report, like Asia/Calcutta', function () {
+        Location::factory()->for($this->household)->for($this->device)->create(['recorded_at' => '2026-09-24 18:00:00']);
+
+        $this->withToken(profileToken($this->owner, $this->device))->getJson('/api/locations?date=2026-09-24&tz=Asia/Calcutta')
+            ->assertOk()
+            ->assertJsonPath('meta', ['date' => '2026-09-24', 'tz' => 'Asia/Calcutta', 'count' => 1]);
+    });
+
     it('defaults to UTC', function () {
         Location::factory()->for($this->household)->for($this->device)->create(['recorded_at' => '2026-09-24 18:00:00']);
 

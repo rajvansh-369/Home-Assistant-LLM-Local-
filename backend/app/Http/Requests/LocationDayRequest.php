@@ -6,6 +6,8 @@ use Illuminate\Foundation\Http\FormRequest;
 
 /**
  * One local day of the household's trail: ?date=2026-09-24&tz=Asia/Kolkata
+ *
+ * Old zone names are accepted too: Android reports India as "Asia/Calcutta".
  */
 class LocationDayRequest extends FormRequest
 {
@@ -21,7 +23,7 @@ class LocationDayRequest extends FormRequest
     {
         return [
             'date' => ['required', 'date_format:Y-m-d'],
-            'tz' => ['nullable', 'string', 'timezone:all'],
+            'tz' => ['nullable', 'string', 'timezone:all_with_bc'],
         ];
     }
 }
