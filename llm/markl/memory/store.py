@@ -8,6 +8,13 @@ then whatever is most relevant to the question.
 The facts table is the same as Mark-L's, so ZYPHER_MARKL_MEMORY_DB can point
 at an existing Mark-L memory/memory.db to carry its facts over. Mark-L's
 sessions and monitors tables are left alone if present.
+
+Each household profile has a store of its own. The profile a call is for is
+the current scope (use_scope); with none, it is the admin's store at
+ZYPHER_MARKL_MEMORY_DB, and a profile's sits beside it in <scope>/memory.db.
+A context variable rather than a parameter, so the tools the model calls --
+run on pool threads, see registry.run -- write to the right profile without
+every function in between having to pass it along.
 """
 
 import logging
@@ -15,6 +22,7 @@ import os
 import sqlite3
 import threading
 from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime
 
 from markl import settings
@@ -52,11 +60,25 @@ CREATE TABLE IF NOT EXISTS meta (
 );
 """
 
-# One connection, one lock. Writes are small and rare; correctness is the
-# point, not contention. RLock so a transaction may call a reading helper.
+# One connection per store, one lock for all. Writes are small and rare;
+# correctness is the point, not contention. RLock so a transaction may call a
+# reading helper.
 _lock = threading.RLock()
-_conn = None
-_path = None
+_conns = {}
+
+_scope = ContextVar("markl_memory_scope", default=None)
+
+
+@contextmanager
+def use_scope(scope):
+    """Run the block against a profile's store (None: the admin's)."""
+
+    token = _scope.set(scope)
+
+    try:
+        yield
+    finally:
+        _scope.reset(token)
 
 
 def _today():
@@ -68,22 +90,29 @@ def _now():
 
 
 def path():
-    return settings.get().memory_db
+    """The current scope's database file."""
+
+    base = settings.get().memory_db
+    scope = _scope.get()
+
+    if scope is None:
+        return base
+
+    return os.path.join(os.path.dirname(base), scope, "memory.db")
 
 
 def connect():
-    """The process-wide connection, opened on first use."""
+    """The current scope's connection, opened on first use."""
 
-    global _conn, _path
+    target = path()
 
     with _lock:
-        if _conn is not None:
-            return _conn
+        if target in _conns:
+            return _conns[target]
 
-        _path = path()
-        os.makedirs(os.path.dirname(_path) or ".", exist_ok=True)
+        os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
 
-        conn = sqlite3.connect(_path, check_same_thread=False)
+        conn = sqlite3.connect(target, check_same_thread=False)
         conn.row_factory = sqlite3.Row
         # WAL: survives a hard kill mid-write, and lets the Mark-L desktop app
         # read the same file while this process writes.
@@ -92,20 +121,19 @@ def connect():
         conn.executescript(_SCHEMA)
         conn.commit()
 
-        _conn = conn
+        _conns[target] = conn
 
         return conn
 
 
 def close():
-    """Release the connection -- tests point the store elsewhere between runs."""
-
-    global _conn
+    """Release every connection -- tests point the store elsewhere between runs."""
 
     with _lock:
-        if _conn is not None:
-            _conn.close()
-            _conn = None
+        for conn in _conns.values():
+            conn.close()
+
+        _conns.clear()
 
 
 @contextmanager

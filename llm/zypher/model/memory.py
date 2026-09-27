@@ -221,13 +221,18 @@ class Memory:
     drift out of sync with the records.
     """
 
-    def __init__(self, directory=MEMORY_DIR):
+    def __init__(self, directory=MEMORY_DIR, embedder=None):
+        """embedder: an already-loaded encoder to share. Each profile gets a
+        store of its own; loading the sentence encoder once per profile would
+        cost ~80 MB and a second or two each."""
+
         self.dir = directory
         self.enabled = True
         self.records = []
         self.vectors = np.zeros((0, 0), dtype=np.float32)
         self.last_recall = []
 
+        self._shared_embedder = embedder
         self._embedder = None
         self._lock = threading.Lock()
         self._loaded = threading.Event()
@@ -247,10 +252,16 @@ class Memory:
 
     # -- loading ----------------------------------------------
 
+    @property
+    def embedder(self):
+        """The loaded encoder, or None before ready()."""
+
+        return self._embedder if self._loaded.is_set() else None
+
     def _load(self):
         try:
             try:
-                self._embedder = _build_embedder()
+                self._embedder = self._shared_embedder or _build_embedder()
             except Exception as error:  # never take the chat down with it
                 self._error = error
                 self._embedder = _HashingEmbedder()
@@ -741,6 +752,33 @@ class Memory:
             self._write_vectors()
 
             return removed
+
+    def forget_id(self, record_id):
+        """Drop one record by id. Returns 1, or 0 if there is no such record.
+
+        The selector form matches by similarity, which can take unrelated
+        records with it; a memory screen deleting one row needs this.
+        """
+
+        if not self._loaded.is_set():
+            return 0
+
+        with self._lock:
+            index = next(
+                (i for i, record in enumerate(self.records) if record.get("id") == record_id),
+                None,
+            )
+
+            if index is None:
+                return 0
+
+            del self.records[index]
+            self.vectors = np.delete(self.vectors, index, axis=0)
+
+            self._rewrite_records()
+            self._write_vectors()
+
+            return 1
 
     # -- reporting --------------------------------------------
 

@@ -61,6 +61,23 @@ API_KEY = os.environ.get("ZYPHER_API_KEY") or None
 HOST = os.environ.get("ZYPHER_HOST", "127.0.0.1")
 PORT = int(os.environ.get("ZYPHER_PORT", "8000"))
 
+# Phones never get API_KEY. They send the llm_token Laravel issues at unlock:
+# an RS256 JWT verified here with Laravel's public key, whose claims pick the
+# profile's memory folder and turn web and memory off where the profile may
+# not use them. Both values unset switches the JWT path off; the admin key
+# keeps working. A relative key path is taken from the project root, so a
+# dev machine can point at ../backend/storage/keys/aster-jwt.pub.
+JWT_PUBLIC_KEY_PATH = os.environ.get("ZYPHER_JWT_PUBLIC_KEY") or None
+
+if JWT_PUBLIC_KEY_PATH and not os.path.isabs(JWT_PUBLIC_KEY_PATH):
+    JWT_PUBLIC_KEY_PATH = os.path.normpath(os.path.join(PROJECT_ROOT, JWT_PUBLIC_KEY_PATH))
+
+# This home's household id ("h7"), the token's required audience: a token
+# from another household is refused even though Laravel signed it.
+HOUSEHOLD_ID = os.environ.get("ZYPHER_HOUSEHOLD_ID") or None
+
+JWT_ISSUER = os.environ.get("ZYPHER_JWT_ISSUER", "aster")
+
 # The name clients pass as "model" for the local engine.
 MODEL_ID = "zephyr-7b"
 

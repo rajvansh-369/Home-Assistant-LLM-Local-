@@ -22,6 +22,7 @@ returns a result of the same shape. Memory calls take an engine too, since
 each engine keeps its own store.
 """
 
+import os
 import threading
 
 import torch
@@ -71,6 +72,11 @@ class Assistant:
 
         # Needs no loading: a Gemini key in .env is all it takes.
         self.markl = MarkL()
+
+        # One store per household profile (the token's scope), each in its own
+        # folder under MEMORY_DIR and all sharing self.store's encoder.
+        self._memories = {}
+        self._memories_lock = threading.Lock()
 
         # The grounded text of the last question answered, so continuing a
         # truncated answer shows the model the same sources it started from
@@ -132,12 +138,14 @@ class Assistant:
 
     def answer(self, messages, web="auto", memory=None, sampling=None,
                temperature=None, top_p=None, max_tokens=None, min_tokens=None,
-               on_event=None, engine=None, assistant_name=None):
+               on_event=None, engine=None, assistant_name=None, scope=None):
         """Answer a conversation with an engine. Blocking; call it off the event loop.
 
         engine: "local" or "markl"; None means the server default.
         assistant_name: the name Mark-L gives itself this turn. Ignored by the
             local engine.
+        scope: the profile whose memory the turn reads and writes; None is the
+            admin's global store.
 
         Everything else is described on _answer_local. Mark-L takes web,
         memory, temperature, top_p and max_tokens; it chooses its own sampling
@@ -148,7 +156,7 @@ class Assistant:
             return self._answer_local(
                 messages, web=web, memory=memory, sampling=sampling,
                 temperature=temperature, top_p=top_p, max_tokens=max_tokens,
-                min_tokens=min_tokens, on_event=on_event,
+                min_tokens=min_tokens, on_event=on_event, scope=scope,
             )
 
         # Server defaults apply to both engines: web off in settings means no
@@ -158,6 +166,7 @@ class Assistant:
 
         return self.markl.answer(
             messages,
+            scope=scope,
             web=web,
             memory_on=config.MEMORY_ENABLED if memory is None else memory,
             temperature=temperature,
@@ -169,7 +178,7 @@ class Assistant:
 
     def _answer_local(self, messages, web="auto", memory=None, sampling=None,
                       temperature=None, top_p=None, max_tokens=None,
-                      min_tokens=None, on_event=None):
+                      min_tokens=None, on_event=None, scope=None):
         """Answer a conversation with the local model.
 
         messages: [{"role": "system"|"user"|"assistant", "content": str}].
@@ -206,8 +215,9 @@ class Assistant:
             if on_event is not None:
                 on_event(kind, payload)
 
-        store = self.store
-        use_memory = (config.MEMORY_ENABLED if memory is None else memory) and store is not None
+        use_memory = config.MEMORY_ENABLED if memory is None else memory
+        store = self.memory_for(scope) if use_memory else None
+        use_memory = use_memory and store is not None
 
         system_extra, history = _split_system(messages)
 
@@ -387,62 +397,88 @@ class Assistant:
     # notes in .memory, Mark-L keeps named facts in SQLite. engine=None is the
     # server default, as for answer().
 
-    def _memory(self):
-        if self.store is None:
+    def memory_for(self, scope=None):
+        """The local store for a profile scope, or the global one for None.
+
+        A profile's store is made on first use and shares the global store's
+        encoder, so it waits for that to load. None if memory isn't up yet.
+        """
+
+        if scope is None or self.store is None:
+            return self.store
+
+        with self._memories_lock:
+            if scope not in self._memories:
+                if not self.store.ready(30):
+                    return None
+
+                self._memories[scope] = memory_store.Memory(
+                    directory=os.path.join(config.MEMORY_DIR, scope),
+                    embedder=self.store.embedder,
+                )
+
+            return self._memories[scope]
+
+    def _memory(self, scope=None):
+        store = self.memory_for(scope)
+
+        if store is None:
             raise ModelNotReady("memory is not initialised yet")
 
-        self.store.ready(30)
+        store.ready(30)
 
-        return self.store
+        return store
 
-    def memory_stats(self, engine=None):
+    def memory_stats(self, engine=None, scope=None):
         if resolve_engine(engine) == "markl":
-            return self.markl.memory_stats()
+            return self.markl.memory_stats(scope)
 
-        if self.store is None:
+        store = self.memory_for(scope)
+
+        if store is None:
             return None
 
-        stats = dict(self.store.stats())
+        stats = dict(store.stats())
         error = stats.pop("error")
         stats["error"] = None if error is None else "{}: {}".format(type(error).__name__, error)
 
         return stats
 
-    def profile(self, engine=None):
+    def profile(self, engine=None, scope=None):
         if resolve_engine(engine) == "markl":
-            return self.markl.profile()
+            return self.markl.profile(scope)
 
-        return self._memory().profile()
+        return self._memory(scope).profile()
 
-    def records(self, kind=None, engine=None):
+    def records(self, kind=None, engine=None, scope=None):
         """Stored records, newest first."""
 
         if resolve_engine(engine) == "markl":
-            return self.markl.records(kind)
+            return self.markl.records(kind, scope)
 
         return [
-            record for record in reversed(self._memory().records)
+            record for record in reversed(self._memory(scope).records)
             if kind is None or record.get("kind", "exchange") == kind
         ]
 
-    def note(self, text, engine=None, category=None, key=None):
+    def note(self, text, engine=None, category=None, key=None, scope=None):
         """Keep a fact about the user. Returns the record, or None.
 
         category and key name a Mark-L fact; the local store ignores them.
         """
 
         if resolve_engine(engine) == "markl":
-            return self.markl.note(text, category, key)
+            return self.markl.note(text, category, key, scope)
 
-        return self._memory().note(text)
+        return self._memory(scope).note(text)
 
-    def rate(self, record_id, good, engine=None):
+    def rate(self, record_id, good, engine=None, scope=None):
         """Promote or demote a stored record. Returns it, or None if unknown."""
 
         if resolve_engine(engine) == "markl":
             raise ValueError("Mark-L memory holds facts, not answers -- there is nothing to rate")
 
-        store = self._memory()
+        store = self._memory(scope)
         record = next((r for r in store.records if r.get("id") == record_id), None)
 
         if record is None:
@@ -450,7 +486,7 @@ class Assistant:
 
         return store.rate(1 if good else -1, record)
 
-    def forget(self, selector="last", engine=None):
+    def forget(self, selector="last", engine=None, scope=None):
         """Drop memories. Returns how many.
 
         local: 'last', 'all', or free text matched by similarity.
@@ -458,9 +494,17 @@ class Assistant:
         """
 
         if resolve_engine(engine) == "markl":
-            return self.markl.forget(selector)
+            return self.markl.forget(selector, scope)
 
-        return self._memory().forget(selector)
+        return self._memory(scope).forget(selector)
+
+    def forget_id(self, record_id, engine=None, scope=None):
+        """Drop one record by id. Returns how many (0 or 1)."""
+
+        if resolve_engine(engine) == "markl":
+            return self.markl.forget(str(record_id), scope)
+
+        return self._memory(scope).forget_id(record_id)
 
 
 def _split_system(messages):

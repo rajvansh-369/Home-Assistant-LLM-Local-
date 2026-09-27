@@ -26,6 +26,7 @@ from datetime import datetime
 
 from . import budget, memory, registry, settings
 from . import tools  # noqa: F401 -- registers the tool table
+from .memory.store import use_scope
 
 log = logging.getLogger("markl.engine")
 
@@ -116,8 +117,18 @@ class MarkL:
 
     # -- the turn ---------------------------------------------
 
-    def answer(self, messages, web="auto", memory_on=True, temperature=None,
-               top_p=None, max_tokens=None, assistant_name=None, on_event=None):
+    def answer(self, messages, scope=None, **options):
+        """Answer a conversation for a profile (scope; None: the admin).
+
+        Everything the turn remembers or recalls, the model's own memory tools
+        included, goes to that profile's fact store. The options are _answer's.
+        """
+
+        with use_scope(scope):
+            return self._answer(messages, **options)
+
+    def _answer(self, messages, web="auto", memory_on=True, temperature=None,
+                top_p=None, max_tokens=None, assistant_name=None, on_event=None):
         """Answer a conversation. Blocking; call it off the event loop.
 
         messages: [{"role": "system"|"user"|"assistant", "content": str}]. A
@@ -346,22 +357,27 @@ class MarkL:
             },
         }
 
-    # -- memory -----------------------------------------------
+    # -- memory (scope: a profile's store; None: the admin's) --
 
-    def memory_stats(self):
-        return memory.stats()
+    def memory_stats(self, scope=None):
+        with use_scope(scope):
+            return memory.stats()
 
-    def profile(self):
-        return memory.profile()
+    def profile(self, scope=None):
+        with use_scope(scope):
+            return memory.profile()
 
-    def records(self, kind=None):
-        return [] if kind == "exchange" else memory.records()
+    def records(self, kind=None, scope=None):
+        with use_scope(scope):
+            return [] if kind == "exchange" else memory.records()
 
-    def note(self, text, category=None, key=None):
-        return memory.note(text, category, key)
+    def note(self, text, category=None, key=None, scope=None):
+        with use_scope(scope):
+            return memory.note(text, category, key)
 
-    def forget(self, selector="last"):
-        return memory.forget(selector)
+    def forget(self, selector="last", scope=None):
+        with use_scope(scope):
+            return memory.forget(selector)
 
 
 def _run_tool(name, args, allowed):

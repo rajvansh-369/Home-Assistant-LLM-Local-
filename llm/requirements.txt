@@ -69,3 +69,16 @@ ddgs>=9.0,<10
 # 0.100 is the first FastAPI on pydantic 2, which the request models use.
 fastapi>=0.100,<1
 uvicorn>=0.23,<1
+
+# Verifies the phones' llm_token (zypher/view/api/auth.py). [crypto] pulls in
+# cryptography, which RS256 needs. 2.x is the jwt.decode API auth.py calls
+# (algorithms list, options={"require": [...]}); checked against 2.12.
+PyJWT[crypto]>=2.0,<3
+
+
+# --- tests (python -m pytest) -----------------------------------------------
+
+# Not needed to run the server. tests/ drives the API through FastAPI's
+# TestClient, which is built on httpx.
+pytest>=7,<10
+httpx>=0.24,<1

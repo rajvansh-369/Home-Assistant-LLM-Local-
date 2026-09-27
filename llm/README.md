@@ -58,6 +58,9 @@ Then open `.env` and fill in what you need:
 | `ZYPHER_MODEL_PATH` | where the weights are downloaded to | `C:\AI\Models\zephyr-7b-beta-abliterated` |
 | `ZYPHER_MEMORY_DIR` | the memory store | `.memory` |
 | `ZYPHER_EMBED_MODEL` | recall encoder | `all-MiniLM-L6-v2` |
+| `ZYPHER_JWT_PUBLIC_KEY` | Laravel's `aster-jwt.pub`, to verify the phones' llm_tokens. A relative path is taken from this folder, e.g. `../backend/storage/keys/aster-jwt.pub` | empty = phone tokens refused |
+| `ZYPHER_HOUSEHOLD_ID` | this home's household id (`h7`), shown on the household's Overview in the admin panel. Tokens for another household are refused | empty = phone tokens refused |
+| `ZYPHER_JWT_ISSUER` | must match Laravel's `ASTER_JWT_ISSUER` | `aster` |
 
 To make a key:
 
@@ -188,6 +191,7 @@ reply = client.chat.completions.create(
 | `POST /v1/memory/notes` | `{"text": ...}` -- same as `/remember` |
 | `POST /v1/memory/{id}/rate` | `{"rating": "good"\|"bad"}` -- same as `/good` / `/bad` (local only) |
 | `DELETE /v1/memory?selector=last\|all\|<text>` | same as `/forget` |
+| `DELETE /v1/memory/{id}` | drop that one record, never similar ones with it; 404 if it isn't there |
 | `PATCH /v1/settings` | `{"engine": "local"\|"markl", "markl_mode": "free"\|"paid", "web": bool, "memory": bool, "max_tokens": N}`, the server defaults |
 
 Every memory call also takes `?engine=local|markl` (see [Mark-L engine](#mark-l-engine)).
@@ -218,6 +222,15 @@ Requests are served one at a time -- one model, one GPU. Disconnecting mid-
 stream stops the generation at the next token. Set `ZYPHER_API_KEY` to require
 `Authorization: Bearer <key>`; without it, anyone who can reach the port can
 use the model and read its memory.
+
+**Phones** never get `ZYPHER_API_KEY`. They send the llm_token Laravel issues
+when a profile is unlocked, an RS256 JWT checked here against
+`ZYPHER_JWT_PUBLIC_KEY` and `ZYPHER_HOUSEHOLD_ID`. Its `scope` claim gives each
+profile its own memory: `.memory/<scope>/` for Zephyr and `<scope>/memory.db`
+next to `ZYPHER_MARKL_MEMORY_DB` for Mark-L. `"web": "never"` turns web lookups
+off and `"memory": false` (Guest) turns recall and learning off. A phone token
+may chat and use its own memory, but only the admin key may `PATCH
+/v1/settings`. Run `python -m pytest` for the auth and memory-scope tests.
 
 ---
 

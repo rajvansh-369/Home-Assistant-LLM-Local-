@@ -21,6 +21,7 @@ Mark-L ran tools from its asyncio session. Here a turn already runs on a
 worker thread, so tools are plain functions run on a bounded pool.
 """
 
+import contextvars
 import logging
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from dataclasses import dataclass
@@ -96,7 +97,9 @@ def run(name, params):
     """
 
     entry = _REGISTRY[name]
-    future = EXECUTOR.submit(entry.fn, params)
+    # The caller's context goes with it: the memory tools read the profile
+    # scope from a context variable, which a pool thread would not otherwise see.
+    future = EXECUTOR.submit(contextvars.copy_context().run, entry.fn, params)
 
     try:
         result = future.result(timeout=entry.timeout)

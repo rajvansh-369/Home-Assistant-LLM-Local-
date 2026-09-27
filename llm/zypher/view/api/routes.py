@@ -6,6 +6,10 @@ Gemini). Chat picks one in the body -- "engine", or "model": "mark-l" -- and
 the memory calls take ?engine=, since each engine keeps its own store. Left
 out, it is the server default: "engine" in /v1/settings.
 
+Every call but /health takes a bearer token: the admin key, or a phone's
+llm_token (see auth.py). A phone's token scopes chat and memory to its
+profile and can switch web and memory off; only the admin changes settings.
+
     GET    /health                      load state per engine, device (no auth)
     GET    /v1/models                   both engines
     POST   /v1/chat/completions         answer, optionally as server-sent events
@@ -13,13 +17,13 @@ out, it is the server default: "engine" in /v1/settings.
     GET    /v1/memory/records           stored records, newest first
     POST   /v1/memory/notes             keep a fact about the user
     POST   /v1/memory/{id}/rate         good / bad (local only)
+    DELETE /v1/memory/{id}              forget one record
     DELETE /v1/memory                   forget last | all | <text>
     GET    /v1/settings                 server-wide defaults
-    PATCH  /v1/settings                 change them
+    PATCH  /v1/settings                 change them (admin only)
 """
 
 import asyncio
-import hmac
 import json
 import threading
 import time
@@ -38,6 +42,7 @@ from zypher.model import llm, retrieval
 from zypher.model.llm import ClientGone
 from zypher.presenter import ModelNotReady, resolve_engine
 
+from .auth import Caller, admin_only, caller
 from .schemas import ChatRequest, Engine, NoteRequest, RateRequest, SettingsRequest
 
 OOM_MESSAGE = "out of GPU memory -- send less history or lower max_tokens"
@@ -62,24 +67,12 @@ NOT_READY = {
 READABLE_ERRORS = (ValueError, ModelNotReady, MarkLNotReady, MarkLQuotaExhausted, MarkLError)
 
 
-def authorize(request: Request):
-    if config.API_KEY is None:
-        return
-
-    # Constant-time compare, so the key cannot be recovered byte by byte from
-    # response timings.
-    supplied = request.headers.get("authorization", "")
-
-    if not hmac.compare_digest(supplied.encode(), ("Bearer " + config.API_KEY).encode()):
-        raise HTTPException(401, "invalid or missing API key")
-
-
 def assistant_of(request: Request):
     return request.app.state.assistant
 
 
 public = APIRouter()
-router = APIRouter(dependencies=[Depends(authorize)])
+router = APIRouter(dependencies=[Depends(caller)])
 
 
 def not_ready(assistant, state):
@@ -108,6 +101,9 @@ def health(assistant=Depends(assistant_of)):
         "engine": engine,
         "model": ENGINE_MODELS[engine],
         "engines": engines,
+        # The local model answers one at a time; a phone can say "answering
+        # someone else" instead of looking stuck.
+        "busy": assistant.lock.locked(),
         "device": llm.DEVICE,
         "vram_gb": round(llm.VRAM_GB, 2),
         "auth": config.API_KEY is not None,
@@ -157,7 +153,7 @@ def get_settings(assistant=Depends(assistant_of)):
     return current_settings(assistant)
 
 
-@router.patch("/v1/settings")
+@router.patch("/v1/settings", dependencies=[Depends(admin_only)])
 def patch_settings(body: SettingsRequest, assistant=Depends(assistant_of)):
     """Server-wide defaults: what a request gets when it does not say."""
 
@@ -193,7 +189,8 @@ def engine_of(body):
 
 
 @router.post("/v1/chat/completions")
-async def chat_completions(body: ChatRequest, assistant=Depends(assistant_of)):
+async def chat_completions(body: ChatRequest, assistant=Depends(assistant_of),
+                           who: Caller = Depends(caller)):
     engine = engine_of(body)
     state = assistant.status(engine)
 
@@ -202,11 +199,16 @@ async def chat_completions(body: ChatRequest, assistant=Depends(assistant_of)):
 
     messages = [message.as_dict() for message in body.messages]
 
+    # A profile's token can take web and memory away; a request can never
+    # give them back. Memory the request leaves to the server default.
+    memory = config.MEMORY_ENABLED if body.memory is None else body.memory
+
     options = dict(
         engine=engine,
         assistant_name=body.assistant_name,
-        web=body.web,
-        memory=body.memory,
+        scope=who.scope,
+        web=body.web if who.web_allowed else False,
+        memory=memory and who.memory_allowed,
         sampling=body.sampling,
         temperature=body.temperature,
         top_p=body.top_p,
@@ -346,9 +348,18 @@ async def stream(assistant, messages, options, meta):
 
 # -- memory ---------------------------------------------------
 
-def memory_call(function, *args):
+def memory_of(who: Caller = Depends(caller)):
+    """The caller's memory scope; 403 for a profile whose memory is off."""
+
+    if not who.memory_allowed:
+        raise HTTPException(403, "memory is off for this profile")
+
+    return who.scope
+
+
+def memory_call(function, *args, **kwargs):
     try:
-        return function(*args)
+        return function(*args, **kwargs)
     except ModelNotReady as error:
         raise HTTPException(503, str(error))
     except ValueError as error:
@@ -356,11 +367,12 @@ def memory_call(function, *args):
 
 
 @router.get("/v1/memory")
-def memory_overview(engine: Optional[Engine] = None, assistant=Depends(assistant_of)):
+def memory_overview(engine: Optional[Engine] = None, assistant=Depends(assistant_of),
+                    scope=Depends(memory_of)):
     return {
         "engine": resolve_engine(engine),
-        "stats": memory_call(assistant.memory_stats, engine),
-        "profile": memory_call(assistant.profile, engine),
+        "stats": memory_call(assistant.memory_stats, engine, scope=scope),
+        "profile": memory_call(assistant.profile, engine, scope=scope),
     }
 
 
@@ -368,8 +380,8 @@ def memory_overview(engine: Optional[Engine] = None, assistant=Depends(assistant
 def memory_records(kind: Optional[Literal["note", "exchange"]] = None,
                    limit: int = 50, offset: int = 0,
                    engine: Optional[Engine] = None,
-                   assistant=Depends(assistant_of)):
-    records = memory_call(assistant.records, kind, engine)
+                   assistant=Depends(assistant_of), scope=Depends(memory_of)):
+    records = memory_call(assistant.records, kind, engine, scope=scope)
     offset = max(0, offset)
 
     return {"total": len(records), "records": records[offset:offset + max(0, limit)]}
@@ -377,8 +389,9 @@ def memory_records(kind: Optional[Literal["note", "exchange"]] = None,
 
 @router.post("/v1/memory/notes")
 def memory_note(body: NoteRequest, engine: Optional[Engine] = None,
-                assistant=Depends(assistant_of)):
-    record = memory_call(assistant.note, body.text, engine, body.category, body.key)
+                assistant=Depends(assistant_of), scope=Depends(memory_of)):
+    record = memory_call(assistant.note, body.text, engine, body.category, body.key,
+                         scope=scope)
 
     if record is None:
         raise HTTPException(503, "memory is off or unavailable")
@@ -388,8 +401,9 @@ def memory_note(body: NoteRequest, engine: Optional[Engine] = None,
 
 @router.post("/v1/memory/{record_id}/rate")
 def memory_rate(record_id: int, body: RateRequest, engine: Optional[Engine] = None,
-                assistant=Depends(assistant_of)):
-    record = memory_call(assistant.rate, record_id, body.rating == "good", engine)
+                assistant=Depends(assistant_of), scope=Depends(memory_of)):
+    record = memory_call(assistant.rate, record_id, body.rating == "good", engine,
+                         scope=scope)
 
     if record is None:
         raise HTTPException(404, "no memory with id {}".format(record_id))
@@ -397,13 +411,24 @@ def memory_rate(record_id: int, body: RateRequest, engine: Optional[Engine] = No
     return record
 
 
+@router.delete("/v1/memory/{record_id}")
+def memory_forget_one(record_id: int, engine: Optional[Engine] = None,
+                      assistant=Depends(assistant_of), scope=Depends(memory_of)):
+    """Drop one record. Unlike the selector form, never takes similar ones with it."""
+
+    if not memory_call(assistant.forget_id, record_id, engine, scope=scope):
+        raise HTTPException(404, "no memory with id {}".format(record_id))
+
+    return {"removed": 1}
+
+
 @router.delete("/v1/memory")
 def memory_forget(selector: str = "last", engine: Optional[Engine] = None,
-                  assistant=Depends(assistant_of)):
+                  assistant=Depends(assistant_of), scope=Depends(memory_of)):
     """Drop memories.
 
     local: 'last', 'all', or free text matched by similarity.
     markl: 'last', 'all', a record id, 'category/key', or a fact's key.
     """
 
-    return {"removed": memory_call(assistant.forget, selector, engine)}
+    return {"removed": memory_call(assistant.forget, selector, engine, scope=scope)}
