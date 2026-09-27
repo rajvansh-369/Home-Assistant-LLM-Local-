@@ -13,6 +13,7 @@ import { installChatSession } from '@/features/chat/actions';
 import { bootFirstRun } from '@/features/first-run/actions';
 import { isUnlocked, useFirstRunStore } from '@/features/first-run/store';
 import { useHomeMode } from '@/features/home-mode/useHomeMode';
+import { installLocation } from '@/features/location/install';
 import { useAutoLock } from '@/features/profiles/useAutoLock';
 import { installReminders } from '@/features/reminders/install';
 import { useRemindersStore } from '@/features/reminders/store';
@@ -20,6 +21,7 @@ import { syncHomeGeofence } from '@/services/geofence';
 // Defines the background tasks at module scope, so they exist when Android wakes the app (plan §7,
 // reminders plan §6).
 import '@/tasks/geofence-task';
+import '@/tasks/location-task';
 import { registerNotificationTask } from '@/tasks/notification-task';
 import { colors } from '@/theme/colors';
 import { fontAssets } from '@/theme/fonts';
@@ -52,6 +54,7 @@ export default function RootLayout() {
       .finally(() => {
         void registerNotificationTask();
         installReminders(openReminder);
+        installLocation();
       });
   }, []);
 

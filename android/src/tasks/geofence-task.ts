@@ -1,10 +1,12 @@
 // Home geofence task (plan §7 Geofence). Defined at module scope and imported from the root
 // layout, so it exists when Android wakes the app for an event. It records enter and exit with a
-// timestamp, and tells home mode (src/features/home-mode) when the app is running. Arriving rings
-// the armed arrive-home reminders; leaving arms them (reminders plan §4).
+// timestamp, and tells home mode (src/features/home-mode) when the app is running. It also saves an
+// arrived / left point with its activity event (reminders plan §5), and arriving rings the armed
+// arrive-home reminders while leaving arms them (§4).
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GeofencingEventType, type LocationRegion } from 'expo-location';
 
+import { recordHomeEvent } from '@/features/location/points';
 import { armArriveHome, ringArriveHome } from '@/features/reminders/actions';
 
 // Expo Go on Android has no TaskManager, and importing it there throws. Load it defensively so
@@ -49,5 +51,6 @@ TaskManager?.defineTask<GeofenceData>(HOME_GEOFENCE_TASK, async ({ data, error }
   if (error || !data) return;
   const type = data.eventType === GeofencingEventType.Enter ? 'enter' : 'exit';
   await recordGeofenceEvent({ type, at: new Date().toISOString() });
+  await recordHomeEvent(type).catch(() => {});
   await (type === 'enter' ? ringArriveHome() : armArriveHome()).catch(() => {});
 });
