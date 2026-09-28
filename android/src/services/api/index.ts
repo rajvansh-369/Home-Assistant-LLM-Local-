@@ -10,6 +10,7 @@ export const api: AsterApi = useMockApi ? mockApi : realApi;
 export { ApiError, DEFAULT_ENGINES } from './types';
 export type {
   ActivityEventBody,
+  AlertSettings,
   AsterApi,
   Conversation,
   CreateProfileBody,
@@ -26,6 +27,7 @@ export type {
   LoginBody,
   Message,
   MessageBody,
+  MessageSource,
   Place,
   Profile,
   ProfileRole,
@@ -34,7 +36,10 @@ export type {
   ReminderStatus,
   ReminderTrigger,
   Source,
+  SpeakMode,
   TokenResponse,
   UnlockResponse,
   UpdateProfileBody,
+  VipContact,
+  VipContactBody,
 } from './types';

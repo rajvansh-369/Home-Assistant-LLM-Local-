@@ -16,3 +16,8 @@ android {
     abortOnError false
   }
 }
+
+dependencies {
+  // The pure alert and message rules (AlertRules.kt, MessageText.kt): gradlew :aster-system:testDebugUnitTest
+  testImplementation 'junit:junit:4.13.2'
+}

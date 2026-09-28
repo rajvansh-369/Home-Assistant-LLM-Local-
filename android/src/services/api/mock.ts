@@ -16,6 +16,7 @@
 //   Creating the Owner                        also creates a Guest profile (as Laravel)
 //   Reminders as Guest or Restricted          403 (as Laravel)
 //   Locations while tracking is off or paused points are discarded (as Laravel)
+//   Alert settings and VIP contacts           Owner only; validated as Laravel does
 //   Anything else                             works
 //
 // Tokens the mock hands out are random strings; a token the mock doesn't know gives 401.
@@ -26,6 +27,7 @@ import { guestColor, profileColors } from '@/theme/colors';
 
 import {
   type ActivityEventBody,
+  type AlertSettings,
   ApiError,
   type AsterApi,
   type Conversation,
@@ -39,6 +41,8 @@ import {
   type Reminder,
   type UpdateProfileBody,
   type UpdateReminderBody,
+  type VipContact,
+  type VipContactBody,
 } from './types';
 
 const STORAGE_KEY = 'aster.mock-server';
@@ -54,6 +58,7 @@ type MockMessage = Message & { conversation_id: number };
 type MockReminder = Reminder & { profile_id: number; deleted: boolean };
 type MockPoint = LocationPoint & { client_uuid: string };
 type MockActivity = ActivityEventBody & { id: number };
+type MockVip = VipContact & { deleted: boolean };
 
 type MockState = {
   household: { email: string; passwordHash: string } | null;
@@ -69,6 +74,8 @@ type MockState = {
   reminders: MockReminder[];
   points: MockPoint[];
   locationSettings: LocationSettings;
+  alertSettings: AlertSettings;
+  vipContacts: MockVip[];
   activity: MockActivity[];
   nextId: number;
 };
@@ -80,6 +87,18 @@ export const DEFAULT_LOCATION_SETTINGS: LocationSettings = {
   retention_days: 30,
   share_area: false,
   paused_until: null,
+};
+
+/** Laravel creates these with the household (alert_settings column defaults). */
+export const DEFAULT_ALERT_SETTINGS: AlertSettings = {
+  enabled: true,
+  missed_after_minutes: 10,
+  speak_mode: 'full',
+  quiet_start: null,
+  quiet_end: null,
+  urgent_keywords: [],
+  headphones_only: false,
+  only_at_home: false,
 };
 
 const emptyState = (): MockState => ({
@@ -95,6 +114,8 @@ const emptyState = (): MockState => ({
   reminders: [],
   points: [],
   locationSettings: { ...DEFAULT_LOCATION_SETTINGS },
+  alertSettings: { ...DEFAULT_ALERT_SETTINGS },
+  vipContacts: [],
   activity: [],
   nextId: 1,
 });
@@ -255,6 +276,65 @@ function tracking(settings: LocationSettings, now = Date.now()): boolean {
   return (
     settings.enabled && (settings.paused_until == null || Date.parse(settings.paused_until) <= now)
   );
+}
+
+const HH_MM = /^([01]\d|2[0-3]):[0-5]\d$/;
+const SOURCES = ['whatsapp', 'google_chat', 'sms'];
+
+function validateAlertSettings(body: Partial<AlertSettings>) {
+  const minutes = body.missed_after_minutes;
+  if (minutes !== undefined && (!Number.isInteger(minutes) || minutes < 1 || minutes > 120)) {
+    throw invalid(
+      'missed_after_minutes',
+      'The missed after minutes field must be between 1 and 120.',
+    );
+  }
+  if (body.speak_mode !== undefined && !['full', 'name', 'summary'].includes(body.speak_mode)) {
+    throw invalid('speak_mode', 'The selected speak mode is invalid.');
+  }
+  for (const field of ['quiet_start', 'quiet_end'] as const) {
+    const value = body[field];
+    if (value != null && !HH_MM.test(value)) {
+      throw invalid(field, `The ${field.replace('_', ' ')} field must match the format H:i.`);
+    }
+  }
+  const words = body.urgent_keywords;
+  if (words != null && (words.length > 20 || words.some((w) => w.length > 40))) {
+    throw invalid('urgent_keywords', 'The urgent keywords field must not have more than 20 items.');
+  }
+}
+
+function validateVip(body: Partial<VipContactBody>, creating: boolean) {
+  const required = ['name', 'match_key', 'sources'] as const;
+  if (creating) {
+    for (const field of required) {
+      if (body[field] === undefined)
+        throw invalid(field, `The ${field.replace('_', ' ')} field is required.`);
+    }
+  }
+  if (body.name !== undefined && (body.name.trim() === '' || body.name.length > 60)) {
+    throw invalid('name', 'The name field must be between 1 and 60 characters.');
+  }
+  if (
+    body.match_key !== undefined &&
+    (body.match_key.trim() === '' || body.match_key.length > 120)
+  ) {
+    throw invalid('match_key', 'The match key field must be between 1 and 120 characters.');
+  }
+  if (
+    body.sources !== undefined &&
+    (body.sources.length === 0 || body.sources.some((source) => !SOURCES.includes(source)))
+  ) {
+    throw invalid('sources', 'The sources field must have at least 1 items.');
+  }
+}
+
+const vipOut = ({ deleted: _d, ...vip }: MockVip): VipContact => vip;
+
+function ownVip(state: MockState, id: number): MockVip {
+  const vip = state.vipContacts.find((v) => v.id === id);
+  if (!vip || vip.deleted) throw new ApiError(404, 'Not found.');
+  return vip;
 }
 
 function validateProfile(body: UpdateProfileBody) {
@@ -721,5 +801,73 @@ export const mockApi: AsterApi = {
     };
     await save(state);
     return state.locationSettings;
+  },
+
+  async getAlertSettings(_server, profileToken) {
+    await delay();
+    const state = await load();
+    requireOwner(state, profileToken);
+    return state.alertSettings;
+  },
+
+  async putAlertSettings(_server, profileToken, body) {
+    await delay();
+    const state = await load();
+    requireOwner(state, profileToken);
+    validateAlertSettings(body);
+    state.alertSettings = {
+      ...state.alertSettings,
+      ...body,
+      urgent_keywords:
+        body.urgent_keywords !== undefined
+          ? (body.urgent_keywords ?? [])
+          : state.alertSettings.urgent_keywords,
+    };
+    await save(state);
+    return state.alertSettings;
+  },
+
+  async listVipContacts(_server, profileToken) {
+    await delay();
+    const state = await load();
+    requireOwner(state, profileToken);
+    return state.vipContacts.filter((v) => !v.deleted).map(vipOut);
+  },
+
+  async createVipContact(_server, profileToken, body) {
+    await delay();
+    const state = await load();
+    requireOwner(state, profileToken);
+    validateVip(body, true);
+    const vip: MockVip = {
+      id: state.nextId++,
+      name: body.name,
+      match_key: body.match_key,
+      sources: [...body.sources],
+      enabled: body.enabled ?? true,
+      deleted: false,
+    };
+    state.vipContacts.push(vip);
+    await save(state);
+    return vipOut(vip);
+  },
+
+  async updateVipContact(_server, profileToken, id, body) {
+    await delay();
+    const state = await load();
+    requireOwner(state, profileToken);
+    validateVip(body, false);
+    const vip = ownVip(state, id);
+    Object.assign(vip, body);
+    await save(state);
+    return vipOut(vip);
+  },
+
+  async deleteVipContact(_server, profileToken, id) {
+    await delay();
+    const state = await load();
+    requireOwner(state, profileToken);
+    ownVip(state, id).deleted = true;
+    await save(state);
   },
 };

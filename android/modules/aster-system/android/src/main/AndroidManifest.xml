@@ -2,8 +2,20 @@
   <!-- "Run in background": the system dialog that sets battery use to Unrestricted. -->
   <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
+  <!-- "Open" on the missed-message notification and 4.2 launch these apps (Android 11+ needs them
+       listed). docs/aster-messages-alerts-plan.md §4. -->
+  <queries>
+    <package android:name="com.whatsapp" />
+    <package android:name="com.whatsapp.w4b" />
+    <package android:name="com.google.android.apps.dynamite" />
+    <package android:name="com.google.android.apps.messaging" />
+    <package android:name="com.samsung.android.messaging" />
+    <package android:name="com.android.messaging" />
+  </queries>
+
   <application>
-    <!-- Lists Aster under Notification access. Does nothing yet; message capture is row 4. -->
+    <!-- Message capture (docs/aster-messages-alerts-plan.md §4); also lists Aster under
+         Notification access. -->
     <service
       android:name="expo.modules.astersystem.AsterNotificationListener"
       android:exported="false"
@@ -12,5 +24,10 @@
         <action android:name="android.service.notification.NotificationListenerService" />
       </intent-filter>
     </service>
+
+    <!-- Missed and remind timers, and "Remind in 30 min" (§7). Only Aster sends to it. -->
+    <receiver
+      android:name="expo.modules.astersystem.AlertReceiver"
+      android:exported="false" />
   </application>
 </manifest>

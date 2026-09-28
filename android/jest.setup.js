@@ -28,16 +28,88 @@ jest.mock('expo-secure-store', () => {
 });
 
 // The local Kotlin module (modules/aster-system) has no native side under Jest. Nothing is
-// enabled and every settings screen "opens"; tests override per case.
-jest.mock('./modules/aster-system', () => ({
-  __esModule: true,
-  default: {
-    isNotificationListenerEnabled: jest.fn(() => false),
-    openNotificationListenerSettings: jest.fn(() => true),
-    isIgnoringBatteryOptimizations: jest.fn(() => false),
-    requestIgnoreBatteryOptimizations: jest.fn(() => true),
-  },
-}));
+// enabled and every settings screen "opens"; tests override per case. Messages live in `__state`
+// (threads, messages per thread key), which tests fill; `__emit` fires a native event.
+jest.mock('./modules/aster-system', () => {
+  const listeners = new Map();
+  const fresh = () => ({
+    threads: [],
+    messages: {},
+    seen: [],
+    replies: [],
+    replyResult: 'sent',
+    spoken: [],
+    config: null,
+    atHome: false,
+    llmAccess: null,
+    activity: [],
+  });
+  const state = fresh();
+  return {
+    __esModule: true,
+    default: {
+      __state: state,
+      __reset() {
+        Object.assign(state, fresh());
+        listeners.clear();
+      },
+      __emit(event) {
+        (listeners.get(event) ?? []).forEach((listener) => listener());
+      },
+      isNotificationListenerEnabled: jest.fn(() => false),
+      openNotificationListenerSettings: jest.fn(() => true),
+      isIgnoringBatteryOptimizations: jest.fn(() => false),
+      requestIgnoreBatteryOptimizations: jest.fn(() => true),
+      listThreads: jest.fn(async () => state.threads.map((thread) => ({ ...thread }))),
+      threadMessages: jest.fn(async (key) => [...(state.messages[key] ?? [])]),
+      markThreadSeen: jest.fn(async (key) => {
+        state.seen.push(key);
+        state.threads = state.threads.map((t) => (t.key === key ? { ...t, unreadSenders: [] } : t));
+      }),
+      sendReply: jest.fn(async (key, text) => {
+        if (state.replyResult === 'sent') state.replies.push({ key, text });
+        return state.replyResult;
+      }),
+      openSourceApp: jest.fn(() => true),
+      clearMessages: jest.fn(async () => {
+        state.threads = [];
+        state.messages = {};
+        state.activity = [];
+        state.config = null;
+      }),
+      setAlertConfig: jest.fn((json) => {
+        state.config = json;
+      }),
+      setAtHome: jest.fn((atHome) => {
+        state.atHome = atHome;
+      }),
+      setLlmAccess: jest.fn((url, token, expiresAt) => {
+        state.llmAccess = url && token ? { url, expiresAt } : null;
+      }),
+      speak: jest.fn(async (text) => {
+        state.spoken.push(text);
+        return true;
+      }),
+      stopSpeaking: jest.fn(),
+      takeActivity: jest.fn(() => {
+        const out = JSON.stringify(state.activity);
+        state.activity = [];
+        return out;
+      }),
+      addListener: jest.fn((event, listener) => {
+        const list = listeners.get(event) ?? [];
+        listeners.set(event, [...list, listener]);
+        return {
+          remove: () =>
+            listeners.set(
+              event,
+              (listeners.get(event) ?? []).filter((l) => l !== listener),
+            ),
+        };
+      }),
+    },
+  };
+});
 
 // react-native-maps looks up its native module on import; tests only need the components.
 jest.mock('react-native-maps', () => {

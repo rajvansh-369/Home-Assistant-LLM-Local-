@@ -5,6 +5,7 @@
 import {
   ApiError,
   type ActivityBatchResult,
+  type AlertSettings,
   type AsterApi,
   type Conversation,
   type ConversationPage,
@@ -19,6 +20,7 @@ import {
   type Reminder,
   type TokenResponse,
   type UnlockResponse,
+  type VipContact,
 } from './types';
 
 export const TIMEOUT_MS = 15_000;
@@ -256,5 +258,37 @@ export const realApi: AsterApi = {
     return data<LocationSettings>(
       await call(server, 'PUT', '/location-settings', { token: profileToken, body }),
     );
+  },
+
+  async getAlertSettings(server, profileToken) {
+    return data<AlertSettings>(
+      await call(server, 'GET', '/alert-settings', { token: profileToken }),
+    );
+  },
+
+  async putAlertSettings(server, profileToken, body) {
+    return data<AlertSettings>(
+      await call(server, 'PUT', '/alert-settings', { token: profileToken, body }),
+    );
+  },
+
+  async listVipContacts(server, profileToken) {
+    return data<VipContact[]>(await call(server, 'GET', '/vip-contacts', { token: profileToken }));
+  },
+
+  async createVipContact(server, profileToken, body) {
+    return data<VipContact>(
+      await call(server, 'POST', '/vip-contacts', { token: profileToken, body }),
+    );
+  },
+
+  async updateVipContact(server, profileToken, id, body) {
+    return data<VipContact>(
+      await call(server, 'PATCH', `/vip-contacts/${id}`, { token: profileToken, body }),
+    );
+  },
+
+  async deleteVipContact(server, profileToken, id) {
+    await call(server, 'DELETE', `/vip-contacts/${id}`, { token: profileToken });
   },
 };

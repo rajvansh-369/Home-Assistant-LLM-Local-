@@ -222,11 +222,52 @@ export type LocationSettings = {
   paused_until: string | null;
 };
 
+// Messages and spoken alerts (docs/aster-messages-alerts-plan.md, backend plan §5).
+
+/** Where a captured message came from; also a VIP contact's `sources`. */
+export type MessageSource = 'whatsapp' | 'google_chat' | 'sms';
+
+/** What Aster says for a missed VIP message. */
+export type SpeakMode = 'full' | 'name' | 'summary';
+
+/** AlertSettingResource (Owner only); Laravel also returns updated_at. */
+export type AlertSettings = {
+  /** "Speak missed messages". */
+  enabled: boolean;
+  /** 1–120. */
+  missed_after_minutes: number;
+  speak_mode: SpeakMode;
+  /** "HH:MM" in the phone's time, or null when quiet hours are off. */
+  quiet_start: string | null;
+  quiet_end: string | null;
+  /** Up to 20, each up to 40 characters. Empty when "Still speak urgent ones" is off. */
+  urgent_keywords: string[];
+  headphones_only: boolean;
+  only_at_home: boolean;
+};
+
+/** VipContactResource (Owner only); Laravel also returns updated_at. */
+export type VipContact = {
+  id: number;
+  /** At most 60. */
+  name: string;
+  /** The sender name as it appears in notifications, at most 120. */
+  match_key: string;
+  /** At least one. */
+  sources: MessageSource[];
+  enabled: boolean;
+};
+
+export type VipContactBody = Omit<VipContact, 'id'>;
+
 /** One event of `POST /activity/batch` (1–500 a call, device token). */
 export type ActivityEventBody = {
   client_uuid: string;
   profile_id?: number | null;
-  /** Lowercase letters and underscores, at most 40: arrived_home, left_home, reminder_fired. */
+  /**
+   * Lowercase letters and underscores, at most 40: arrived_home, left_home, reminder_fired,
+   * spoken_alert, reply_sent, server_problem.
+   */
   type: string;
   /** At most 200 characters. */
   summary: string;
@@ -377,6 +418,28 @@ export interface AsterApi {
     profileToken: string,
     body: Partial<LocationSettings>,
   ): Promise<LocationSettings>;
+
+  /** Owner. */
+  getAlertSettings(server: string, profileToken: string): Promise<AlertSettings>;
+  /** Owner; send only the fields that change. */
+  putAlertSettings(
+    server: string,
+    profileToken: string,
+    body: Partial<AlertSettings>,
+  ): Promise<AlertSettings>;
+  /** Owner. Oldest first. */
+  listVipContacts(server: string, profileToken: string): Promise<VipContact[]>;
+  /** Owner. */
+  createVipContact(server: string, profileToken: string, body: VipContactBody): Promise<VipContact>;
+  /** Owner; send only the fields that change. */
+  updateVipContact(
+    server: string,
+    profileToken: string,
+    id: number,
+    body: Partial<VipContactBody>,
+  ): Promise<VipContact>;
+  /** Owner (soft delete on Laravel). */
+  deleteVipContact(server: string, profileToken: string, id: number): Promise<void>;
 }
 
 /**

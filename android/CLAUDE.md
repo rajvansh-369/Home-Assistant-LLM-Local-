@@ -11,8 +11,9 @@ location points and uploads, 5.3 Location).
 It runs as a development build (`npx expo run:android`), never Expo Go. Dark theme only.
 
 Plans and source of truth: `docs/aster-first-run-plan.md` (first run, phases in §8),
-`docs/aster-home-chat-plan.md` (home mode and chat, phases H1–H7) and
-`docs/aster-reminders-location-plan.md` (reminders and location, phases R1–R6).
+`docs/aster-home-chat-plan.md` (home mode and chat, phases H1–H7),
+`docs/aster-reminders-location-plan.md` (reminders and location, phases R1–R6) and
+`docs/aster-messages-alerts-plan.md` (messages and spoken alerts, phases M1–M6).
 Status: `docs/*-status.md`.
 
 ## Commands
@@ -50,13 +51,16 @@ src/features/home-mode/      mode rules, controller (Wi-Fi, area, /health), stat
 src/features/chat/           chat cache, upload queue, sync, prompt, streaming turn, ChatView
 src/features/reminders/      reminders store, queue, sync, alarms, Coming up, editor
 src/features/location/       settings, tracking, points, device uploads, area, 5.3
+src/features/messages/       captured threads, alert settings and VIPs, catch-up, drafts, 4.x
 src/services/api/            client (real Laravel), types, mock
 src/services/llm/            health.ts, chat.ts (streaming via expo/fetch), sse.ts
 src/services/permissions/    one entry per Permissions row
 src/services/secure.ts       expo-secure-store wrapper
 src/services/notifications.ts expo-notifications: reminder channel, category, alarms
 src/tasks/                   geofence, location updates, notification actions (headless too)
-modules/aster-system/        local Expo module (Kotlin)
+modules/aster-system/        local Expo module (Kotlin): special access, message capture, the
+                             encrypted message store and the spoken-alert engine (JUnit tests in
+                             android/src/test: gradlew :aster-system:testDebugUnitTest)
 plugins/                     config plugins (with-home-llm-cleartext.js)
 __tests__/                   jest tests (never inside src/app)
 docs/                        plan, design images, screenshots, status
