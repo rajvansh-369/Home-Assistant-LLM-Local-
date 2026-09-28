@@ -55,7 +55,8 @@ function laravel(options: { owner?: Json; place?: Json | null } = {}) {
   const session = () => ({
     profile_token: PROFILE,
     llm_token: 'llm-token-1',
-    expires_at: '2026-09-28T01:00:00Z',
+    // 12 hours from now, as Laravel gives it: a fixed date expires and the session stops counting.
+    expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
     household_id: 'h1',
     profile: owner,
     engines: [
