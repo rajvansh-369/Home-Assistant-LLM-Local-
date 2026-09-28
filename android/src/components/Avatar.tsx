@@ -4,19 +4,28 @@ import { profileColors, radii, sizes, type ProfileColor, type TextVariant } from
 
 import { Text } from './Text';
 
-/** 84 on 1.3 and 2.2, 72 on the 2.1 cards, 46 in the 3.1 header. */
-export type AvatarSize = 'large' | 'card' | 'header';
+/**
+ * 84 on 1.3 and 2.2, 72 on the 2.1 cards, 46 in the 3.1 header; 40 in 4.1 rows, 38 in the 4.2
+ * header, 32 in the 3.2 VIP stack.
+ */
+export type AvatarSize = 'large' | 'card' | 'header' | 'row' | 'thread' | 'mini';
 
 const DIAMETER: Record<AvatarSize, number> = {
   large: sizes.avatar,
   card: sizes.profileAvatar,
   header: sizes.homeAvatar,
+  row: sizes.rowAvatar,
+  thread: sizes.threadAvatar,
+  mini: sizes.miniAvatar,
 };
 
 const LETTER: Record<AvatarSize, TextVariant> = {
   large: 'avatar',
   card: 'avatarMedium',
   header: 'avatarTiny',
+  row: 'avatarRow',
+  thread: 'avatarThread',
+  mini: 'avatarMini',
 };
 
 type AvatarProps = {

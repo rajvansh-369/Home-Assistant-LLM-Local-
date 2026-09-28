@@ -42,7 +42,8 @@ export const messages = {
   footnote:
     'Aster sees messages from the moment notification access is on. Older chat history isn’t available.',
   accessOff: 'Notification access is off, so Aster can’t see new messages.', // (proposed)
-  allow: 'Allow',
+  /** 1.5's row name, for the Allow pill's TalkBack label. */
+  accessTitle: 'Notification access',
   empty: 'No messages yet. New WhatsApp, Google Chat and SMS messages show up here.', // (proposed)
   /** TalkBack for a thread row. (proposed) */
   rowLabel: (title: string, source: string, time: string, unread: number) =>
@@ -180,6 +181,8 @@ export function joinNames(names: string[]): string {
 /** What Laravel's activity log shows. No message text. (proposed) */
 export const activity = {
   replied: (name: string, source: string) => `Replied to ${name} on ${source}`,
+  /** Someone who isn't a VIP stays unnamed on Laravel. */
+  repliedUnnamed: (source: string) => `Replied on ${source}`,
   serverProblem: 'Home server not answering',
 } as const;
 

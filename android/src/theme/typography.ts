@@ -76,6 +76,18 @@ export const typography = {
   /** Initials in 72 (2.1) and 46 (3.1) avatars. */
   avatarMedium: style(fonts.display700, 30, 36),
   avatarTiny: style(fonts.display700, 19, 24),
+  // Messages and spoken alerts (docs/aster-messages-alerts-plan.md §3).
+  /** Initials in the 40 (4.1 rows), 38 (4.2 header) and 32 (3.2 stack) avatars. */
+  avatarRow: style(fonts.display700, 17, 22),
+  avatarThread: style(fonts.display700, 16, 20),
+  avatarMini: style(fonts.display700, 13, 16),
+  /** Unread counts: 12 in rows, 11 on the tab. */
+  count: style(fonts.body700, 12, 16),
+  countSmall: style(fonts.body700, 11, 14),
+  /** 4.1 "Catch-up" and the 4.2 "Aster" card titles. */
+  cardLabel: style(fonts.body700, 14, 20),
+  /** "Read aloud at 8:02 PM" and 4.2's "Aster read these aloud…": 12, 600. */
+  marker: style(fonts.body600, 12, 16),
 } as const satisfies Record<string, TextVariantStyle>;
 
 export type TextVariant = keyof typeof typography;
@@ -93,6 +105,11 @@ export const cappedVariants: readonly TextVariant[] = [
   'heading',
   'avatarMedium',
   'avatarTiny',
+  'avatarRow',
+  'avatarThread',
+  'avatarMini',
+  'count',
+  'countSmall',
   'tab',
 ];
 export const maxFontSizeMultiplier = 1.3;

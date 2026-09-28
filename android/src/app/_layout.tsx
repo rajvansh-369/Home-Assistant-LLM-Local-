@@ -88,6 +88,7 @@ export default function RootLayout() {
             <Stack.Screen name="chat/[id]" />
             <Stack.Screen name="reminder/[id]" />
             <Stack.Screen name="location" />
+            <Stack.Screen name="thread/[key]" />
             <Stack.Screen name="dev/gallery" />
           </Stack>
         </KeyboardProvider>

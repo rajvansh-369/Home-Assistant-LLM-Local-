@@ -7,6 +7,8 @@ export const tabs = {
   settings: 'Settings',
   /** The tab bar's TalkBack name. */
   main: 'Main',
+  /** "Messages, 3 unread". (proposed) */
+  withBadge: (label: string, count: number) => `${label}, ${count} unread`,
 } as const;
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];

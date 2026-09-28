@@ -147,6 +147,25 @@ export const sizes = {
   pathWidth: 3,
   /** 5.3's Pause button. */
   secondaryButton: 48,
+  // Messages and spoken alerts (docs/aster-messages-alerts-plan.md §3).
+  rowAvatar: 40,
+  threadAvatar: 38,
+  miniAvatar: 32,
+  countBadge: 22,
+  tabBadge: 18,
+  /** 4.1 filter chips and 4.2 reply chips. */
+  filterChip: 36,
+  sourceBadge: 20,
+  /** 4.1 catch-up and 3.1 card buttons. */
+  cardButton: 40,
+  cardButtonTall: 44,
+  /** 4.2 Rewrite chips. */
+  rewriteChip: 32,
+  /** 4.2 "Your reply". */
+  draftInput: 76,
+  sendReply: 52,
+  /** 3.1 "Listening" dot. */
+  listeningDot: 8,
 } as const;
 
 export const iconSizes = {
@@ -174,6 +193,9 @@ export const iconSizes = {
   composerEntry: 20,
   rate: 16,
   source: 14,
+  /** 4.1 section star, 4.2 marker and spoken lines. */
+  marker: 13,
+  cardButton: 18,
 } as const;
 
 export const strokes = {
