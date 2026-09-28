@@ -44,10 +44,13 @@ export async function forgetReminders() {
 /** A tap on a reminder notification: `open` shows it when its profile is the one unlocked. */
 export type OpenReminder = (clientUuid: string) => void;
 
+/** Any other notification's tap or button (the home notices of 4.4). */
+export type OtherResponse = (response: Notifications.NotificationResponse) => void;
+
 let installed = false;
 let timer: ReturnType<typeof setInterval> | undefined;
 
-export function installReminders(open: OpenReminder) {
+export function installReminders(open: OpenReminder, other?: OtherResponse) {
   if (installed) return;
   installed = true;
 
@@ -86,10 +89,12 @@ export function installReminders(open: OpenReminder) {
     if (previous.hasDeviceToken && !state.hasDeviceToken) void forgetReminders();
   });
 
-  const respond = (response: Notifications.NotificationResponse) =>
+  const respond = (response: Notifications.NotificationResponse) => {
     void handleAlarmResponse(response).then((clientUuid) => {
       if (clientUuid) open(clientUuid);
     });
+    other?.(response);
+  };
   Notifications.addNotificationResponseReceivedListener(respond);
   // Launched by a tap on a reminder: open it once launch routing is done.
   void Notifications.getLastNotificationResponseAsync().then((response) => {

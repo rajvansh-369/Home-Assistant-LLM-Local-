@@ -152,6 +152,8 @@ export const vipEditor = {
   matchKeyHelp: 'Exactly as it shows in the app’s notifications, like the contact’s saved name.',
   apps: 'Apps',
   appsHelp: 'Pick at least one.',
+  nameRequired: 'Enter a name.',
+  matchKeyRequired: 'Enter the name as it shows in notifications.',
   recent: 'From your messages',
   save: 'Save',
   delete: 'Delete',

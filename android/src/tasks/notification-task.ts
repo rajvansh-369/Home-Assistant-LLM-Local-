@@ -1,9 +1,11 @@
 // Reminder buttons while the app is in the background or closed (docs/aster-reminders-location-
 // plan.md §6). On Android, expo-notifications runs this task for a tapped action button (Done,
-// Snooze 30 min); taps on the notification itself open the app and reach the response listener.
+// Snooze 30 min; and the home notices' Later and Retry, docs/aster-messages-alerts-plan.md §3 4.4);
+// taps on the notification itself open the app and reach the response listener.
 // Defined at module scope and imported from the root layout, like the geofence task.
 import * as Notifications from 'expo-notifications';
 
+import { handleNoticeResponse } from '@/features/messages/notify';
 import { handleAlarmResponse, type AlarmResponse } from '@/features/reminders/actions';
 
 // Expo Go on Android has no TaskManager; see geofence-task.ts.
@@ -23,6 +25,7 @@ const isResponse = (data: unknown): data is AlarmResponse =>
 TaskManager?.defineTask<unknown>(NOTIFICATION_TASK, async ({ data, error }) => {
   if (error || !isResponse(data)) return;
   await handleAlarmResponse(data);
+  await handleNoticeResponse(data).catch(() => null);
 });
 
 /** Tells expo-notifications to run the task. Safe to repeat; never throws. */

@@ -1,4 +1,5 @@
 import { useFonts } from 'expo-font';
+import type * as Notifications from 'expo-notifications';
 import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -15,6 +16,7 @@ import { isUnlocked, useFirstRunStore } from '@/features/first-run/store';
 import { useHomeMode } from '@/features/home-mode/useHomeMode';
 import { installLocation } from '@/features/location/install';
 import { installMessages } from '@/features/messages/install';
+import { handleNoticeResponse } from '@/features/messages/notify';
 import { useAutoLock } from '@/features/profiles/useAutoLock';
 import { installReminders } from '@/features/reminders/install';
 import { useRemindersStore } from '@/features/reminders/store';
@@ -36,6 +38,12 @@ function openReminder(clientUuid: string) {
   if (!isUnlocked(session) || reminder?.profileId !== session!.profile.id) return;
   router.push({ pathname: '/reminder/[id]', params: { id: clientUuid } });
 }
+/** "Catch me up" or a tap on Welcome home opens 4.1; the server notice's Settings opens 5.1. */
+function openNotice(response: Notifications.NotificationResponse) {
+  void handleNoticeResponse(response).then((route) => {
+    if (route && isUnlocked(useFirstRunStore.getState().session)) router.navigate(route);
+  });
+}
 installChatSession();
 SystemUI.setBackgroundColorAsync(colors.bg);
 
@@ -54,7 +62,7 @@ export default function RootLayout() {
       .catch(() => useFirstRunStore.getState().set({ booted: true }))
       .finally(() => {
         void registerNotificationTask();
-        installReminders(openReminder);
+        installReminders(openReminder, openNotice);
         installLocation();
         installMessages();
       });
@@ -89,6 +97,8 @@ export default function RootLayout() {
             <Stack.Screen name="reminder/[id]" />
             <Stack.Screen name="location" />
             <Stack.Screen name="thread/[key]" />
+            <Stack.Screen name="alerts" />
+            <Stack.Screen name="vip/[id]" />
             <Stack.Screen name="dev/gallery" />
           </Stack>
         </KeyboardProvider>

@@ -6,11 +6,13 @@
 // expo-location registers with an initial trigger, so every registration reports where the phone
 // is; that, or a repeat of the last event, isn't a transition and only updates home mode. Every
 // event also tells the native alert engine whether the phone is at home ("Only speak at home",
-// docs/aster-messages-alerts-plan.md §7).
+// docs/aster-messages-alerts-plan.md §7), and an arrival offers the catch-up or says the home
+// server isn't answering (4.4).
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GeofencingEventType, type LocationRegion } from 'expo-location';
 
 import { recordHomeEvent } from '@/features/location/points';
+import { offerHomeNotices } from '@/features/messages/notify';
 import { armArriveHome, ringArriveHome } from '@/features/reminders/actions';
 
 import AsterSystem from '../../modules/aster-system';
@@ -66,6 +68,7 @@ export async function onHomeGeofence(type: GeofenceEvent['type'], now = new Date
   if (previous === null || previous === type) return false;
   await recordHomeEvent(type, now.getTime()).catch(() => {});
   await (type === 'enter' ? ringArriveHome(now) : armArriveHome()).catch(() => {});
+  if (type === 'enter') await offerHomeNotices();
   return true;
 }
 

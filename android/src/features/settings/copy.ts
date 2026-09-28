@@ -20,4 +20,15 @@ export const settings = {
   saved: 'Saved.',
   pending: 'Saved on this phone. It reaches your other devices the next time you unlock.',
   homeWifi: 'Both answer through your home computer, so chat needs your home Wi-Fi.',
+  /** Owner only (docs/aster-messages-alerts-plan.md §3 5.1). Canvas strings. */
+  alertsSection: 'Alerts and background',
+  spokenAlerts: 'Spoken alerts',
+  spokenDetail: (vips: number, minutes: number) =>
+    `${vips} VIP ${vips === 1 ? 'contact' : 'contacts'} · missed after ${minutes} min`,
+  spokenOff: 'Off', // (proposed)
+  background: 'Run in background',
+  unrestricted: 'Battery usage: Unrestricted',
+  optimized: 'Battery usage: Optimized', // (proposed)
+  privacy: 'Privacy',
+  hideText: 'Hide message text on lock screen',
 } as const;

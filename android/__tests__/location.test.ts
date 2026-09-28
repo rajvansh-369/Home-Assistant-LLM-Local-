@@ -30,6 +30,8 @@ jest.mock('expo-location', () => ({
   stopLocationUpdatesAsync: jest.fn(async () => undefined),
 }));
 jest.mock('expo-task-manager', () => ({ defineTask: jest.fn() }));
+// Arrivals also offer 4.4's home notices (docs/aster-messages-alerts-plan.md); tested elsewhere.
+jest.mock('@/features/messages/notify', () => ({ offerHomeNotices: jest.fn(async () => null) }));
 
 const location = jest.mocked(Location);
 const server = 'https://aster.test';

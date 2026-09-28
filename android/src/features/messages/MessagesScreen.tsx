@@ -2,19 +2,17 @@
 // and "Everyone else" sections of captured threads, the notification-access callout and the
 // footnote. Owner only.
 import { useFocusEffect } from 'expo-router';
-import { BellOff, Info, Star } from 'lucide-react-native';
+import { Info, Star } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AllowPill, ScreenHeader, Text } from '@/components';
+import { ScreenHeader, Text } from '@/components';
 import { colors, iconSizes, radii, sizes, spacing, strokes } from '@/theme';
 
-import AsterSystem, {
-  type CapturedThread,
-  type MessageSource,
-} from '../../../modules/aster-system';
+import type { CapturedThread, MessageSource } from '../../../modules/aster-system';
 
+import { AccessCallout } from './AccessCallout';
 import { useAlertsStore } from './alerts';
 import { CatchUpCard } from './CatchUpCard';
 import { messages as copy } from './copy';
@@ -96,7 +94,6 @@ function Section({
 
 export function MessagesScreen() {
   const threads = useThreadsStore((state) => state.threads);
-  const listening = useThreadsStore((state) => state.listening);
   const loaded = useThreadsStore((state) => state.loaded);
   const vips = useAlertsStore((state) => state.vips);
   const [filter, setFilter] = useState<Filter>('all');
@@ -142,18 +139,7 @@ export function MessagesScreen() {
           ))}
         </ScrollView>
 
-        {!listening && loaded ? (
-          <View style={styles.callout}>
-            <BellOff size={iconSizes.callout} color={colors.warning} strokeWidth={strokes.icon} />
-            <Text variant="bodySmall" style={styles.calloutText}>
-              {copy.accessOff}
-            </Text>
-            <AllowPill
-              title={copy.accessTitle}
-              onPress={() => AsterSystem.openNotificationListenerSettings()}
-            />
-          </View>
-        ) : null}
+        <AccessCallout />
 
         {threads.length > 0 ? <CatchUpCard threads={threads} /> : null}
 
@@ -198,18 +184,6 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: colors.accentTint, borderColor: colors.accentBorder },
   chipOff: { backgroundColor: colors.surface, borderColor: colors.border },
   chipCount: { opacity: 0.8 },
-  callout: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: radii.callout,
-    borderWidth: 1,
-    borderColor: colors.warningBorder,
-    backgroundColor: colors.warningTint,
-  },
-  calloutText: { flex: 1 },
   section: { gap: 8 },
   sectionLabel: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   card: {

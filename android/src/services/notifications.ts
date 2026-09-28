@@ -1,6 +1,7 @@
 // expo-notifications for reminder alarms (docs/aster-reminders-location-plan.md §4): the
 // `reminders` channel, the `reminder` category with Done and Snooze 30 min, and thin helpers to
-// schedule, present and cancel by identifier. Labels come from the caller's copy.
+// schedule, present and cancel by identifier; and the home notices of 4.4
+// (docs/aster-messages-alerts-plan.md §3). Labels come from the caller's copy.
 import * as Notifications from 'expo-notifications';
 
 import { colors } from '@/theme/colors';
@@ -118,7 +119,90 @@ export async function cancelAlarm(identifier: string) {
   await Notifications.dismissNotificationAsync(identifier).catch(() => {});
 }
 
+// Home notices (docs/aster-messages-alerts-plan.md §3 4.4): "Welcome home" with Catch me up and
+// Later, and "Home server not answering" with Retry and Settings, on their own channel.
+
+export const HOME_CHANNEL = 'home';
+export const WELCOME_CATEGORY = 'welcome';
+export const SERVER_CATEGORY = 'server';
+export const ACTION_CATCH_UP = 'catch-up';
+export const ACTION_LATER = 'later';
+export const ACTION_RETRY = 'retry';
+export const ACTION_SETTINGS = 'open-settings';
+
+export type HomeNoticeLabels = {
+  channel: string;
+  catchMeUp: string;
+  later: string;
+  retry: string;
+  settings: string;
+};
+
+let homeSetUp: Promise<void> | null = null;
+
+/** The home channel and its two categories. Safe to call often; runs once per runtime. */
+export function setUpHomeNotices(labels: HomeNoticeLabels): Promise<void> {
+  homeSetUp ??= (async () => {
+    await Notifications.setNotificationChannelAsync(HOME_CHANNEL, {
+      name: labels.channel,
+      importance: Notifications.AndroidImportance.DEFAULT,
+      lightColor: colors.accent,
+    });
+    await Notifications.setNotificationCategoryAsync(WELCOME_CATEGORY, [
+      {
+        identifier: ACTION_CATCH_UP,
+        buttonTitle: labels.catchMeUp,
+        options: { opensAppToForeground: true },
+      },
+      {
+        identifier: ACTION_LATER,
+        buttonTitle: labels.later,
+        options: { opensAppToForeground: false },
+      },
+    ]);
+    await Notifications.setNotificationCategoryAsync(SERVER_CATEGORY, [
+      {
+        identifier: ACTION_RETRY,
+        buttonTitle: labels.retry,
+        options: { opensAppToForeground: false },
+      },
+      {
+        identifier: ACTION_SETTINGS,
+        buttonTitle: labels.settings,
+        options: { opensAppToForeground: true },
+      },
+    ]);
+  })().catch((error: unknown) => {
+    homeSetUp = null;
+    throw error;
+  });
+  return homeSetUp;
+}
+
+export type Notice = {
+  title: string;
+  body: string;
+  category: typeof WELCOME_CATEGORY | typeof SERVER_CATEGORY;
+  data: Record<string, string>;
+};
+
+/** Shows a home notice now; the same identifier replaces the earlier one. */
+export async function presentNotice(identifier: string, notice: Notice) {
+  await Notifications.scheduleNotificationAsync({
+    identifier,
+    content: {
+      title: notice.title,
+      body: notice.body,
+      data: notice.data,
+      categoryIdentifier: notice.category,
+      color: colors.accent,
+    },
+    trigger: { channelId: HOME_CHANNEL },
+  });
+}
+
 /** Tests only. */
 export function resetNotificationSetup() {
   setUp = null;
+  homeSetUp = null;
 }

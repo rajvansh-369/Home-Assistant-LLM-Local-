@@ -2,11 +2,22 @@
 // choose who answers chats. Local is Zephyr on the home computer; Mark-L (named in the admin panel)
 // is Gemini through the same computer. The choice applies on this phone at once and reaches Laravel
 // now if unlocked, else at the next unlock. The Owner also sees Home and location, which opens 5.3
-// (reminders plan §3).
+// (reminders plan §3), Alerts and background (4.3 and battery use) and Privacy's "Hide message text
+// on lock screen" (docs/aster-messages-alerts-plan.md §3 5.1).
 import { router } from 'expo-router';
-import { Cloud, Cpu, History, House, HouseWifi, Lock } from 'lucide-react-native';
+import {
+  Cloud,
+  Cpu,
+  EyeOff,
+  History,
+  House,
+  HouseWifi,
+  Lock,
+  Volume2,
+  Zap,
+} from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 
 import {
   Avatar,
@@ -19,11 +30,13 @@ import {
   Text,
   TitleBlock,
   ToggleCard,
+  ToggleRow,
   type FieldStatus,
 } from '@/components';
 import { useFirstRunStore } from '@/features/first-run/store';
 import { location as locationCopy } from '@/features/location/copy';
 import { pausedUntil, useLocationStore } from '@/features/location/settings';
+import { setHideOnLockScreen, useAlertsStore } from '@/features/messages/alerts';
 import { DevFacts } from '@/features/settings/DevFacts';
 import { lockSession } from '@/features/profiles/actions';
 import { whoIsUsing } from '@/features/profiles/copy';
@@ -31,6 +44,8 @@ import { chooseLlmEngine } from '@/features/settings/actions';
 import { settings as copy } from '@/features/settings/copy';
 import type { LlmEngine } from '@/services/api';
 import { colors, profileColorKey, radii, spacing } from '@/theme';
+
+import AsterSystem from '../../../modules/aster-system';
 
 const ICONS = { local: Cpu, markl: Cloud } as const;
 
@@ -66,6 +81,71 @@ function HomeAndLocation() {
         />
       </ToggleCard>
     </View>
+  );
+}
+
+/** Battery use is "Unrestricted", read again whenever the app comes back. */
+function useUnrestricted(): boolean {
+  const [unrestricted, setUnrestricted] = useState(() =>
+    AsterSystem.isIgnoringBatteryOptimizations(),
+  );
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') setUnrestricted(AsterSystem.isIgnoringBatteryOptimizations());
+    });
+    return () => subscription.remove();
+  }, []);
+  return unrestricted;
+}
+
+/** 5.1 Alerts and background, and Privacy, Owner only. */
+function AlertsAndPrivacy() {
+  const settings = useAlertsStore((state) => state.settings);
+  const vips = useAlertsStore((state) => state.vips.filter((vip) => vip.enabled).length);
+  const hide = useAlertsStore((state) => state.hideOnLockScreen);
+  const unrestricted = useUnrestricted();
+  return (
+    <>
+      <View style={styles.section}>
+        <Text variant="label" tone="secondary" accessibilityRole="header">
+          {copy.alertsSection}
+        </Text>
+        <ToggleCard>
+          <LinkRow
+            icon={Volume2}
+            title={copy.spokenAlerts}
+            subtitle={
+              settings.enabled
+                ? copy.spokenDetail(vips, settings.missed_after_minutes)
+                : copy.spokenOff
+            }
+            onPress={() => router.push('/alerts')}
+          />
+          <LinkRow
+            icon={Zap}
+            title={copy.background}
+            subtitle={unrestricted ? copy.unrestricted : copy.optimized}
+            onPress={
+              unrestricted ? undefined : () => AsterSystem.requestIgnoreBatteryOptimizations()
+            }
+          />
+        </ToggleCard>
+      </View>
+      <View style={styles.section}>
+        <Text variant="label" tone="secondary" accessibilityRole="header">
+          {copy.privacy}
+        </Text>
+        <ToggleCard>
+          <ToggleRow
+            icon={EyeOff}
+            iconTone="neutral"
+            title={copy.hideText}
+            value={hide}
+            onValueChange={(value) => void setHideOnLockScreen(value)}
+          />
+        </ToggleCard>
+      </View>
+    </>
   );
 }
 
@@ -141,6 +221,7 @@ export default function Settings() {
       {status ? <StatusLine status={status} /> : null}
       <InfoCallout icon={HouseWifi} text={copy.homeWifi} />
       {profile?.role === 'owner' ? <HomeAndLocation /> : null}
+      {profile?.role === 'owner' ? <AlertsAndPrivacy /> : null}
       {__DEV__ ? <DevFacts /> : null}
     </Screen>
   );
