@@ -22,6 +22,13 @@ export type AskInput = {
   web: 'auto' | false;
   /** False for private chats and Guest. */
   memory?: false;
+  /**
+   * Instead of the profile's engine: captured messages only ever go to the local model
+   * (docs/aster-messages-alerts-plan.md decision 5).
+   */
+  engine?: LlmEngine;
+  sampling?: 'precise' | 'balanced' | 'creative';
+  maxTokens?: number;
   signal?: AbortSignal;
   onEvent: (event: ChatEvent) => void;
 };
@@ -45,12 +52,12 @@ export async function askZypher(input: AskInput): Promise<ChatResult> {
   let refreshed = false;
   let trimmed = false;
   let messages = input.messages;
-  let maxTokens: number | undefined;
+  let maxTokens: number | undefined = input.maxTokens;
 
   for (;;) {
     const { session, home, engines } = store();
     if (!session || !home) throw new ChatError('unauthorized', 'No unlocked profile.');
-    const engine = activeEngine();
+    const engine = input.engine ?? activeEngine();
     try {
       return await streamChat(
         {
@@ -61,6 +68,7 @@ export async function askZypher(input: AskInput): Promise<ChatResult> {
           messages,
           web: input.web,
           memory: input.memory,
+          sampling: input.sampling,
           maxTokens,
           signal: input.signal,
         },

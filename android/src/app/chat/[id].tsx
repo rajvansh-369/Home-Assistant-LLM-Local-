@@ -1,6 +1,8 @@
 // 3.4 Chat (docs/aster-home-chat-plan.md §4.7): `new` starts a saved chat with the first question,
 // `private` a chat that is neither saved nor remembered, anything else opens that saved chat.
-// `q` sends a first question (a 3.1 suggestion). More options deletes the chat.
+// `q` sends a first question (a 3.1 suggestion). More options deletes the chat. `about=messages`
+// is 4.1's "Ask about it": a private chat with the unread messages as its context
+// (docs/aster-messages-alerts-plan.md §6).
 import { router, useLocalSearchParams } from 'expo-router';
 import { EyeOff, MoreVertical } from 'lucide-react-native';
 import { useCallback } from 'react';
@@ -10,6 +12,8 @@ import { IconButton, InfoCallout, ScreenHeader } from '@/components';
 import { deleteChat } from '@/features/chat/actions';
 import { chat as copy, chats as listCopy } from '@/features/chat/copy';
 import { ChatView } from '@/features/chat/ChatView';
+import { useAskAboutContext } from '@/features/messages/catchup';
+import { messages as messagesCopy } from '@/features/messages/copy';
 import { SessionGate } from '@/features/profiles/SessionGate';
 
 function goBack() {
@@ -32,8 +36,10 @@ function confirmDelete(chatUuid: string) {
 }
 
 export default function Chat() {
-  const { id, q } = useLocalSearchParams<{ id: string; q?: string }>();
+  const { id, q, about } = useLocalSearchParams<{ id: string; q?: string; about?: string }>();
   const isPrivate = id === 'private';
+  const aboutMessages = isPrivate && about === 'messages';
+  const context = useAskAboutContext(aboutMessages);
   const chatUuid = id === 'new' || isPrivate ? null : id;
   const onMissing = useCallback(() => goBack(), []);
 
@@ -44,12 +50,26 @@ export default function Chat() {
         chatUuid={chatUuid}
         initialQuestion={q}
         onMissing={onMissing}
+        context={context}
         banner={
-          isPrivate ? <InfoCallout icon={EyeOff} tone="neutral" text={copy.privateBanner} /> : null
+          isPrivate ? (
+            <InfoCallout
+              icon={EyeOff}
+              tone="neutral"
+              text={aboutMessages ? messagesCopy.askBanner : copy.privateBanner}
+            />
+          ) : null
         }
         header={({ title, subtitle, chatUuid: current }) => (
           <ScreenHeader
-            title={title ?? (isPrivate ? copy.privateTitle : copy.newTitle)}
+            title={
+              title ??
+              (aboutMessages
+                ? messagesCopy.askTitle
+                : isPrivate
+                  ? copy.privateTitle
+                  : copy.newTitle)
+            }
             subtitle={subtitle}
             onBack={goBack}
           >

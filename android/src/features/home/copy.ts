@@ -36,8 +36,8 @@ export const home = {
   away: {
     distance: (km: string) => `Away from home · ${km} km`,
     noDistance: 'Away from home', // (proposed)
-    /** The canvas also names voice and message capture, which aren't built yet. (proposed) */
-    body: 'Chat switches on when you get home. Reminders and location keep working.',
+    /** The canvas also names voice, which isn't built yet. */
+    body: 'Chat switches on when you get home. Reminders, message capture and location keep working.',
     chatAtHome: 'Chat is available at home',
     mapLabel: (km: string) => `Map showing you ${km} km from home`,
     mapLabelNoDistance: 'Map showing your home area', // (proposed)

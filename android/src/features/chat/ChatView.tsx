@@ -32,6 +32,8 @@ type ChatViewProps = {
   placeholder?: string;
   /** A saved chat was deleted or isn't on this phone. */
   onMissing?: () => void;
+  /** 4.1's "Ask about it": the unread messages as a system message (private, local engine). */
+  context?: string | null;
 };
 
 const dayKey = (iso: string) => new Date(iso).toDateString();
@@ -49,10 +51,13 @@ export function ChatView({
   banner,
   placeholder,
   onMissing,
+  context = null,
 }: ChatViewProps) {
-  const chat = useChat(mode, chatUuid);
+  const chat = useChat(mode, chatUuid, { context });
   const homeMode = useHomeModeStore((state) => state.mode);
-  const model = useFirstRunStore((state) => modelLabel(activeEngine(), state.engines));
+  const model = useFirstRunStore((state) =>
+    modelLabel(context != null ? 'local' : activeEngine(), state.engines),
+  );
   const [draft, setDraft] = useState('');
   const list = useRef<FlatList<LocalMessage>>(null);
   const sentInitial = useRef(false);

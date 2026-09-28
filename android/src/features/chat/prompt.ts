@@ -16,6 +16,7 @@ export type Turn = { role: 'user' | 'assistant'; content: string };
 export function buildMessages({
   personality,
   area,
+  context,
   history,
   question,
   limit = CONTEXT_MESSAGES,
@@ -23,11 +24,13 @@ export function buildMessages({
   personality?: string | null;
   /** "The user is in or near Pune." */
   area?: string | null;
+  /** What the app adds, e.g. the unread messages for "Ask about it" (messages plan §6). */
+  context?: string | null;
   history: Turn[];
   question: string;
   limit?: number;
 }): ChatMessage[] {
-  const lines = [personality?.trim(), area?.trim()].filter(Boolean);
+  const lines = [personality?.trim(), area?.trim(), context?.trim()].filter(Boolean);
   const system = lines.length > 0 ? [{ role: 'system' as const, content: lines.join('\n\n') }] : [];
   const recent = history.filter((turn) => turn.content.trim() !== '').slice(-limit);
   return [...system, ...recent, { role: 'user', content: question }];

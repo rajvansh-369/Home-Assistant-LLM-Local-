@@ -27,6 +27,8 @@ export type ChatRequest = {
   web: 'auto' | false;
   /** False for private chats and Guest; left out otherwise (the server default). */
   memory?: false;
+  /** "precise" for reply drafts and catch-ups (integration spec); left out for automatic. */
+  sampling?: 'precise' | 'balanced' | 'creative';
   maxTokens?: number;
   signal?: AbortSignal;
 };
@@ -96,6 +98,7 @@ export function chatBody(request: ChatRequest) {
     messages: request.messages,
     web: request.web,
     ...(request.memory === false ? { memory: false } : {}),
+    ...(request.sampling ? { sampling: request.sampling } : {}),
     ...(request.maxTokens ? { max_tokens: request.maxTokens } : {}),
   };
 }

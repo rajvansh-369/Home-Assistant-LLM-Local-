@@ -1,5 +1,6 @@
-// 4.1 Messages (docs/aster-messages-alerts-plan.md §3): filter chips, the VIP and "Everyone else"
-// sections of captured threads, the notification-access callout and the footnote. Owner only.
+// 4.1 Messages (docs/aster-messages-alerts-plan.md §3): filter chips, the Catch-up card, the VIP
+// and "Everyone else" sections of captured threads, the notification-access callout and the
+// footnote. Owner only.
 import { useFocusEffect } from 'expo-router';
 import { BellOff, Info, Star } from 'lucide-react-native';
 import { useCallback, useMemo, useState } from 'react';
@@ -15,6 +16,7 @@ import AsterSystem, {
 } from '../../../modules/aster-system';
 
 import { useAlertsStore } from './alerts';
+import { CatchUpCard } from './CatchUpCard';
 import { messages as copy } from './copy';
 import { byNewest } from './format';
 import { refreshThreads, unreadCount, useThreadsStore } from './threads';
@@ -92,7 +94,7 @@ function Section({
   );
 }
 
-export function MessagesScreen({ header }: { header?: React.ReactNode }) {
+export function MessagesScreen() {
   const threads = useThreadsStore((state) => state.threads);
   const listening = useThreadsStore((state) => state.listening);
   const loaded = useThreadsStore((state) => state.loaded);
@@ -153,7 +155,7 @@ export function MessagesScreen({ header }: { header?: React.ReactNode }) {
           </View>
         ) : null}
 
-        {header}
+        {threads.length > 0 ? <CatchUpCard threads={threads} /> : null}
 
         <Section label={copy.vip} vip threads={vipThreads} now={now} />
         <Section label={copy.everyoneElse} vip={false} threads={others} now={now} />

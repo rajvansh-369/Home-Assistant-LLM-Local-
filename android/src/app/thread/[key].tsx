@@ -3,13 +3,14 @@
 import { Redirect, useLocalSearchParams } from 'expo-router';
 
 import { useFirstRunStore } from '@/features/first-run/store';
+import { ReplyAssist } from '@/features/messages/ReplyAssist';
 import { ThreadView } from '@/features/messages/ThreadView';
 import { SessionGate } from '@/features/profiles/SessionGate';
 
 function OwnerOnly({ threadKey }: { threadKey: string }) {
   const role = useFirstRunStore((state) => state.session?.profile.role);
   if (role !== 'owner') return <Redirect href="/home" />;
-  return <ThreadView threadKey={threadKey} />;
+  return <ThreadView threadKey={threadKey} assist={(props) => <ReplyAssist {...props} />} />;
 }
 
 export default function Thread() {

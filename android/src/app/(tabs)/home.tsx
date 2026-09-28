@@ -2,7 +2,8 @@
 // follows home mode. At home: the status chip, a banner while the model loads or the home PC
 // doesn't answer, suggestions and "Ask Aster anything". Away: the map card with the distance, and
 // a disabled composer. The avatar locks and returns to 2.1. Both show "Coming up" (reminders plan
-// §3).
+// §3). The Owner also sees "Listening · 3 VIPs", "Missed while you were away" at home and the VIP
+// card away (docs/aster-messages-alerts-plan.md §3).
 import { router } from 'expo-router';
 import { AlertTriangle, Clock, Lock, MapPin, MessageCircle, WifiOff } from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -14,6 +15,7 @@ import { home as copy } from '@/features/home/copy';
 import { HomeStatusChip } from '@/features/home-mode/HomeStatusChip';
 import { isAtHome, type HomeMode } from '@/features/home-mode/mode';
 import { useHomeModeStore } from '@/features/home-mode/store';
+import { AwayVipCard, ListeningChip, MissedCard } from '@/features/messages/HomeCards';
 import { lockSession } from '@/features/profiles/actions';
 import { ComingUp } from '@/features/reminders/ComingUp';
 import { hasMapsKey } from '@/services/buildConfig';
@@ -112,12 +114,17 @@ export default function Home() {
         {atHome ? (
           <>
             <View style={styles.chips}>
+              <ListeningChip />
               <HomeStatusChip onPress={() => router.navigate('/settings')} />
             </View>
             <Banner mode={mode} />
+            <MissedCard />
           </>
         ) : (
-          <AwayCard mode={mode} />
+          <>
+            <AwayCard mode={mode} />
+            <AwayVipCard />
+          </>
         )}
 
         <ComingUp atHome={atHome} />
@@ -195,7 +202,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chips: { flexDirection: 'row', gap: spacing.chipGap, marginTop: -2 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.chipGap, marginTop: -2 },
   bleed: { marginHorizontal: -spacing.screenX },
   suggestions: { gap: spacing.chipGap, paddingHorizontal: spacing.screenX },
   awayCard: {

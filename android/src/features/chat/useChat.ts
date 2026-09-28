@@ -63,13 +63,26 @@ function turnsBefore(messages: LocalMessage[], index: number): Turn[] {
     .map((m) => ({ role: m.role, content: m.content }));
 }
 
-export function useChat(mode: ChatMode, initialUuid: string | null) {
+export type ChatOptions = {
+  /**
+   * A system message the app adds to every turn: the unread messages for 4.1's "Ask about it"
+   * (docs/aster-messages-alerts-plan.md §6). Such a chat never looks things up on the web and
+   * always goes to the local engine.
+   */
+  context?: string | null;
+};
+
+export function useChat(mode: ChatMode, initialUuid: string | null, options: ChatOptions = {}) {
+  const { context = null } = options;
   const [chatUuid, setChatUuid] = useState<string | null>(initialUuid);
   const [local, setLocal] = useState<LocalMessage[]>([]);
   const [live, setLive] = useState<Record<string, LiveState>>({});
   const profile = useFirstRunStore((state) => state.session?.profile);
   const webAllowed =
-    mode !== 'guest' && profile?.web_mode !== 'never' && profile?.role !== 'restricted';
+    mode !== 'guest' &&
+    profile?.web_mode !== 'never' &&
+    profile?.role !== 'restricted' &&
+    context == null;
   const [webOn, setWebOn] = useState(true);
   const controller = useRef<AbortController | null>(null);
   const requests = useRef(new Map<string, ChatMessage[]>());
@@ -130,7 +143,7 @@ export function useChat(mode: ChatMode, initialUuid: string | null) {
       }));
       requests.current.set(replyId, request);
       let text = base;
-      const engine = activeEngine();
+      const engine = context != null ? 'local' : activeEngine();
       const engineName =
         useFirstRunStore.getState().engines.find((e) => e.id === engine)?.name ?? engine;
       try {
@@ -138,6 +151,7 @@ export function useChat(mode: ChatMode, initialUuid: string | null) {
           messages: request,
           web: webAllowed && webOn ? 'auto' : false,
           memory: mode === 'saved' ? undefined : false,
+          engine,
           signal: abort.signal,
           onEvent: (event) => {
             if (event.type === 'status') {
@@ -187,7 +201,7 @@ export function useChat(mode: ChatMode, initialUuid: string | null) {
         setLive((state) => ({ ...state, [replyId]: { streaming: false, status: null } }));
       }
     },
-    [mode, patch, webAllowed, webOn],
+    [context, mode, patch, webAllowed, webOn],
   );
 
   const send = useCallback(
@@ -204,6 +218,7 @@ export function useChat(mode: ChatMode, initialUuid: string | null) {
       const request = buildMessages({
         personality: profile?.personality,
         area,
+        context,
         history: turnsBefore(latest.current, latest.current.length),
         question,
       });
@@ -212,7 +227,7 @@ export function useChat(mode: ChatMode, initialUuid: string | null) {
       add(chat, [user, reply]);
       void run(chat, reply.client_uuid, request, [user.client_uuid, reply.client_uuid], '');
     },
-    [add, chatUuid, mode, profile?.personality, run],
+    [add, chatUuid, context, mode, profile?.personality, run],
   );
 
   const stop = useCallback(() => controller.current?.abort(), []);
@@ -229,13 +244,14 @@ export function useChat(mode: ChatMode, initialUuid: string | null) {
         requests.current.get(replyId) ??
         buildMessages({
           personality: profile?.personality,
+          context,
           history: turnsBefore(list, index - 1),
           question: question.content,
         });
       patch(chatUuid, replyId, { error: null });
       void run(chatUuid, replyId, continueMessages(request, partial), null, partial);
     },
-    [chatUuid, patch, profile?.personality, run],
+    [chatUuid, context, patch, profile?.personality, run],
   );
 
   const rate = useCallback(

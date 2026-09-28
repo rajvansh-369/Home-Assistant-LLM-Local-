@@ -45,6 +45,9 @@ export const messages = {
   /** 1.5's row name, for the Allow pill's TalkBack label. */
   accessTitle: 'Notification access',
   empty: 'No messages yet. New WhatsApp, Google Chat and SMS messages show up here.', // (proposed)
+  /** "Ask about it"'s private chat. (proposed) */
+  askTitle: 'Your messages',
+  askBanner: 'A private chat about your unread messages. Nothing is saved or looked up on the web.',
   /** TalkBack for a thread row. (proposed) */
   rowLabel: (title: string, source: string, time: string, unread: number) =>
     `${title}, ${source}, ${time}${unread > 0 ? `, ${unread} unread` : ''}`,
