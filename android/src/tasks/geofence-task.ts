@@ -4,12 +4,16 @@
 // arrival or departure it also saves an arrived / left point with its activity event (reminders
 // plan §5), and arriving rings the armed arrive-home reminders while leaving arms them (§4).
 // expo-location registers with an initial trigger, so every registration reports where the phone
-// is; that, or a repeat of the last event, isn't a transition and only updates home mode.
+// is; that, or a repeat of the last event, isn't a transition and only updates home mode. Every
+// event also tells the native alert engine whether the phone is at home ("Only speak at home",
+// docs/aster-messages-alerts-plan.md §7).
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GeofencingEventType, type LocationRegion } from 'expo-location';
 
 import { recordHomeEvent } from '@/features/location/points';
 import { armArriveHome, ringArriveHome } from '@/features/reminders/actions';
+
+import AsterSystem from '../../modules/aster-system';
 
 // Expo Go on Android has no TaskManager, and importing it there throws. Load it defensively so
 // the app still opens (without the geofence) instead of crashing at start.
@@ -54,6 +58,11 @@ export async function recordGeofenceEvent(event: GeofenceEvent): Promise<void> {
 export async function onHomeGeofence(type: GeofenceEvent['type'], now = new Date()) {
   const previous = (await readGeofenceEvents()).at(-1)?.type ?? null;
   await recordGeofenceEvent({ type, at: now.toISOString() });
+  try {
+    AsterSystem.setAtHome(type === 'enter');
+  } catch {
+    // No native side.
+  }
   if (previous === null || previous === type) return false;
   await recordHomeEvent(type, now.getTime()).catch(() => {});
   await (type === 'enter' ? ringArriveHome(now) : armArriveHome()).catch(() => {});

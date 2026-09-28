@@ -14,6 +14,7 @@ import { bootFirstRun } from '@/features/first-run/actions';
 import { isUnlocked, useFirstRunStore } from '@/features/first-run/store';
 import { useHomeMode } from '@/features/home-mode/useHomeMode';
 import { installLocation } from '@/features/location/install';
+import { installMessages } from '@/features/messages/install';
 import { useAutoLock } from '@/features/profiles/useAutoLock';
 import { installReminders } from '@/features/reminders/install';
 import { useRemindersStore } from '@/features/reminders/store';
@@ -55,6 +56,7 @@ export default function RootLayout() {
         void registerNotificationTask();
         installReminders(openReminder);
         installLocation();
+        installMessages();
       });
   }, []);
 
