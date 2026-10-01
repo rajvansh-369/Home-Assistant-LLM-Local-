@@ -6,6 +6,7 @@ import android.os.Build
 import android.provider.Telephony
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import android.util.Log
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
@@ -18,8 +19,9 @@ internal object Worker {
       try {
         block()
       } catch (e: Exception) {
-        // Never crash the listener's process over one notification. Nothing is logged: the
-        // exception could carry message text.
+        // Never crash the listener's process over one notification. Only the exception's class is
+        // logged: its message could carry message text.
+        Log.w("AsterMessages", "Skipped: ${e.javaClass.simpleName}")
       }
     }
   }
@@ -155,8 +157,12 @@ class AsterNotificationListener : NotificationListenerService() {
 
   /** The action with a free-text RemoteInput: the app's Reply, or its wearable copy. */
   private fun replyAction(notification: Notification): Notification.Action? {
-    val candidates = notification.actions.orEmpty().toList() +
+    val wearable = try {
       Notification.WearableExtender(notification).actions
+    } catch (e: Exception) {
+      emptyList()
+    }
+    val candidates = notification.actions.orEmpty().toList() + wearable
     val replies = candidates.filter { action ->
       action.remoteInputs?.any { it.allowFreeFormInput } == true
     }

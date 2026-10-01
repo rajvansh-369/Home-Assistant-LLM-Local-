@@ -6,8 +6,10 @@ Aster is a React Native (Expo, TypeScript, expo-router) app for Android: a house
 assistant that talks to a Laravel API (`../backend`) and a home-network LLM, zypherLL (`../llm`).
 Built: the first run (1.1–1.5, 2.2 first-run mode), home mode with chat (2.1 Who's using,
 2.2 for any profile, 2.5 Guest, 3.1/3.2 Home, 3.3 Chats, 3.4/3.5 streaming chat, 5.1 Settings),
-and reminders and location (3.1/3.2 "Coming up", the reminder editor, reminder notifications,
-location points and uploads, 5.3 Location).
+reminders and location (3.1/3.2 "Coming up", the reminder editor, reminder notifications,
+location points and uploads, 5.3 Location), and messages and spoken alerts (message capture from
+notifications, VIP spoken alerts with the app closed, 4.1 Messages, 4.2 Thread with suggested
+replies, 4.3 Spoken alerts, the VIP editor, 4.4 home notices, the 3.1/3.2 cards).
 It runs as a development build (`npx expo run:android`), never Expo Go. Dark theme only.
 
 Plans and source of truth: `docs/aster-first-run-plan.md` (first run, phases in §8),
@@ -38,10 +40,12 @@ src/app/                     routes (expo-router); only screens and _layout file
   (first-run)/               welcome, sign-in, create-owner, unlock-owner, set-home, permissions
   who.tsx, unlock/[id].tsx   2.1 Who's using, 2.2 Unlock (profile mode)
   guest.tsx                  2.5 Guest chat
-  (tabs)/                    home (3.1/3.2), chats (3.3), settings (5.1)
+  (tabs)/                    home (3.1/3.2), chats (3.3), messages (4.1, Owner), settings (5.1)
   chat/[id].tsx              3.4 Chat (`new`, `private` or a chat's client_uuid)
   reminder/[id].tsx          add / edit a reminder (`new` or its client_uuid)
   location.tsx               5.3 Location (Owner only)
+  thread/[key].tsx           4.2 Thread (a captured chat; aster://thread/{key})
+  alerts.tsx, vip/[id].tsx   4.3 Spoken alerts and the VIP editor (Owner only)
   dev/gallery.tsx            component gallery, dev builds only
 src/theme/                   colors, typography, spacing, map style
 src/components/              shared components (plan §3)
@@ -70,7 +74,9 @@ docs/                        plan, design images, screenshots, status
 
 - Colours, fonts and sizes come only from `src/theme`.
 - Screen text comes only from the features' `copy.ts` files (first-run, profiles, home, chat,
-  settings).
+  settings, reminders, location, messages). The native alert engine's words come from
+  `features/messages/copy.ts` too (handed over with the rules).
+- Captured messages never leave the phone except to the home PC's local model; never log them.
 - Canvas sample data (Rohan, Sunrise Residency, …) is never a default value.
 - Android only. Skip iOS work.
 - Never log tokens, PINs or passwords.

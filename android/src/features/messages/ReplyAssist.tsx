@@ -62,8 +62,10 @@ function Chip({
 export function ReplyAssist({ thread, messages, draft, onDraft }: ReplyAssistProps) {
   const ready = useHomeModeStore((state) => state.mode.kind === 'ready');
   const [attempt, setAttempt] = useState(0);
-  const lastId = messages.at(-1)?.id;
-  const hasReceived = messages.some((m) => !m.outgoing && !m.otp);
+  const last = messages.at(-1);
+  const lastId = last?.id;
+  // Their turn is over and ours is next: the last message is theirs (and not all codes).
+  const awaiting = last != null && !last.outgoing && messages.some((m) => !m.outgoing && !m.otp);
   // One try per thread, newest message and Try again.
   const key = `${thread.key}:${lastId ?? 0}:${attempt}`;
   const [made, setMade] = useState<{ key: string; suggestion: Suggestion } | null>(null);
@@ -81,7 +83,7 @@ export function ReplyAssist({ thread, messages, draft, onDraft }: ReplyAssistPro
   });
 
   useEffect(() => {
-    if (!ready || !hasReceived) return;
+    if (!ready || !awaiting) return;
     const hit = cachedSuggestion(thread, messages);
     if (hit) {
       if (!draftRef.current) onDraft(hit.draft);
@@ -100,7 +102,7 @@ export function ReplyAssist({ thread, messages, draft, onDraft }: ReplyAssistPro
     return () => abort.abort();
     // `key` stands for the thread, its newest message and Try again; not every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, hasReceived, key]);
+  }, [ready, awaiting, key]);
 
   async function rewrite(kind: RewriteKind) {
     if (!draft.trim() || rewriting) return;
@@ -115,7 +117,8 @@ export function ReplyAssist({ thread, messages, draft, onDraft }: ReplyAssistPro
     }
   }
 
-  if (!ready || !hasReceived) {
+  if (!awaiting) return null;
+  if (!ready) {
     return (
       <Text variant="bodySmall" tone="muted">
         {copy.needsHome}

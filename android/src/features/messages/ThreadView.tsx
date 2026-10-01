@@ -29,13 +29,13 @@ import AsterSystem, {
   type CapturedThread,
 } from '../../../modules/aster-system';
 
-import { sendReply, toggleVip, vipOfThread } from './actions';
+import { sendReply, toggleVip } from './actions';
 import { useAlertsStore } from './alerts';
 import { messages as listCopy, sources, thread as copy } from './copy';
 import { clock, dayLabel, sameDay } from './format';
 import { markThreadRead, refreshThreads, useThreadsStore } from './threads';
 import { SenderAvatar } from './ThreadRow';
-import { threadVip } from './vip';
+import { threadVip, vipForTitle } from './vip';
 
 export const THREAD_MESSAGES = 200;
 
@@ -135,23 +135,22 @@ function ReplyCard({ thread, draft, onDraft, assist }: ReplyCardProps) {
           style={styles.input}
         />
       </View>
-      {canReply ? (
-        sentAt != null && !draft ? (
-          <View style={styles.sent} accessibilityLiveRegion="polite">
-            <Check size={iconSizes.status} color={colors.accent} strokeWidth={strokes.check} />
-            <Text variant="status" tone="accent">
-              {copy.sent(source, clock(sentAt))}
-            </Text>
-          </View>
-        ) : (
-          <PrimaryButton
-            label={copy.send(source)}
-            icon={Send}
-            onPress={send}
-            busy={sending}
-            disabled={!draft.trim()}
-          />
-        )
+      {sentAt != null && !draft ? (
+        // Apps often clear their notification after a reply, so this shows even when it's gone.
+        <View style={styles.sent} accessibilityLiveRegion="polite">
+          <Check size={iconSizes.status} color={colors.accent} strokeWidth={strokes.check} />
+          <Text variant="status" tone="accent">
+            {copy.sent(source, clock(sentAt))}
+          </Text>
+        </View>
+      ) : canReply ? (
+        <PrimaryButton
+          label={copy.send(source)}
+          icon={Send}
+          onPress={send}
+          busy={sending}
+          disabled={!draft.trim()}
+        />
       ) : (
         <View style={styles.gone}>
           <Text variant="bodySmall" tone="secondary">
@@ -226,7 +225,8 @@ export function ThreadView({ threadKey, assist }: ThreadViewProps) {
 
   const source = sources[thread.source];
   const vip = threadVip(thread, vips) != null;
-  const contact = vipOfThread(thread);
+  // From the subscribed list, not the store's getState: React Compiler caches pure-looking calls.
+  const contact = thread.isGroup ? null : vipForTitle(vips, thread.source, thread.title);
   const lastSpoken = items.reduce<number | null>(
     (latest, m, i) => (m.spokenAt != null ? i : latest),
     null,
