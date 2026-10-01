@@ -42,6 +42,11 @@ class ProfilePolicy
         return $caller->isOwner() ? Response::allow() : Response::deny('Only the Owner can add profiles.');
     }
 
+    public function view(User|Profile $caller, Profile $profile): Response
+    {
+        return $this->ownerOf($caller, $profile);
+    }
+
     public function update(User|Profile $caller, Profile $profile): Response
     {
         return $this->ownerOf($caller, $profile);

@@ -113,6 +113,21 @@
                         "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
+            },
+            "delete": {
+                "operationId": "activity.clear",
+                "summary": "Clears what index shows: the profile's own events, and the device's for the Owner",
+                "tags": [
+                    "Activity"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
             }
         },
         "/alert-settings": {
@@ -710,6 +725,21 @@
                         "$ref": "#/components/responses/ValidationException"
                     }
                 }
+            },
+            "delete": {
+                "operationId": "conversation.clear",
+                "summary": "Every conversation of the profile, each kept as a tombstone for sync",
+                "tags": [
+                    "Conversation"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
             }
         },
         "/conversations/{conversation}": {
@@ -1196,6 +1226,53 @@
             }
         },
         "/profiles/{profile}": {
+            "get": {
+                "operationId": "profiles.show",
+                "summary": "The Owner reads any profile of the household in full (2.4 Edit profile)",
+                "tags": [
+                    "Profile"
+                ],
+                "parameters": [
+                    {
+                        "name": "profile",
+                        "in": "path",
+                        "required": true,
+                        "description": "The profile ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "`ProfileResource`",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/ProfileResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
             "put": {
                 "operationId": "profiles.update",
                 "tags": [
@@ -1506,7 +1583,10 @@
                                             "type": "string"
                                         },
                                         "llm_token": {
-                                            "type": "string"
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
                                         },
                                         "expires_at": {
                                             "type": [
@@ -1519,6 +1599,10 @@
                                         },
                                         "profile": {
                                             "$ref": "#/components/schemas/ProfileResource"
+                                        },
+                                        "engines": {
+                                            "type": "array",
+                                            "items": {}
                                         }
                                     },
                                     "required": [
@@ -1526,7 +1610,8 @@
                                         "llm_token",
                                         "expires_at",
                                         "household_id",
-                                        "profile"
+                                        "profile",
+                                        "engines"
                                     ]
                                 }
                             }
@@ -1562,7 +1647,10 @@
                                             "type": "string"
                                         },
                                         "llm_token": {
-                                            "type": "string"
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
                                         },
                                         "expires_at": {
                                             "type": [
@@ -1575,6 +1663,10 @@
                                         },
                                         "profile": {
                                             "$ref": "#/components/schemas/ProfileResource"
+                                        },
+                                        "engines": {
+                                            "type": "array",
+                                            "items": {}
                                         }
                                     },
                                     "required": [
@@ -1582,7 +1674,30 @@
                                         "llm_token",
                                         "expires_at",
                                         "household_id",
-                                        "profile"
+                                        "profile",
+                                        "engines"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                "Guest sessions are turned off."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
                                     ]
                                 }
                             }
@@ -1676,6 +1791,28 @@
                                     "required": [
                                         "llm_token",
                                         "expires_at"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "examples": [
+                                                "Chat is turned off for this profile."
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
                                     ]
                                 }
                             }
@@ -2291,6 +2428,15 @@
                 ],
                 "title": "HouseholdUserResource"
             },
+            "LlmEngine": {
+                "type": "string",
+                "description": "Who answers a profile's chats on the home PC. zypherLL takes the value as its `engine`: \"local\" is Zephyr on the PC's GPU, \"markl\" is Mark-L on Gemini. The name the app shows for each is set in the admin panel.\n",
+                "enum": [
+                    "local",
+                    "markl"
+                ],
+                "title": "LlmEngine"
+            },
             "LocationBatchRequest": {
                 "type": "object",
                 "properties": {
@@ -2689,7 +2835,16 @@
                     "memory_enabled": {
                         "type": "boolean"
                     },
+                    "chat_enabled": {
+                        "type": "boolean"
+                    },
+                    "history_enabled": {
+                        "type": "boolean"
+                    },
                     "sampling": {
+                        "type": "string"
+                    },
+                    "llm_engine": {
                         "type": "string"
                     },
                     "max_tokens": {
@@ -2726,7 +2881,10 @@
                     "personality",
                     "web_mode",
                     "memory_enabled",
+                    "chat_enabled",
+                    "history_enabled",
                     "sampling",
+                    "llm_engine",
                     "max_tokens",
                     "auto_lock_minutes",
                     "created_at",
@@ -2748,13 +2906,18 @@
                     },
                     "role": {
                         "type": "string"
+                    },
+                    "chat_enabled": {
+                        "type": "boolean",
+                        "description": "Off: the picker hides Guest, or shows the profile without chat."
                     }
                 },
                 "required": [
                     "id",
                     "name",
                     "color",
-                    "role"
+                    "role",
+                    "chat_enabled"
                 ],
                 "title": "ProfileSummaryResource"
             },
@@ -3122,8 +3285,17 @@
                     "memory_enabled": {
                         "type": "boolean"
                     },
+                    "chat_enabled": {
+                        "type": "boolean"
+                    },
+                    "history_enabled": {
+                        "type": "boolean"
+                    },
                     "sampling": {
                         "$ref": "#/components/schemas/Sampling"
+                    },
+                    "llm_engine": {
+                        "$ref": "#/components/schemas/LlmEngine"
                     },
                     "max_tokens": {
                         "type": [
@@ -3332,8 +3504,18 @@
                     "memory_enabled": {
                         "type": "boolean"
                     },
+                    "chat_enabled": {
+                        "type": "string",
+                        "description": "What a profile may use is the Owner's call (PATCH /profiles/{id})."
+                    },
+                    "history_enabled": {
+                        "type": "string"
+                    },
                     "sampling": {
                         "$ref": "#/components/schemas/Sampling"
+                    },
+                    "llm_engine": {
+                        "$ref": "#/components/schemas/LlmEngine"
                     },
                     "max_tokens": {
                         "type": [
@@ -3419,8 +3601,17 @@
                     "memory_enabled": {
                         "type": "boolean"
                     },
+                    "chat_enabled": {
+                        "type": "boolean"
+                    },
+                    "history_enabled": {
+                        "type": "boolean"
+                    },
                     "sampling": {
                         "$ref": "#/components/schemas/Sampling"
+                    },
+                    "llm_engine": {
+                        "$ref": "#/components/schemas/LlmEngine"
                     },
                     "max_tokens": {
                         "type": [

@@ -131,8 +131,8 @@ describe('list', function () {
         $this->withToken($this->deviceToken)->getJson('/api/profiles')
             ->assertOk()
             ->assertExactJson(['data' => [
-                ['id' => $owner->id, 'name' => $owner->name, 'color' => $owner->color, 'role' => 'owner'],
-                ['id' => $guest->id, 'name' => 'Guest', 'color' => '#9299A1', 'role' => 'guest'],
+                ['id' => $owner->id, 'name' => $owner->name, 'color' => $owner->color, 'role' => 'owner', 'chat_enabled' => true],
+                ['id' => $guest->id, 'name' => 'Guest', 'color' => '#9299A1', 'role' => 'guest', 'chat_enabled' => true],
             ]]);
     });
 

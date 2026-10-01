@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ActivityBatchRequest;
 use App\Http\Resources\ActivityResource;
 use App\Models\ActivityLog;
+use App\Models\Profile;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 
 /**
@@ -60,13 +63,7 @@ class ActivityController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $profile = $this->profile($request);
-
-        $page = ActivityLog::query()
-            ->where('user_id', $profile->user_id)
-            ->where(fn ($query) => $query
-                ->where('profile_id', $profile->id)
-                ->when($profile->isOwner(), fn ($q) => $q->orWhereNull('profile_id')))
+        $page = $this->visible($this->profile($request))
             ->orderByDesc('occurred_at')
             ->orderByDesc('id')
             ->cursorPaginate(self::PAGE_SIZE);
@@ -75,5 +72,23 @@ class ActivityController extends Controller
             'data' => ActivityResource::collection($page->items()),
             'meta' => ['next_cursor' => $page->nextCursor()?->encode()],
         ]);
+    }
+
+    /** Clears what index shows: the profile's own events, and the device's for the Owner. */
+    public function clear(Request $request): Response
+    {
+        $this->visible($this->profile($request))->delete();
+
+        return response()->noContent();
+    }
+
+    /** @return Builder<ActivityLog> */
+    private function visible(Profile $profile): Builder
+    {
+        return ActivityLog::query()
+            ->where('user_id', $profile->user_id)
+            ->where(fn ($query) => $query
+                ->where('profile_id', $profile->id)
+                ->when($profile->isOwner(), fn ($q) => $q->orWhereNull('profile_id')));
     }
 }

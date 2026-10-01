@@ -30,7 +30,7 @@ class ProfileController extends Controller
     public const GUEST_COLOR = '#9299A1';
 
     /** Fields a request may set directly; pin and role are handled on their own. */
-    private const FIELDS = ['name', 'color', 'personality', 'web_mode', 'memory_enabled', 'sampling', 'llm_engine', 'max_tokens', 'auto_lock_minutes'];
+    private const FIELDS = ['name', 'color', 'personality', 'web_mode', 'memory_enabled', 'chat_enabled', 'history_enabled', 'sampling', 'llm_engine', 'max_tokens', 'auto_lock_minutes'];
 
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -79,9 +79,21 @@ class ProfileController extends Controller
         return (new ProfileResource($profile->refresh()))->response()->setStatusCode(201);
     }
 
+    /** The Owner reads any profile of the household in full (2.4 Edit profile). */
+    public function show(Request $request, Profile $profile): ProfileResource
+    {
+        Gate::authorize('view', $profile);
+
+        return new ProfileResource($profile);
+    }
+
     public function update(UpdateProfileRequest $request, Profile $profile): ProfileResource
     {
         $changes = Arr::only($request->validated(), self::FIELDS);
+
+        if ($profile->isOwner() && $request->validated('chat_enabled') === false) {
+            throw ValidationException::withMessages(['chat_enabled' => 'The Owner\'s chat can\'t be turned off.']);
+        }
 
         if ($request->has('role')) {
             $changes['role'] = $this->checkedRole($profile, ProfileRole::from($request->validated('role')));
@@ -94,7 +106,14 @@ class ProfileController extends Controller
             $changes['pin_hash'] = Hash::make($request->validated('pin'));
         }
 
-        $profile->update($changes);
+        DB::transaction(function () use ($profile, $changes) {
+            $profile->update($changes);
+
+            // Chat off ends the profile's sessions at once; Guest has no PIN to stop it otherwise.
+            if ($profile->wasChanged('chat_enabled') && ! $profile->chat_enabled) {
+                $profile->tokens()->delete();
+            }
+        });
 
         return new ProfileResource($profile);
     }

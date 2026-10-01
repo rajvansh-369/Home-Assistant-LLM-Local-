@@ -48,6 +48,7 @@ class ChatMessageController extends Controller
     {
         /** @var list<array<string, mixed>> $items */
         $items = $request->validated('messages');
+        ConversationController::ensureHistory($this->profile($request));
 
         $stored = DB::transaction(function () use ($items, $conversation) {
             $existing = ChatMessage::query()

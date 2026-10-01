@@ -74,6 +74,21 @@ server answers it (a 404 or 405 hides it, never an error on screen).
 | B6 | 5.1 "Delete all of {name}'s chats" | `DELETE /conversations/{id}` one at a time | `DELETE /conversations` (profile token): every conversation of the profile, tombstoned for sync |
 | B7 | 2.4 PIN for the Owner's own profile | `PATCH /me` with `pin` and `current_pin` (works) | none |
 
+**Built in Laravel on 1 Oct 2026** (`ProfileSwitchesTest`), as:
+
+- B1 `GET /profiles/{id}` (Owner), the full Profile with `chat_enabled` and `history_enabled`.
+- B2 is the Guest profile's `chat_enabled`: the Owner sends `PATCH /profiles/{guest} {
+  chat_enabled }`; off, `/guest-sessions` answers 403 "Guest sessions are turned off." and open
+  Guest sessions end. `GET /profiles` now also sends `chat_enabled`, so 2.1 can hide Guest.
+- B3 `history_enabled`: off, `POST /conversations` and `POST /conversations/{id}/messages` answer
+  403 "Chat history is turned off for this profile."; old chats stay readable. The app must stop
+  queueing uploads for such a profile instead of retrying the 403.
+- B4 `chat_enabled`: off, unlock answers `llm_token: null`, `POST /llm-token` answers 403, and the
+  profile's open sessions end. The Owner's chat can't be turned off. `UnlockResponse.llm_token`
+  becomes `string | null` in the app (P3), with chat hidden while it is null.
+- `chat_enabled` and `history_enabled` are the Owner's: `PATCH /me` refuses them (422).
+- B5 `DELETE /activity` and B6 `DELETE /conversations`, both 204, as proposed.
+
 Also worth a look on the server side (not blocking):
 
 - A new `ActivityType`, `memory_used` ("Used Mom's WhatsApp messages in a chat", 5.2), for when

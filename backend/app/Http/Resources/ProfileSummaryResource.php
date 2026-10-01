@@ -23,6 +23,8 @@ class ProfileSummaryResource extends JsonResource
             'name' => $this->name,
             'color' => $this->color,
             'role' => $this->role->value,
+            // Off: the picker hides Guest, or shows the profile without chat.
+            'chat_enabled' => $this->chat_enabled,
         ];
     }
 }

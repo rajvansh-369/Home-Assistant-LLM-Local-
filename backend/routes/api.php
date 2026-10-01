@@ -45,14 +45,16 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
             Route::patch('me', [MeController::class, 'update']);
             Route::get('sync', SyncController::class);
             Route::apiResource('conversations', ConversationController::class)->only(['index', 'store', 'destroy']);
+            Route::delete('conversations', [ConversationController::class, 'clear']);
             Route::get('conversations/{conversation}/messages', [ChatMessageController::class, 'index']);
             Route::post('conversations/{conversation}/messages', [ChatMessageController::class, 'store']);
             Route::patch('chat-messages/{message}', [ChatMessageController::class, 'update']);
             Route::apiResource('reminders', ReminderController::class)->except('show');
             Route::get('activity', [ActivityController::class, 'index']);
+            Route::delete('activity', [ActivityController::class, 'clear']);
 
             Route::middleware('owner')->group(function () {
-                Route::apiResource('profiles', ProfileController::class)->only(['update', 'destroy']);
+                Route::apiResource('profiles', ProfileController::class)->only(['show', 'update', 'destroy']);
                 Route::get('places/home', [PlaceController::class, 'show']);
                 Route::put('places/home', [PlaceController::class, 'update']);
                 Route::get('locations', [LocationController::class, 'index']);

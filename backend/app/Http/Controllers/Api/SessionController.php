@@ -51,6 +51,7 @@ class SessionController extends Controller
         $guest = $household->profiles()->where('role', ProfileRole::Guest)->first();
 
         abort_if($guest === null, 404, 'This household has no Guest profile yet.');
+        abort_unless($guest->chat_enabled, 403, 'Guest sessions are turned off.');
 
         $device = $this->device($request);
         $session = $this->sessions->open($guest, $device);
@@ -79,6 +80,8 @@ class SessionController extends Controller
         $profile = ApiCaller::of($request);
         /** @var PersonalAccessToken $token */
         $token = $profile->currentAccessToken();
+
+        abort_unless($profile->chat_enabled, 403, 'Chat is turned off for this profile.');
 
         $llm = $this->llmTokens->issue($profile, $token->expires_at);
 

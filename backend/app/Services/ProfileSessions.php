@@ -31,12 +31,13 @@ class ProfileSessions
 
         $profile->forceFill(['last_unlocked_at' => now()])->save();
 
-        $llm = $this->llmTokens->issue($profile, $expiresAt);
+        // Without chat the profile still unlocks (reminders, settings), but gets no llm_token.
+        $llm = $profile->chat_enabled ? $this->llmTokens->issue($profile, $expiresAt) : null;
 
         return [
             'profile_token' => $profileToken,
-            'llm_token' => $llm['token'],
-            'expires_at' => ApiTime::format($llm['expires_at']),
+            'llm_token' => $llm['token'] ?? null,
+            'expires_at' => ApiTime::format($llm['expires_at'] ?? $expiresAt),
             'household_id' => $profile->user->householdId(),
             'profile' => new ProfileResource($profile),
             'engines' => EngineNames::list(),

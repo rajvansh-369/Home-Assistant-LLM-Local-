@@ -23,6 +23,9 @@ class UpdateMeRequest extends FormRequest
     {
         return array_merge($this->profileFieldRules(), [
             'current_pin' => ['required_with:pin', 'string'],
+            // What a profile may use is the Owner's call (PATCH /profiles/{id}).
+            'chat_enabled' => ['prohibited'],
+            'history_enabled' => ['prohibited'],
         ]);
     }
 }

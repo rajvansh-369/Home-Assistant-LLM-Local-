@@ -10,6 +10,7 @@ use App\Models\Conversation;
 use App\Models\Profile;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\ValidationException;
 
@@ -54,6 +55,7 @@ class ConversationController extends Controller
     public function store(StoreConversationRequest $request): JsonResponse
     {
         $profile = $this->profile($request);
+        self::ensureHistory($profile);
 
         $conversation = $this->existing($profile, $request->validated('client_uuid'));
         if ($conversation !== null) {
@@ -77,6 +79,20 @@ class ConversationController extends Controller
         $conversation->delete(); // removes the messages now, keeps the tombstone
 
         return response()->noContent();
+    }
+
+    /** Every conversation of the profile, each kept as a tombstone for sync. */
+    public function clear(Request $request): Response
+    {
+        $this->profile($request)->conversations()->each(fn (Conversation $conversation) => $conversation->delete());
+
+        return response()->noContent();
+    }
+
+    /** "Keep chat history" off: nothing new is stored for the profile. */
+    public static function ensureHistory(Profile $profile): void
+    {
+        abort_unless($profile->history_enabled, 403, 'Chat history is turned off for this profile.');
     }
 
     private function existing(Profile $profile, string $clientUuid): ?Conversation

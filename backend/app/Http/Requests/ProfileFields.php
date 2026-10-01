@@ -33,6 +33,8 @@ trait ProfileFields
             'personality' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'web_mode' => ['sometimes', 'required', Rule::enum(WebMode::class)],
             'memory_enabled' => ['sometimes', 'required', 'boolean'],
+            'chat_enabled' => ['sometimes', 'required', 'boolean'],
+            'history_enabled' => ['sometimes', 'required', 'boolean'],
             'sampling' => ['sometimes', 'required', Rule::enum(Sampling::class)],
             'llm_engine' => ['sometimes', 'required', Rule::enum(LlmEngine::class)],
             'max_tokens' => ['sometimes', 'nullable', 'integer', 'between:16,8192'],
