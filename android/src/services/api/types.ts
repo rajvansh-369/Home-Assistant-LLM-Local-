@@ -48,6 +48,8 @@ export type Profile = {
    */
   history_enabled?: boolean;
   chat_enabled?: boolean;
+  /** "Voice and wake word" (Laravel since 1 Oct 2026); always false for Guest. */
+  voice_enabled?: boolean;
 };
 
 export type WebMode = 'auto' | 'never';
@@ -67,6 +69,7 @@ export type ProfileFields = {
   llm_engine: LlmEngine;
   history_enabled: boolean;
   chat_enabled: boolean;
+  voice_enabled: boolean;
 };
 
 /** PlaceResource; Laravel also returns updated_at. */

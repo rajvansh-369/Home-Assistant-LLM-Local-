@@ -208,6 +208,7 @@ const fullProfile = (profile: MockProfile): Profile => ({
   sampling: profile.sampling ?? 'auto',
   history_enabled: profile.history_enabled ?? true,
   chat_enabled: profile.chat_enabled ?? true,
+  voice_enabled: profile.role === 'guest' ? false : (profile.voice_enabled ?? true),
 });
 
 /** The household's profiles, deleted ones left out (Laravel's soft delete). */
@@ -387,6 +388,7 @@ const PROFILE_FIELDS = [
   'llm_engine',
   'history_enabled',
   'chat_enabled',
+  'voice_enabled',
 ] as const satisfies readonly (keyof ProfileFields)[];
 
 function validateProfile(body: UpdateProfileBody | UpdateMeBody) {
@@ -564,6 +566,9 @@ export const mockApi: AsterApi = {
       if (profile.role === 'guest') throw invalid('pin', 'Guest has no PIN.');
       profile.pinHash = scramble(body.pin);
     }
+    if (profile.role === 'guest' && body.voice_enabled === true) {
+      throw invalid('voice_enabled', 'Guest has no voice.');
+    }
     if (profile.role === 'owner' && body.chat_enabled === false) {
       throw invalid('chat_enabled', "The Owner's chat can't be turned off.");
     }
@@ -664,7 +669,7 @@ export const mockApi: AsterApi = {
     const state = await load();
     const profile = requireNotGuest(state, profileToken);
     validateProfile(body);
-    for (const field of ['chat_enabled', 'history_enabled'] as const) {
+    for (const field of ['chat_enabled', 'history_enabled', 'voice_enabled'] as const) {
       // What a profile may use is the Owner's call (as Laravel).
       if (body[field] !== undefined)
         throw invalid(field, `The ${field.replace('_', ' ')} field is prohibited.`);

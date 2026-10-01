@@ -199,6 +199,28 @@ describe('mock server', () => {
     ).toBe(422);
   });
 
+  test('voice is on for profiles, off for Guest, and never turned on for Guest', async () => {
+    const owner = await unlock('123456', 'Test Owner');
+    const profiles = await mockApi.listProfiles(server, device);
+    const memberId = profiles.find((p) => p.role === 'member')!.id;
+    const guestId = profiles.find((p) => p.role === 'guest')!.id;
+    expect((await mockApi.getProfile(server, owner, memberId)).voice_enabled).toBe(true);
+    expect((await mockApi.getProfile(server, owner, guestId)).voice_enabled).toBe(false);
+    expect(
+      (await mockApi.updateProfile(server, owner, memberId, { voice_enabled: false }))
+        .voice_enabled,
+    ).toBe(false);
+    expect(
+      (await failure(mockApi.updateProfile(server, owner, guestId, { voice_enabled: true })))
+        .fieldErrors.voice_enabled,
+    ).toBeDefined();
+    const member = await unlock('222222', 'Test Member');
+    expect(
+      (await failure(mockApi.updateMe(server, member, { voice_enabled: true }))).fieldErrors
+        .voice_enabled,
+    ).toBeDefined();
+  });
+
   test('deleting a profile hides it and ends its sessions; Owner and Guest stay', async () => {
     const owner = await unlock('123456', 'Test Owner');
     const member = await unlock('222222', 'Test Member');
