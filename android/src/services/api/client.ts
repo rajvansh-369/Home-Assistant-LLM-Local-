@@ -5,6 +5,7 @@
 import {
   ApiError,
   type ActivityBatchResult,
+  type ActivityPage,
   type AlertSettings,
   type AsterApi,
   type Conversation,
@@ -127,8 +128,16 @@ export const realApi: AsterApi = {
     return data<Profile[]>(await call(server, 'GET', '/profiles', { token: deviceToken }));
   },
 
-  async createProfile(server, deviceToken, body) {
-    return data<Profile>(await call(server, 'POST', '/profiles', { token: deviceToken, body }));
+  async createProfile(server, token, body) {
+    return data<Profile>(await call(server, 'POST', '/profiles', { token, body }));
+  },
+
+  async getProfile(server, profileToken, id) {
+    return data<Profile>(await call(server, 'GET', `/profiles/${id}`, { token: profileToken }));
+  },
+
+  async deleteProfile(server, profileToken, id) {
+    await call(server, 'DELETE', `/profiles/${id}`, { token: profileToken });
   },
 
   async updateProfile(server, profileToken, id, body) {
@@ -174,6 +183,10 @@ export const realApi: AsterApi = {
       .json as LlmTokenResponse;
   },
 
+  async getMe(server, profileToken) {
+    return data<Profile>(await call(server, 'GET', '/me', { token: profileToken }));
+  },
+
   async updateMe(server, profileToken, body) {
     return data<Profile>(await call(server, 'PATCH', '/me', { token: profileToken, body }));
   },
@@ -192,6 +205,10 @@ export const realApi: AsterApi = {
 
   async deleteConversation(server, profileToken, id) {
     await call(server, 'DELETE', `/conversations/${id}`, { token: profileToken });
+  },
+
+  async deleteAllConversations(server, profileToken) {
+    await call(server, 'DELETE', '/conversations', { token: profileToken });
   },
 
   async listMessages(server, profileToken, conversationId, after) {
@@ -240,6 +257,16 @@ export const realApi: AsterApi = {
   async postActivity(server, deviceToken, events) {
     return (await call(server, 'POST', '/activity/batch', { token: deviceToken, body: { events } }))
       .json as ActivityBatchResult;
+  },
+
+  async listActivity(server, profileToken, cursor) {
+    const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+    return (await call(server, 'GET', `/activity${query}`, { token: profileToken }))
+      .json as ActivityPage;
+  },
+
+  async clearActivity(server, profileToken) {
+    await call(server, 'DELETE', '/activity', { token: profileToken });
   },
 
   async getLocations(server, profileToken, date, tz) {

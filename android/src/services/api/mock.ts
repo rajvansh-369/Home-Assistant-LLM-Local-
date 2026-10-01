@@ -17,6 +17,9 @@
 //   Reminders as Guest or Restricted          403 (as Laravel)
 //   Locations while tracking is off or paused points are discarded (as Laravel)
 //   Alert settings and VIP contacts           Owner only; validated as Laravel does
+//   Profiles: get one, add, change, delete     Owner only; roles and PINs checked as Laravel does
+//   GET /profiles/{id}, DELETE /activity and   answered as the profiles plan (§2: B1, B5, B6)
+//     DELETE /conversations                    proposes; today's Laravel has no such routes
 //   Anything else                             works
 //
 // Tokens the mock hands out are random strings; a token the mock doesn't know gives 401.
@@ -26,6 +29,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { guestColor, profileColors } from '@/theme/colors';
 
 import {
+  type Activity,
   type ActivityEventBody,
   type AlertSettings,
   ApiError,
@@ -39,6 +43,8 @@ import {
   type Place,
   type Profile,
   type Reminder,
+  type ProfileFields,
+  type UpdateMeBody,
   type UpdateProfileBody,
   type UpdateReminderBody,
   type VipContact,
@@ -52,7 +58,11 @@ const MAX_UNLOCK_TRIES = 5;
 const UNLOCK_LOCK_MS = 30_000;
 const TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
 
-type MockProfile = Profile & { pinHash: string; auto_lock_minutes: number | null };
+type MockProfile = Profile & {
+  pinHash: string;
+  auto_lock_minutes: number | null;
+  deleted?: boolean;
+};
 type MockConversation = Conversation & { deleted: boolean };
 type MockMessage = Message & { conversation_id: number };
 type MockReminder = Reminder & { profile_id: number; deleted: boolean };
@@ -185,14 +195,43 @@ const publicProfile = ({ id, name, color, role }: MockProfile): Profile => ({
   role,
 });
 
-/** The full profile, as unlock and PATCH return it. */
+/** The full profile, as unlock and PATCH return it, with Laravel's column defaults. */
 const fullProfile = (profile: MockProfile): Profile => ({
   ...publicProfile(profile),
+  has_pin: profile.role !== 'guest',
   llm_engine: profile.llm_engine ?? 'local',
   personality: profile.personality ?? null,
   auto_lock_minutes: profile.auto_lock_minutes,
-  web_mode: profile.role === 'owner' || profile.role === 'member' ? 'auto' : 'never',
+  web_mode: profile.web_mode ?? (profile.role === 'guest' ? 'never' : 'auto'),
+  memory_enabled: profile.memory_enabled ?? profile.role !== 'guest',
+  sampling: profile.sampling ?? 'auto',
+  history_enabled: profile.history_enabled ?? true,
+  chat_enabled: profile.chat_enabled ?? true,
 });
+
+/** The household's profiles, deleted ones left out (Laravel's soft delete). */
+const liveProfiles = (state: MockState) => state.profiles.filter((p) => !p.deleted);
+
+function requireNotGuest(state: MockState, token: string): MockProfile {
+  const id = requireProfile(state, token);
+  const profile = liveProfiles(state).find((p) => p.id === id);
+  if (!profile) throw unauthenticated();
+  if (profile.role === 'guest') throw new ApiError(403, 'This action is unauthorized.');
+  return profile;
+}
+
+/** Ends every session of a profile, as Laravel revokes its tokens. */
+function endSessions(state: MockState, profileId: number) {
+  state.profileTokens = state.profileTokens.filter((t) => state.tokenProfiles[t] !== profileId);
+  for (const [token, id] of Object.entries(state.tokenProfiles)) {
+    if (id === profileId) delete state.tokenProfiles[token];
+  }
+}
+
+/** The events a profile sees: its own, and for the Owner also the device's (no profile). */
+const seesEvent = (profile: MockProfile, event: MockActivity) =>
+  (event.profile_id ?? null) === profile.id ||
+  (profile.role === 'owner' && event.profile_id == null);
 
 function openSession(state: MockState, profile: MockProfile) {
   const profileToken = newToken();
@@ -337,10 +376,43 @@ function ownVip(state: MockState, id: number): MockVip {
   return vip;
 }
 
-function validateProfile(body: UpdateProfileBody) {
+const PROFILE_FIELDS = [
+  'name',
+  'color',
+  'web_mode',
+  'memory_enabled',
+  'sampling',
+  'auto_lock_minutes',
+  'llm_engine',
+  'history_enabled',
+  'chat_enabled',
+] as const satisfies readonly (keyof ProfileFields)[];
+
+function validateProfile(body: UpdateProfileBody | UpdateMeBody) {
   if (body.name !== undefined && body.name.trim() === '') {
     throw invalid('name', 'The name field is required.');
   }
+  if (body.name !== undefined && body.name.trim().length > 40) {
+    throw invalid('name', 'The name field must not be greater than 40 characters.');
+  }
+  if (body.color !== undefined && !/^#[0-9A-F]{6}$/.test(body.color)) {
+    throw invalid('color', 'The color field format is invalid.');
+  }
+  const lock = body.auto_lock_minutes;
+  if (lock != null && (lock < 1 || lock > 60)) {
+    throw invalid('auto_lock_minutes', 'The auto lock minutes field must be between 1 and 60.');
+  }
+  if (body.pin !== undefined && !/^\d{6}$/.test(body.pin)) {
+    throw invalid('pin', 'The pin field format is invalid.');
+  }
+}
+
+/** Copies the fields a body sets, the name trimmed. */
+function applyProfileFields(profile: MockProfile, body: Partial<ProfileFields>) {
+  for (const field of PROFILE_FIELDS) {
+    if (body[field] !== undefined) Object.assign(profile, { [field]: body[field] });
+  }
+  if (body.name !== undefined) profile.name = body.name.trim();
 }
 
 export const mockApi: AsterApi = {
@@ -415,42 +487,83 @@ export const mockApi: AsterApi = {
     await delay();
     const state = await load();
     requireDevice(state, deviceToken);
-    return state.profiles.map(publicProfile);
+    return liveProfiles(state).map(publicProfile);
   },
 
-  async createProfile(_server, deviceToken, body: CreateProfileBody) {
+  async createProfile(_server, token, body: CreateProfileBody) {
     await delay();
     const state = await load();
-    requireDevice(state, deviceToken);
-    if (state.profiles.length > 0) {
-      throw new ApiError(403, 'A device token can only create the first profile.');
+    if (state.deviceTokens.includes(token)) {
+      if (state.profiles.length > 0) {
+        throw new ApiError(403, 'A device token can only create the first profile.');
+      }
+    } else {
+      requireOwner(state, token);
     }
     validateProfile(body);
-    if (!/^\d{6}$/.test(body.pin)) throw invalid('pin', 'The PIN must be 6 digits.');
+    if (!/^\d{6}$/.test(body.pin)) throw invalid('pin', 'The pin field format is invalid.');
+    const hasOwner = state.profiles.some((p) => p.role === 'owner');
+    if (!hasOwner && body.role !== 'owner') {
+      throw invalid('role', 'The first profile must be the Owner.');
+    }
+    if (hasOwner && body.role === 'owner') {
+      throw invalid('role', 'This household already has an Owner.');
+    }
     const profile: MockProfile = {
       id: state.nextId++,
       name: body.name.trim(),
       color: body.color,
-      role: 'owner',
+      role: body.role,
       pinHash: scramble(body.pin),
       auto_lock_minutes: body.auto_lock_minutes,
     };
-    state.profiles.push(profile, guestProfile(state));
+    applyProfileFields(profile, body);
+    state.profiles.push(profile);
+    if (!state.profiles.some((p) => p.role === 'guest')) state.profiles.push(guestProfile(state));
     await save(state);
     return fullProfile(profile);
+  },
+
+  async getProfile(_server, profileToken, id) {
+    await delay();
+    const state = await load();
+    requireOwner(state, profileToken);
+    const profile = liveProfiles(state).find((p) => p.id === id);
+    if (!profile) throw new ApiError(404, 'Not found.');
+    return fullProfile(profile);
+  },
+
+  async deleteProfile(_server, profileToken, id) {
+    await delay();
+    const state = await load();
+    requireOwner(state, profileToken);
+    const profile = liveProfiles(state).find((p) => p.id === id);
+    if (!profile) throw new ApiError(404, 'Not found.');
+    if (profile.role === 'owner' || profile.role === 'guest') {
+      throw invalid('profile', "The Owner and Guest profiles can't be deleted.");
+    }
+    profile.deleted = true;
+    endSessions(state, id);
+    await save(state);
   },
 
   async updateProfile(_server, profileToken, id, body) {
     await delay();
     const state = await load();
-    requireProfile(state, profileToken);
-    const profile = state.profiles.find((p) => p.id === id);
+    requireOwner(state, profileToken);
+    const profile = liveProfiles(state).find((p) => p.id === id);
     if (!profile) throw new ApiError(404, 'Not found.');
     validateProfile(body);
-    if (body.name !== undefined) profile.name = body.name.trim();
-    if (body.color !== undefined) profile.color = body.color;
-    if (body.auto_lock_minutes !== undefined) profile.auto_lock_minutes = body.auto_lock_minutes;
-    if (body.llm_engine !== undefined) profile.llm_engine = body.llm_engine;
+    if (body.role !== undefined && body.role !== profile.role) {
+      if (profile.role === 'owner') throw invalid('role', "The Owner's role can't change.");
+      if (profile.role === 'guest') throw invalid('role', "Guest's role can't change.");
+      profile.role = body.role;
+    }
+    if (body.pin !== undefined) {
+      if (profile.role === 'guest') throw invalid('pin', 'Guest has no PIN.');
+      profile.pinHash = scramble(body.pin);
+    }
+    applyProfileFields(profile, body);
     await save(state);
     return fullProfile(profile);
   },
@@ -533,13 +646,26 @@ export const mockApi: AsterApi = {
     return { llm_token: newToken(), expires_at: new Date(Date.now() + TOKEN_TTL_MS).toISOString() };
   },
 
+  async getMe(_server, profileToken) {
+    await delay();
+    return fullProfile(requireNotGuest(await load(), profileToken));
+  },
+
   async updateMe(_server, profileToken, body) {
     await delay();
     const state = await load();
-    const id = requireProfile(state, profileToken);
-    const profile = state.profiles.find((p) => p.id === id);
-    if (!profile) throw unauthenticated();
-    if (body.llm_engine !== undefined) profile.llm_engine = body.llm_engine;
+    const profile = requireNotGuest(state, profileToken);
+    validateProfile(body);
+    if (body.pin !== undefined) {
+      if (body.current_pin === undefined) {
+        throw invalid('current_pin', 'The current pin field is required when pin is present.');
+      }
+      if (scramble(body.current_pin) !== profile.pinHash) {
+        throw invalid('current_pin', 'The current PIN is wrong.');
+      }
+      profile.pinHash = scramble(body.pin);
+    }
+    applyProfileFields(profile, body);
     await save(state);
     return fullProfile(profile);
   },
@@ -589,6 +715,21 @@ export const mockApi: AsterApi = {
     conversation.deleted = true;
     conversation.updated_at = nowIso();
     state.messages = state.messages.filter((m) => m.conversation_id !== id);
+    await save(state);
+  },
+
+  async deleteAllConversations(_server, profileToken) {
+    await delay();
+    const state = await load();
+    const profileId = requireNotGuest(state, profileToken).id;
+    const gone = new Set<number>();
+    for (const conversation of state.conversations) {
+      if (conversation.profile_id !== profileId || conversation.deleted) continue;
+      conversation.deleted = true;
+      conversation.updated_at = nowIso();
+      gone.add(conversation.id);
+    }
+    state.messages = state.messages.filter((m) => !gone.has(m.conversation_id));
     await save(state);
   },
 
@@ -760,6 +901,34 @@ export const mockApi: AsterApi = {
     state.activity.push(...fresh.map((event) => ({ ...event, id: state.nextId++ })));
     await save(state);
     return { accepted: fresh.length, duplicates: events.length - fresh.length };
+  },
+
+  async listActivity(_server, profileToken) {
+    await delay();
+    const state = await load();
+    const profile = requireNotGuest(state, profileToken);
+    const data = state.activity
+      .filter((event) => seesEvent(profile, event))
+      .sort((a, b) => b.occurred_at.localeCompare(a.occurred_at) || b.id - a.id)
+      .slice(0, 50)
+      .map((event): Activity => ({
+        id: event.id,
+        profile_id: event.profile_id ?? null,
+        device_id: null,
+        type: event.type,
+        summary: event.summary,
+        meta: event.meta ?? {},
+        occurred_at: toApiTime(event.occurred_at)!,
+      }));
+    return { data, meta: { next_cursor: null } };
+  },
+
+  async clearActivity(_server, profileToken) {
+    await delay();
+    const state = await load();
+    const profile = requireNotGuest(state, profileToken);
+    state.activity = state.activity.filter((event) => !seesEvent(profile, event));
+    await save(state);
   },
 
   async getLocations(_server, profileToken, date, tz) {

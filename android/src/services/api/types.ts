@@ -35,7 +35,38 @@ export type Profile = {
   /** Full profile only. 2 when "Lock when I leave" is on, null when off. */
   auto_lock_minutes?: number | null;
   /** Full profile only. `never` turns web lookups off (the llm_token says so too). */
-  web_mode?: 'auto' | 'never';
+  web_mode?: WebMode;
+  /** Full profile only. Off: zypherLL keeps no memory for this profile (llm_token `memory`). */
+  memory_enabled?: boolean;
+  /** Full profile only. 2.4 "Answer style". */
+  sampling?: Sampling;
+  /** Full profile only. False for Guest. */
+  has_pin?: boolean;
+  /**
+   * Proposed for Laravel (profiles plan §2, B3, B4): "Keep chat history" and "Chat with Aster".
+   * Missing until the server has them; the 2.4 rows stay hidden while missing.
+   */
+  history_enabled?: boolean;
+  chat_enabled?: boolean;
+};
+
+export type WebMode = 'auto' | 'never';
+
+/** 2.4 "Answer style"; sent to zypherLL as `sampling` (auto leaves it out). */
+export type Sampling = 'auto' | 'precise' | 'balanced' | 'creative';
+
+/** Fields of a profile that the Owner (`PATCH /profiles/{id}`) or the profile (`/me`) may change. */
+export type ProfileFields = {
+  name: string;
+  color: string;
+  web_mode: WebMode;
+  memory_enabled: boolean;
+  sampling: Sampling;
+  /** 2 when "Lock when I leave" is on, null when off. */
+  auto_lock_minutes: number | null;
+  llm_engine: LlmEngine;
+  history_enabled: boolean;
+  chat_enabled: boolean;
 };
 
 /** PlaceResource; Laravel also returns updated_at. */
@@ -62,19 +93,23 @@ export type RegisterBody = LoginBody & { name: string };
 /** Laravel also returns household_id, user { id, name, email } and device { id, name }. */
 export type TokenResponse = { token: string };
 
+/**
+ * `POST /profiles`: the Owner with the device token (first run), Member and Restricted with the
+ * Owner's profile token (2.4). The PIN is 6 digits.
+ */
 export type CreateProfileBody = {
   name: string;
   color: string;
-  role: 'owner';
+  role: 'owner' | 'member' | 'restricted';
   pin: string;
   /** 2 when "Lock when I leave" is on, null when off. */
   auto_lock_minutes: number | null;
-};
+} & Partial<Omit<ProfileFields, 'name' | 'color' | 'auto_lock_minutes'>>;
 
-export type UpdateProfileBody = Partial<
-  Pick<CreateProfileBody, 'name' | 'color' | 'auto_lock_minutes'>
-> & {
-  llm_engine?: LlmEngine;
+/** `PATCH /profiles/{id}` (Owner). Role only between member and restricted; Guest has no PIN. */
+export type UpdateProfileBody = Partial<ProfileFields> & {
+  role?: 'member' | 'restricted';
+  pin?: string;
 };
 
 /** Laravel also returns household_id. `/guest-sessions` returns the same shape. */
@@ -92,8 +127,8 @@ export type UnlockResponse = {
 /** `POST /llm-token`: a fresh llm_token for the unlocked profile. */
 export type LlmTokenResponse = { llm_token: string; expires_at: string };
 
-/** Fields a profile may change on itself with `PATCH /me`. */
-export type UpdateMeBody = { llm_engine?: LlmEngine };
+/** Fields a profile may change on itself with `PATCH /me`; a new PIN needs `current_pin`. */
+export type UpdateMeBody = Partial<ProfileFields> & { pin?: string; current_pin?: string };
 
 export type Conversation = {
   id: number;
@@ -278,6 +313,20 @@ export type ActivityEventBody = {
 
 export type ActivityBatchResult = { accepted: number; duplicates: number };
 
+/** ActivityResource: an event of `GET /activity`. `profile_id` is null for device events. */
+export type Activity = {
+  id: number;
+  profile_id: number | null;
+  device_id: number | null;
+  type: string;
+  summary: string;
+  meta: Record<string, unknown>;
+  occurred_at: string;
+};
+
+/** Newest first; `next_cursor` is null on the last page. */
+export type ActivityPage = { data: Activity[]; meta: { next_cursor: string | null } };
+
 /** Every failed call becomes an ApiError. `status` 0 means no HTTP reply (network or timeout). */
 export class ApiError extends Error {
   readonly status: number;
@@ -320,8 +369,13 @@ export interface AsterApi {
   login(server: string, body: LoginBody): Promise<TokenResponse>;
   register(server: string, body: RegisterBody): Promise<TokenResponse>;
   listProfiles(server: string, deviceToken: string): Promise<Profile[]>;
-  /** Device token; only allowed for the first profile. */
-  createProfile(server: string, deviceToken: string, body: CreateProfileBody): Promise<Profile>;
+  /** The device token for the first profile (the Owner); the Owner's profile token after that. */
+  createProfile(server: string, token: string, body: CreateProfileBody): Promise<Profile>;
+  /** Owner. Proposed for Laravel (B1); 404 or 405 until it has the route. */
+  getProfile(server: string, profileToken: string, id: number): Promise<Profile>;
+  /** Owner; not the Owner or Guest (422). Soft delete; the profile's sessions end. */
+  deleteProfile(server: string, profileToken: string, id: number): Promise<void>;
+  /** Owner. */
   updateProfile(
     server: string,
     profileToken: string,
@@ -343,6 +397,9 @@ export interface AsterApi {
   /** Ends this phone's session for the profile (204). */
   lockProfile(server: string, profileToken: string, id: number): Promise<void>;
   refreshLlmToken(server: string, profileToken: string): Promise<LlmTokenResponse>;
+  /** Not Guest. The unlocked profile, in full. */
+  getMe(server: string, profileToken: string): Promise<Profile>;
+  /** Not Guest. A wrong `current_pin` is a 422 on `current_pin`. */
   updateMe(server: string, profileToken: string, body: UpdateMeBody): Promise<Profile>;
 
   /** Newest first, 50 a page; pass the previous page's `next_cursor` for the next. */
@@ -358,6 +415,8 @@ export interface AsterApi {
     body: { client_uuid: string; title: string },
   ): Promise<Conversation>;
   deleteConversation(server: string, profileToken: string, id: number): Promise<void>;
+  /** Every conversation of the profile. Proposed for Laravel (B6). */
+  deleteAllConversations(server: string, profileToken: string): Promise<void>;
   /** Oldest first, after message id `after`, up to 100. */
   listMessages(
     server: string,
@@ -403,6 +462,10 @@ export interface AsterApi {
     deviceToken: string,
     events: ActivityEventBody[],
   ): Promise<ActivityBatchResult>;
+  /** Not Guest. The profile's events, newest first, 50 a page; the Owner's include device events. */
+  listActivity(server: string, profileToken: string, cursor?: string | null): Promise<ActivityPage>;
+  /** Not Guest. Clears what `listActivity` shows. Proposed for Laravel (B5). */
+  clearActivity(server: string, profileToken: string): Promise<void>;
   /** Owner. `date` is YYYY-MM-DD in the IANA zone `tz`. */
   getLocations(
     server: string,
