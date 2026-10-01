@@ -184,3 +184,47 @@ describe('B6: Delete all of a profile\'s chats', function () {
             ->and($theirs->fresh()->trashed())->toBeFalse();
     });
 });
+
+describe('V1: Voice and wake word', function () {
+    it('is on for new profiles, off for Guest, and the Owner changes it', function () {
+        $this->withToken($this->ownerToken)->getJson("/api/profiles/{$this->member->id}")
+            ->assertJsonPath('data.voice_enabled', true);
+        $this->withToken($this->ownerToken)->getJson("/api/profiles/{$this->guest->id}")
+            ->assertJsonPath('data.voice_enabled', false);
+
+        $this->withToken($this->ownerToken)
+            ->patchJson("/api/profiles/{$this->member->id}", ['voice_enabled' => false])
+            ->assertOk()->assertJsonPath('data.voice_enabled', false);
+        expect($this->member->fresh()->voice_enabled)->toBeFalse();
+    });
+
+    it('comes with the profile at unlock', function () {
+        $this->member->update(['voice_enabled' => false]);
+
+        $this->withToken($this->deviceToken)
+            ->postJson("/api/profiles/{$this->member->id}/unlock", ['pin' => '123456'])
+            ->assertOk()->assertJsonPath('profile.voice_enabled', false);
+    });
+
+    it('can\'t be turned on for Guest, or changed by a profile on itself', function () {
+        $this->withToken($this->ownerToken)
+            ->patchJson("/api/profiles/{$this->guest->id}", ['voice_enabled' => true])
+            ->assertUnprocessable()->assertJsonValidationErrors('voice_enabled');
+        forgetAuth();
+
+        $this->withToken(profileToken($this->member, $this->device))
+            ->patchJson('/api/me', ['voice_enabled' => false])
+            ->assertUnprocessable()->assertJsonValidationErrors('voice_enabled');
+    });
+
+    it('starts off for the Guest a new Owner brings', function () {
+        $household = User::factory()->create();
+        $device = deviceToken($household);
+
+        $this->withToken($device)->postJson('/api/profiles', [
+            'name' => 'Asha', 'color' => '#7FD9B8', 'role' => 'owner', 'pin' => '123456',
+        ])->assertCreated()->assertJsonPath('data.voice_enabled', true);
+
+        expect($household->profiles()->where('role', 'guest')->sole()->voice_enabled)->toBeFalse();
+    });
+});

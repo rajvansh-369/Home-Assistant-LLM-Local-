@@ -30,6 +30,7 @@ class ProfileResource extends JsonResource
             'memory_enabled' => $this->memory_enabled,
             'chat_enabled' => $this->chat_enabled,
             'history_enabled' => $this->history_enabled,
+            'voice_enabled' => $this->voice_enabled,
             'sampling' => $this->sampling->value,
             'llm_engine' => $this->llm_engine->value,
             'max_tokens' => $this->max_tokens,

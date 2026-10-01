@@ -2841,6 +2841,9 @@
                     "history_enabled": {
                         "type": "boolean"
                     },
+                    "voice_enabled": {
+                        "type": "boolean"
+                    },
                     "sampling": {
                         "type": "string"
                     },
@@ -2883,6 +2886,7 @@
                     "memory_enabled",
                     "chat_enabled",
                     "history_enabled",
+                    "voice_enabled",
                     "sampling",
                     "llm_engine",
                     "max_tokens",
@@ -3291,6 +3295,9 @@
                     "history_enabled": {
                         "type": "boolean"
                     },
+                    "voice_enabled": {
+                        "type": "boolean"
+                    },
                     "sampling": {
                         "$ref": "#/components/schemas/Sampling"
                     },
@@ -3511,6 +3518,9 @@
                     "history_enabled": {
                         "type": "string"
                     },
+                    "voice_enabled": {
+                        "type": "string"
+                    },
                     "sampling": {
                         "$ref": "#/components/schemas/Sampling"
                     },
@@ -3605,6 +3615,9 @@
                         "type": "boolean"
                     },
                     "history_enabled": {
+                        "type": "boolean"
+                    },
+                    "voice_enabled": {
                         "type": "boolean"
                     },
                     "sampling": {

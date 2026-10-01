@@ -26,6 +26,7 @@ class UpdateMeRequest extends FormRequest
             // What a profile may use is the Owner's call (PATCH /profiles/{id}).
             'chat_enabled' => ['prohibited'],
             'history_enabled' => ['prohibited'],
+            'voice_enabled' => ['prohibited'],
         ]);
     }
 }

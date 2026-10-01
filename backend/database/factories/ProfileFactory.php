@@ -70,6 +70,7 @@ class ProfileFactory extends Factory
             'role' => ProfileRole::Guest,
             'pin_hash' => null,
             'memory_enabled' => false,
+            'voice_enabled' => false,
         ]);
     }
 

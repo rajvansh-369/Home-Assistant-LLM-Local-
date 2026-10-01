@@ -25,7 +25,7 @@ use Laravel\Sanctum\HasApiTokens;
  */
 #[Fillable([
     'name', 'color', 'role', 'pin_hash', 'personality', 'web_mode', 'memory_enabled',
-    'chat_enabled', 'history_enabled',
+    'chat_enabled', 'history_enabled', 'voice_enabled',
     'sampling', 'llm_engine', 'max_tokens', 'auto_lock_minutes', 'last_unlocked_at',
 ])]
 #[Hidden(['pin_hash'])]
@@ -47,6 +47,7 @@ class Profile extends Model
             'memory_enabled' => 'boolean',
             'chat_enabled' => 'boolean',
             'history_enabled' => 'boolean',
+            'voice_enabled' => 'boolean',
             'max_tokens' => 'integer',
             'auto_lock_minutes' => 'integer',
             'last_unlocked_at' => 'datetime',

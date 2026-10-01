@@ -30,7 +30,7 @@ class ProfileController extends Controller
     public const GUEST_COLOR = '#9299A1';
 
     /** Fields a request may set directly; pin and role are handled on their own. */
-    private const FIELDS = ['name', 'color', 'personality', 'web_mode', 'memory_enabled', 'chat_enabled', 'history_enabled', 'sampling', 'llm_engine', 'max_tokens', 'auto_lock_minutes'];
+    private const FIELDS = ['name', 'color', 'personality', 'web_mode', 'memory_enabled', 'chat_enabled', 'history_enabled', 'voice_enabled', 'sampling', 'llm_engine', 'max_tokens', 'auto_lock_minutes'];
 
     public function index(Request $request): AnonymousResourceCollection
     {
@@ -70,6 +70,7 @@ class ProfileController extends Controller
                     'pin_hash' => null,
                     'web_mode' => WebMode::Never,
                     'memory_enabled' => false,
+                    'voice_enabled' => false,
                 ]);
             }
 
@@ -90,6 +91,10 @@ class ProfileController extends Controller
     public function update(UpdateProfileRequest $request, Profile $profile): ProfileResource
     {
         $changes = Arr::only($request->validated(), self::FIELDS);
+
+        if ($profile->isGuest() && $request->validated('voice_enabled') === true) {
+            throw ValidationException::withMessages(['voice_enabled' => 'Guest has no voice.']);
+        }
 
         if ($profile->isOwner() && $request->validated('chat_enabled') === false) {
             throw ValidationException::withMessages(['chat_enabled' => 'The Owner\'s chat can\'t be turned off.']);

@@ -142,7 +142,7 @@ Sixteen tables. Every household-owned row traces back to one `users` row: the ho
 | Table | Columns | Notes |
 |---|---|---|
 | `users` | id, name, email (unique), password, suspended_at (nullable) *new*, suspension_reason (nullable) *new*, remember_token, timestamps | One row per household. Uses `HasApiTokens` for device tokens. |
-| `profiles` | id, user_id, name (max 40), color (`#RRGGBB`), role (owner, member, restricted, guest), pin_hash (nullable; only Guest has none), personality (text, nullable), web_mode (auto, never; default auto), memory_enabled (default true), chat_enabled (default true) *new*, history_enabled (default true) *new*, sampling (auto, precise, balanced, creative; default auto), max_tokens (nullable), auto_lock_minutes (nullable), last_unlocked_at (nullable) *new*, timestamps, soft deletes | Uses `HasApiTokens` for profile tokens. `pin_hash` is hidden. One Owner and one Guest per household. |
+| `profiles` | id, user_id, name (max 40), color (`#RRGGBB`), role (owner, member, restricted, guest), pin_hash (nullable; only Guest has none), personality (text, nullable), web_mode (auto, never; default auto), memory_enabled (default true), chat_enabled (default true) *new*, history_enabled (default true) *new*, voice_enabled (default true; false for Guest) *new*, sampling (auto, precise, balanced, creative; default auto), max_tokens (nullable), auto_lock_minutes (nullable), last_unlocked_at (nullable) *new*, timestamps, soft deletes | Uses `HasApiTokens` for profile tokens. `pin_hash` is hidden. One Owner and one Guest per household. |
 | `devices` | id, user_id, name, app_version (nullable), last_seen_at (nullable), signed_out_at (nullable) *new*, timestamps | One row per phone sign-in |
 | `conversations` | id, profile_id, client_uuid (unique), title (max 120), last_message_at (nullable), timestamps, soft deletes | Deleting removes the messages at once and keeps this row as a tombstone for sync |
 | `chat_messages` | id, conversation_id (cascade), client_uuid (unique), role (user, assistant), content (text, `encrypted` cast), sent_at *new*, finish_reason (stop, length, cancelled, error; nullable), memory_id (nullable), live (bool), cited (bool), sources (json), recalled (int, nullable), sampling (nullable), usage (json), seconds (decimal 8,2, nullable), rating (good, bad; nullable), context (json), timestamps | Mirrors zypherLL's response fields. `context` holds flags about what the app added to the prompt, never message text. Indexes: (conversation_id, id), (created_at). |
@@ -294,7 +294,7 @@ Token column: **none**; **device**; **profile** (any unlocked profile, Guest inc
 | GET | `/profiles` | device | none | 200 `{ data: [{ id, name, color, role, chat_enabled }] }`, Guest included | none |
 | POST | `/profiles` | device for the first profile, Owner after that | name, color, role (owner, member, restricted), pin, personality?, web_mode?, memory_enabled?, sampling?, max_tokens?, auto_lock_minutes? | 201 `{ data: Profile }` | 403 a device token once a profile exists; 422, including "The first profile must be the Owner." |
 | GET | `/profiles/{id}` *new* | Owner | none | 200 `{ data: Profile }` | 404 |
-| PATCH | `/profiles/{id}` | Owner | Any Profile field; role between member and restricted; pin. `chat_enabled: false` ends the profile's sessions; on Guest it turns guest sessions off | 200 `{ data: Profile }` | 422 when changing the Owner's or Guest's role, or turning the Owner's chat off |
+| PATCH | `/profiles/{id}` | Owner | Any Profile field; role between member and restricted; pin. `chat_enabled: false` ends the profile's sessions; on Guest it turns guest sessions off; `voice_enabled` can't be turned on for Guest | 200 `{ data: Profile }` | 422 when changing the Owner's or Guest's role, or turning the Owner's chat off |
 | DELETE | `/profiles/{id}` | Owner | none | 204 (soft delete; the profile's tokens are revoked) | 422 for the Owner or Guest |
 | POST | `/profiles/{id}/unlock` | device | pin | 200 `{ profile_token, llm_token, expires_at, household_id, profile }`; `llm_token` is null while the profile's chat_enabled is off | 422 wrong PIN with `attempts_left`; 429 with `retry_after`; 422 for the Guest profile |
 | POST | `/profiles/{id}/lock` | profile | none | 204 | 403 when `{id}` isn't the token's profile |
@@ -341,7 +341,7 @@ Token column: **none**; **device**; **profile** (any unlocked profile, Guest inc
 
 | Resource | Fields |
 |---|---|
-| Profile | id, name, color, role, has_pin, personality, web_mode, memory_enabled, chat_enabled, history_enabled, sampling, max_tokens, auto_lock_minutes, created_at, updated_at |
+| Profile | id, name, color, role, has_pin, personality, web_mode, memory_enabled, chat_enabled, history_enabled, voice_enabled, sampling, max_tokens, auto_lock_minutes, created_at, updated_at |
 | Conversation | id, client_uuid, profile_id, title, last_message_at, message_count, created_at, updated_at |
 | Message | id, client_uuid, role, content (max 50,000 characters), sent_at, finish_reason, memory_id, live, cited, sources (up to 20 items), recalled, sampling, usage, seconds, rating, context (up to 20 flags), created_at |
 | Place | id, name, address, lat, lng, radius_m, wifi_ssid, llm_url, updated_at |
