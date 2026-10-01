@@ -35,4 +35,15 @@ export const settings = {
   hideText: 'Hide message text on lock screen',
   /** Every profile but Guest. */
   memory: 'Memory and activity',
+  autoLock: 'Auto-lock',
+  autoLockOn: 'After 2 min',
+  autoLockOff: 'Off', // (proposed)
+  cancel: 'Cancel', // (proposed)
+  yourData: 'Your data',
+  deleteChats: (name: string) => `Delete all of ${name}’s chats`,
+  deleteChatsConfirm:
+    'Every chat of this profile is deleted from your server and this phone. Memory on your home computer stays.', // (proposed)
+  deleteChatsDone: 'Your chats are deleted.', // (proposed)
+  deleteChatsOld: 'Your server needs an update before chats can be deleted all at once.', // (proposed)
+  saveFailed: "Couldn't save. Check your connection and try again.", // (proposed)
 } as const;

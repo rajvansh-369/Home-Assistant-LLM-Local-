@@ -1,8 +1,10 @@
 // 5.1 Settings actions. The engine choice is kept on the phone first and sent to Laravel
 // (PATCH /me) when that profile's session is open, so a choice made while the request fails, or
-// before a session exists, still arrives at the profile's next unlock.
-import { api, type LlmEngine, type Profile } from '@/services/api';
+// before a session exists, still arrives at the profile's next unlock. Privacy's Auto-lock and
+// Your data (docs/aster-profiles-memory-plan.md §4 5.1) go to Laravel at once.
+import { saveNow, useChatStore } from '@/features/chat/store';
 import { isUnlocked, useFirstRunStore } from '@/features/first-run/store';
+import { api, ApiError, type LlmEngine, type Profile } from '@/services/api';
 
 const store = () => useFirstRunStore.getState();
 
@@ -68,4 +70,62 @@ export async function afterUnlockSyncEngine(profile: Profile) {
     llmEngineProfileId: profile.id,
     llmEngineSynced: true,
   });
+}
+
+/** "After 2 min", as 1.3's "Lock when I leave". */
+export const AUTO_LOCK_MINUTES = 2;
+
+/**
+ * 5.1 Privacy "Auto-lock" for the unlocked profile: `PATCH /me { auto_lock_minutes }`. The
+ * session follows at once (the lock rules read it); for the Owner, 1.3's "Lock when I leave" too.
+ * Resolves false when Laravel refused.
+ */
+export async function setAutoLock(on: boolean): Promise<boolean> {
+  const { serverUrl, session } = store();
+  if (!serverUrl || !isUnlocked(session)) return false;
+  try {
+    const profile = await api.updateMe(serverUrl, session!.profileToken, {
+      auto_lock_minutes: on ? AUTO_LOCK_MINUTES : null,
+    });
+    const now = store().session;
+    if (now?.profileToken === session!.profileToken) {
+      store().set({
+        session: {
+          ...now,
+          profile: { ...now.profile, auto_lock_minutes: profile.auto_lock_minutes },
+        },
+        ...(now.profile.role === 'owner'
+          ? { lockWhenLeave: profile.auto_lock_minutes != null }
+          : {}),
+      });
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** "deleted"; "old-server": Laravel has no `DELETE /conversations` yet (B6); "failed". */
+export type DeleteChats = 'deleted' | 'old-server' | 'failed';
+
+/**
+ * 5.1 Your data, "Delete all of {name}'s chats": every chat of the unlocked profile on Laravel,
+ * then this phone's copy and anything still waiting to upload.
+ */
+export async function deleteAllMyChats(): Promise<DeleteChats> {
+  const { serverUrl, session } = store();
+  if (!serverUrl || !isUnlocked(session) || session!.profile.role === 'guest') return 'failed';
+  try {
+    await api.deleteAllConversations(serverUrl, session!.profileToken);
+  } catch (error) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 405)) {
+      return 'old-server';
+    }
+    return 'failed';
+  }
+  if (useChatStore.getState().profileId === session!.profile.id) {
+    useChatStore.getState().set({ chats: {}, queue: [] });
+    await saveNow().catch(() => {});
+  }
+  return 'deleted';
 }

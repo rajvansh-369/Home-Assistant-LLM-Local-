@@ -189,12 +189,14 @@ followed by `POST /llm-token`, because the `memory` claim is fixed when the toke
 ### 5.1 Settings: Privacy
 
 - "Profiles" with the count of profiles other than Guest (Owner only) → 2.3.
-- "Auto-lock" / "After 2 min" or "Off" → toggles the unlocked profile's `auto_lock_minutes`
-  through `PATCH /me` *(proposed: a row with a value, as drawn, opening a two-choice sheet)*.
+- "Auto-lock" / "After 2 min" or "Off" (every profile but Guest) → the unlocked profile's
+  `auto_lock_minutes` through `PATCH /me`. *As built (P5): a row with its value, as drawn, opening
+  a dialog with the two choices.* For the Owner it is also 1.3's "Lock when I leave".
 - "Hide message text on lock screen" (built in M5, Owner only).
 - "Memory and activity" → 5.2 (not Guest).
-- "Your data": "Delete all of {name}'s chats" (B6), confirm dialog, then the local chat cache is
-  cleared too. Hidden until Laravel has it.
+- "Your data" (every profile but Guest): "Delete all of {name}'s chats" (B6), confirm dialog, then
+  this phone's chats and pending uploads are cleared too. Laravel has the route since 1 Oct 2026;
+  an older one answers 405 and the row says the server needs an update.
 
 ---
 

@@ -8,6 +8,7 @@
 import { router } from 'expo-router';
 import {
   Brain,
+  Clock,
   Cloud,
   Cpu,
   EyeOff,
@@ -15,12 +16,13 @@ import {
   House,
   HouseWifi,
   Lock,
+  Trash2,
   Users,
   Volume2,
   Zap,
 } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { AppState, StyleSheet, View } from 'react-native';
+import { Alert, AppState, StyleSheet, View } from 'react-native';
 
 import {
   Avatar,
@@ -44,7 +46,7 @@ import { DevFacts } from '@/features/settings/DevFacts';
 import { lockSession } from '@/features/profiles/actions';
 import { whoIsUsing } from '@/features/profiles/copy';
 import { useProfilesStore } from '@/features/profiles/store';
-import { chooseLlmEngine } from '@/features/settings/actions';
+import { chooseLlmEngine, deleteAllMyChats, setAutoLock } from '@/features/settings/actions';
 import { settings as copy } from '@/features/settings/copy';
 import type { LlmEngine } from '@/services/api';
 import { colors, profileColorKey, radii, spacing } from '@/theme';
@@ -139,6 +141,18 @@ function AlertsAndBackground() {
 function Privacy({ owner }: { owner: boolean }) {
   const hide = useAlertsStore((state) => state.hideOnLockScreen);
   const profiles = useProfilesStore((state) => state.profiles.length);
+  const autoLock = useFirstRunStore((state) => state.session?.profile.auto_lock_minutes ?? null);
+  const [failed, setFailed] = useState(false);
+
+  function chooseAutoLock() {
+    const pick = (on: boolean) => () => void setAutoLock(on).then((ok) => setFailed(!ok));
+    Alert.alert(copy.autoLock, undefined, [
+      { text: copy.cancel, style: 'cancel' },
+      { text: copy.autoLockOff, onPress: pick(false) },
+      { text: copy.autoLockOn, onPress: pick(true) },
+    ]);
+  }
+
   return (
     <View style={styles.section}>
       <Text variant="label" tone="secondary" accessibilityRole="header">
@@ -153,6 +167,12 @@ function Privacy({ owner }: { owner: boolean }) {
             onPress={() => router.push('/profiles')}
           />
         ) : null}
+        <LinkRow
+          icon={Clock}
+          title={copy.autoLock}
+          value={autoLock != null ? copy.autoLockOn : copy.autoLockOff}
+          onPress={chooseAutoLock}
+        />
         {owner ? (
           <ToggleRow
             icon={EyeOff}
@@ -164,6 +184,45 @@ function Privacy({ owner }: { owner: boolean }) {
         ) : null}
         <LinkRow icon={Brain} title={copy.memory} onPress={() => router.push('/memory')} />
       </ToggleCard>
+      {failed ? <StatusLine status={{ tone: 'danger', text: copy.saveFailed }} /> : null}
+    </View>
+  );
+}
+
+/** 5.1 Your data, every profile but Guest: delete all of the profile's chats (B6). */
+function YourData({ name }: { name: string }) {
+  const [status, setStatus] = useState<FieldStatus | null>(null);
+
+  function confirmDelete() {
+    Alert.alert(copy.deleteChats(name), copy.deleteChatsConfirm, [
+      { text: copy.cancel, style: 'cancel' },
+      {
+        text: copy.deleteChats(name),
+        style: 'destructive',
+        onPress: () =>
+          void deleteAllMyChats().then((result) =>
+            setStatus(
+              result === 'deleted'
+                ? { tone: 'accent', icon: 'check', text: copy.deleteChatsDone }
+                : {
+                    tone: 'danger',
+                    text: result === 'old-server' ? copy.deleteChatsOld : copy.saveFailed,
+                  },
+            ),
+          ),
+      },
+    ]);
+  }
+
+  return (
+    <View style={styles.section}>
+      <Text variant="label" tone="secondary" accessibilityRole="header">
+        {copy.yourData}
+      </Text>
+      <ToggleCard>
+        <LinkRow icon={Trash2} title={copy.deleteChats(name)} onPress={confirmDelete} />
+      </ToggleCard>
+      {status ? <StatusLine status={status} /> : null}
     </View>
   );
 }
@@ -242,6 +301,7 @@ export default function Settings() {
       {profile?.role === 'owner' ? <HomeAndLocation /> : null}
       {profile?.role === 'owner' ? <AlertsAndBackground /> : null}
       {profile && profile.role !== 'guest' ? <Privacy owner={profile.role === 'owner'} /> : null}
+      {profile && profile.role !== 'guest' ? <YourData name={profile.name} /> : null}
       {__DEV__ ? <DevFacts /> : null}
     </Screen>
   );
