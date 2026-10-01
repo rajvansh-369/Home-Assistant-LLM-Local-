@@ -56,6 +56,8 @@ export const chat = {
     checking: 'Checking the home server…', // (proposed)
   },
   errors: {
+    /** Profiles plan B4: the Owner turned chat off on 2.4. (proposed) */
+    chatOff: 'The Owner has turned chat off for your profile.',
     noReply: 'Home server not answering. Try again when it’s back.', // (proposed)
     loading: 'Model is loading. Try again in a moment.', // (proposed)
     quota: (name: string) => `${name} is out of quota for now. Switch to Local in Settings.`, // (proposed)

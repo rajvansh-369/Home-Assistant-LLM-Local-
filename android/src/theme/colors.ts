@@ -18,6 +18,9 @@ export const colors = {
   warningTint: 'rgba(255,198,103,0.10)',
   warningBorder: 'rgba(255,198,103,0.34)',
   danger: '#F68678',
+  /** 2.4's Delete button. */
+  dangerTint: 'rgba(246,134,120,0.10)',
+  dangerBorder: 'rgba(246,134,120,0.40)',
   transparent: 'transparent',
 } as const;
 

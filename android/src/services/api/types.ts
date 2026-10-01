@@ -115,7 +115,8 @@ export type UpdateProfileBody = Partial<ProfileFields> & {
 /** Laravel also returns household_id. `/guest-sessions` returns the same shape. */
 export type UnlockResponse = {
   profile_token: string;
-  llm_token: string;
+  /** Null while the Owner has turned chat off for the profile (`chat_enabled`, profiles plan B4). */
+  llm_token: string | null;
   /** ISO 8601, 12 hours after unlock. */
   expires_at: string;
   /** Local first, then Mark-L, with the names set in the admin panel. */

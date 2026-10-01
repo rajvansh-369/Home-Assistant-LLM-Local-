@@ -1,12 +1,21 @@
 // 2.3 Profiles (docs/aster-profiles-memory-plan.md §4 2.3), Owner only: every profile with its
 // role tag and a one-line summary, Guest's "Allow guest sessions", and "How profiles stay
 // private". Summaries come from `GET /profiles/{id}` (B1) where Laravel has it, else just "PIN";
-// the Guest switch shows only once Laravel reports Guest's `chat_enabled` (B2). Opening a profile
-// and "Add a profile" come with 2.4 (P3).
+// the Guest switch shows only once Laravel reports Guest's `chat_enabled` (B2). Member and
+// Restricted rows open 2.4; "Add a profile" opens it empty.
 import { router, useFocusEffect } from 'expo-router';
-import { Clock, HardDrive, Inbox, Lock, UserRound, type LucideIcon } from 'lucide-react-native';
+import {
+  ChevronRight,
+  Clock,
+  HardDrive,
+  Inbox,
+  Lock,
+  UserPlus,
+  UserRound,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar, ScreenHeader, StatusLine, Switch, Text } from '@/components';
@@ -50,10 +59,14 @@ function ProfileRow({
 }) {
   const fingerprint = useFirstRunStore((state) => state.fingerprintEnabled);
   const detail = profile.role === 'owner' ? copy.ownerDetail(fingerprint) : profileDetail(details);
+  const editable = profile.role === 'member' || profile.role === 'restricted';
   return (
-    <View
-      style={styles.card}
+    <Pressable
+      disabled={!editable}
+      onPress={() => router.push({ pathname: '/profile/[id]', params: { id: String(profile.id) } })}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       accessible
+      accessibilityRole={editable ? 'button' : undefined}
       accessibilityLabel={[
         profile.name,
         whoIsUsing.roles[profile.role],
@@ -80,7 +93,10 @@ function ProfileRow({
           {detail}
         </Text>
       </View>
-    </View>
+      {editable ? (
+        <ChevronRight size={iconSizes.search} color={colors.textMuted} strokeWidth={strokes.icon} />
+      ) : null}
+    </Pressable>
   );
 }
 
@@ -182,6 +198,14 @@ export function ProfilesScreen() {
             ),
           )}
         </View>
+        <Pressable
+          onPress={() => router.push({ pathname: '/profile/[id]', params: { id: 'new' } })}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.add, pressed && styles.pressed]}
+        >
+          <UserPlus size={iconSizes.pill} color={colors.accent} strokeWidth={strokes.icon} />
+          <Text variant="link">{copy.add}</Text>
+        </Pressable>
         <Text variant="label" tone="secondary" accessibilityRole="header" style={styles.label}>
           {copy.privacy}
         </Text>
@@ -237,6 +261,18 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  pressed: { backgroundColor: colors.surface2 },
+  add: {
+    minHeight: 52,
+    borderRadius: radii.button,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   label: { marginTop: 10 },
   privacy: {

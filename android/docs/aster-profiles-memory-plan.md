@@ -156,9 +156,10 @@ followed by `POST /llm-token`, because the `memory` claim is fixed when the toke
   {name}'s profile" (B3), "Read this phone's messages" / "WhatsApp, SMS, Google Chat" with "Owner
   only" (static). Rows whose field Laravel lacks are hidden.
 - "Answers and security": "Answer style" (Auto, Precise, Balanced, Creative → `sampling`), "Web
-  lookups" (Auto / Off → `web_mode`; shown "Off" and locked for Restricted), "PIN" / "Change" (a
-  6-digit keypad sheet, as 1.3, twice), "Auto-lock" ("After 2 min" / "Off", as 1.3's "Lock when
-  I leave"). Pickers are bottom sheets *(proposed)*.
+  lookups" (Auto / Off → `web_mode`; "Always off for Restricted profiles." for Restricted), "Auto-lock"
+  ("After 2 min" / "Off", as 1.3's "Lock when I leave"), and "PIN" with "Change PIN". *As built
+  (P3): segmented controls instead of rows opening pickers, and 1.3's PIN field instead of a
+  keypad sheet.*
 - Adding: Name, colour, role and PIN are required; "Create profile" *(proposed)* posts
   `POST /profiles` with the Owner's token.
 - "Delete {name} and their chats" (the canvas's "her" becomes "their"): a confirm dialog, then

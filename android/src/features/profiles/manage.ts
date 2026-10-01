@@ -4,7 +4,13 @@
 import { create } from 'zustand';
 
 import { isUnlocked, useFirstRunStore } from '@/features/first-run/store';
-import { api, ApiError, type Profile } from '@/services/api';
+import {
+  api,
+  ApiError,
+  type CreateProfileBody,
+  type Profile,
+  type UpdateProfileBody,
+} from '@/services/api';
 
 import { loadProfiles } from './actions';
 import { useProfilesStore } from './store';
@@ -99,4 +105,54 @@ export async function setGuestAllowed(allowed: boolean): Promise<boolean> {
     rememberProfile(before);
     return false;
   }
+}
+
+/** 2.4 opening: one profile in full. Throws ApiError (405 on Laravel without the route). */
+export async function loadProfileDetails(id: number): Promise<Profile> {
+  const owner = ownerSession();
+  if (!owner) throw new Error('The Owner is not unlocked.');
+  const profile = await api.getProfile(owner.server, owner.token, id);
+  rememberProfile(profile);
+  return profile;
+}
+
+/**
+ * 2.4: one change, shown at once and put back if Laravel refuses. Throws the ApiError, so a 422
+ * can show on its field.
+ */
+export async function saveProfileChange(id: number, patch: UpdateProfileBody): Promise<Profile> {
+  const owner = ownerSession();
+  const before = store().details[id];
+  if (!owner || !before) throw new Error('The Owner is not unlocked.');
+  const { pin: _pin, ...shown } = patch;
+  rememberProfile({ ...before, ...shown });
+  try {
+    const saved = await api.updateProfile(owner.server, owner.token, id, patch);
+    rememberProfile(saved);
+    return saved;
+  } catch (error) {
+    rememberProfile(before);
+    throw error;
+  }
+}
+
+/** 2.4 "Create profile" (Owner's token). Throws ApiError; 422 names the field. */
+export async function createHouseholdProfile(body: CreateProfileBody): Promise<Profile> {
+  const owner = ownerSession();
+  if (!owner) throw new Error('The Owner is not unlocked.');
+  const profile = await api.createProfile(owner.server, owner.token, body);
+  store().set({ details: { ...store().details, [profile.id]: profile } });
+  await loadProfiles();
+  return profile;
+}
+
+/** 2.4 "Delete … and their chats". Throws ApiError. */
+export async function deleteHouseholdProfile(id: number): Promise<void> {
+  const owner = ownerSession();
+  if (!owner) throw new Error('The Owner is not unlocked.');
+  await api.deleteProfile(owner.server, owner.token, id);
+  const { [id]: _gone, ...details } = store().details;
+  store().set({ details });
+  const cache = useProfilesStore.getState();
+  cache.set({ profiles: cache.profiles.filter((p) => p.id !== id) });
 }

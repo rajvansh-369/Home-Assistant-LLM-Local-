@@ -46,7 +46,8 @@ export type PersistedFirstRun = {
 /** The unlocked profile, from unlock or `/guest-sessions`; its tokens live only in memory. */
 export type Session = {
   profileToken: string;
-  llmToken: string;
+  /** Null while chat is off for the profile (profiles plan B4). */
+  llmToken: string | null;
   expiresAt: string;
   profile: Profile;
 };

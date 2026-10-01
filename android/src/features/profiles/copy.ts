@@ -65,3 +65,59 @@ export const profilesScreen = {
   offline: "Can't reach your server. Showing the last list this phone saw.", // (proposed)
   saveFailed: "Couldn't save. Check your connection and try again.", // (proposed)
 } as const;
+
+/** 2.4 Edit profile (docs/aster-profiles-memory-plan.md §4). Canvas strings unless marked. */
+export const profileEditor = {
+  title: 'Edit profile',
+  newTitle: 'Add a profile', // (proposed)
+  name: 'Name',
+  namePlaceholder: 'Their name', // (proposed)
+  nameRequired: 'Enter a name.', // (proposed)
+  colour: 'Colour', // (proposed: the canvas shows no colour control)
+  role: 'Role',
+  roles: [
+    { value: 'member', label: 'Member' },
+    { value: 'restricted', label: 'Restricted' },
+  ] as const,
+  roleHelp: 'Restricted turns off web lookups, reminders and message actions.',
+  canUse: (name: string) => `${name || 'They'} can use`, // "They" (proposed)
+  chat: 'Chat with Aster',
+  history: 'Keep chat history',
+  historyDetail: (name: string) => `Saved on your server, only in ${name || 'their'}'s profile`,
+  messages: "Read this phone's messages",
+  messagesDetail: 'WhatsApp, SMS, Google Chat',
+  ownerOnly: 'Owner only',
+  answers: 'Answers and security',
+  answerStyle: 'Answer style',
+  samplings: [
+    { value: 'auto', label: 'Auto' },
+    { value: 'precise', label: 'Precise' }, // (proposed)
+    { value: 'balanced', label: 'Balanced' }, // (proposed)
+    { value: 'creative', label: 'Creative' }, // (proposed)
+  ] as const,
+  web: 'Web lookups',
+  webModes: [
+    { value: 'auto', label: 'Auto' },
+    { value: 'never', label: 'Off' }, // (proposed)
+  ] as const,
+  webRestricted: 'Always off for Restricted profiles.', // (proposed)
+  pin: 'PIN',
+  pinHelper: '6 digits. They unlock their profile with it.', // (proposed)
+  pinChange: 'Change PIN', // (proposed; the canvas row says "Change")
+  pinSaved: 'PIN changed.', // (proposed)
+  autoLock: 'Auto-lock',
+  autoLocks: [
+    { value: 2, label: 'After 2 min' },
+    { value: 0, label: 'Off' }, // (proposed)
+  ] as const,
+  create: 'Create profile', // (proposed)
+  delete: (name: string) => `Delete ${name} and their chats`, // canvas "her" becomes "their"
+  deleteConfirm: (name: string) =>
+    `${name}'s chats and reminders are deleted from your server. Their memory on your home computer stays.`, // (proposed)
+  cancel: 'Cancel', // (proposed)
+  saved: 'Saved.', // (proposed)
+  saveFailed: "Couldn't save. Check your connection and try again.", // (proposed)
+  loadFailed: "Can't load this profile. Check your connection and try again.", // (proposed)
+  oldServer: 'Your server needs an update before profiles can be changed here.', // (proposed)
+  retry: 'Try again', // (proposed)
+} as const;

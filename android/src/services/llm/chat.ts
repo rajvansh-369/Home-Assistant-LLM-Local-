@@ -45,6 +45,8 @@ export type ChatResult = {
 export type ChatErrorKind =
   /** 401: the llm_token expired or doesn't match this home PC. */
   | 'unauthorized'
+  /** No llm_token at all: the Owner turned chat off for the profile (profiles plan B4). */
+  | 'chat-off'
   /** 503 while the model loads (or is off / not configured). */
   | 'not-ready'
   /** 503 out of GPU memory. */

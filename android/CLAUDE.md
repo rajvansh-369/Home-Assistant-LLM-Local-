@@ -47,12 +47,12 @@ src/app/                     routes (expo-router); only screens and _layout file
   location.tsx               5.3 Location (Owner only)
   thread/[key].tsx           4.2 Thread (a captured chat; aster://thread/{key})
   alerts.tsx, vip/[id].tsx   4.3 Spoken alerts and the VIP editor (Owner only)
-  profiles.tsx               2.3 Profiles (Owner only)
+  profiles.tsx, profile/[id].tsx  2.3 Profiles and 2.4 Edit profile (Owner only)
   dev/gallery.tsx            component gallery, dev builds only
 src/theme/                   colors, typography, spacing, map style
 src/components/              shared components (plan §3)
 src/features/first-run/      copy.ts, validators.ts, routing.ts, store.ts (also the session)
-src/features/profiles/       2.1/2.2/2.5: actions, profiles cache, UnlockView, auto-lock
+src/features/profiles/       2.1–2.5: actions, profiles cache, UnlockView, auto-lock, 2.3/2.4
 src/features/home-mode/      mode rules, controller (Wi-Fi, area, /health), status chip
 src/features/chat/           chat cache, upload queue, sync, prompt, streaming turn, ChatView
 src/features/reminders/      reminders store, queue, sync, alarms, Coming up, editor

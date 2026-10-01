@@ -57,6 +57,7 @@ export async function askZypher(input: AskInput): Promise<ChatResult> {
   for (;;) {
     const { session, home, engines } = store();
     if (!session || !home) throw new ChatError('unauthorized', 'No unlocked profile.');
+    if (session.llmToken == null) throw new ChatError('chat-off', 'Chat is off for this profile.');
     const engine = input.engine ?? activeEngine();
     try {
       return await streamChat(
@@ -100,7 +101,7 @@ export async function askZypher(input: AskInput): Promise<ChatResult> {
 export async function rateAnswer(memoryId: number, rating: 'good' | 'bad'): Promise<boolean> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const { session, home } = store();
-    if (!session || !home) return false;
+    if (!session?.llmToken || !home) return false;
     try {
       const response = await fetch(
         `${home.llm_url.replace(/\/+$/, '')}/v1/memory/${memoryId}/rate`,
