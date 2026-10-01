@@ -7,9 +7,11 @@ assistant that talks to a Laravel API (`../backend`) and a home-network LLM, zyp
 Built: the first run (1.1–1.5, 2.2 first-run mode), home mode with chat (2.1 Who's using,
 2.2 for any profile, 2.5 Guest, 3.1/3.2 Home, 3.3 Chats, 3.4/3.5 streaming chat, 5.1 Settings),
 reminders and location (3.1/3.2 "Coming up", the reminder editor, reminder notifications,
-location points and uploads, 5.3 Location), and messages and spoken alerts (message capture from
+location points and uploads, 5.3 Location), messages and spoken alerts (message capture from
 notifications, VIP spoken alerts with the app closed, 4.1 Messages, 4.2 Thread with suggested
-replies, 4.3 Spoken alerts, the VIP editor, 4.4 home notices, the 3.1/3.2 cards).
+replies, 4.3 Spoken alerts, the VIP editor, 4.4 home notices, the 3.1/3.2 cards), and profiles,
+memory and activity (2.3 Profiles, 2.4 Edit profile, 5.2 Memory and activity, 5.1 Privacy and
+Your data).
 It runs as a development build (`npx expo run:android`), never Expo Go. Dark theme only.
 
 Plans and source of truth: `docs/aster-first-run-plan.md` (first run, phases in §8),

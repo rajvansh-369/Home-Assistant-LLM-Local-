@@ -146,7 +146,7 @@ function Privacy({ owner }: { owner: boolean }) {
 
   function chooseAutoLock() {
     const pick = (on: boolean) => () => void setAutoLock(on).then((ok) => setFailed(!ok));
-    Alert.alert(copy.autoLock, undefined, [
+    Alert.alert(copy.autoLock, copy.autoLockHelp, [
       { text: copy.cancel, style: 'cancel' },
       { text: copy.autoLockOff, onPress: pick(false) },
       { text: copy.autoLockOn, onPress: pick(true) },
@@ -197,7 +197,7 @@ function YourData({ name }: { name: string }) {
     Alert.alert(copy.deleteChats(name), copy.deleteChatsConfirm, [
       { text: copy.cancel, style: 'cancel' },
       {
-        text: copy.deleteChats(name),
+        text: copy.deleteButton,
         style: 'destructive',
         onPress: () =>
           void deleteAllMyChats().then((result) =>

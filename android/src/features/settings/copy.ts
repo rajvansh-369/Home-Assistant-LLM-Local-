@@ -38,7 +38,10 @@ export const settings = {
   autoLock: 'Auto-lock',
   autoLockOn: 'After 2 min',
   autoLockOff: 'Off', // (proposed)
+  autoLockHelp: 'Lock Aster after it has been in the background this long.', // (proposed)
   cancel: 'Cancel', // (proposed)
+  /** The confirm dialog's button. (proposed) */
+  deleteButton: 'Delete',
   yourData: 'Your data',
   deleteChats: (name: string) => `Delete all of ${name}’s chats`,
   deleteChatsConfirm:

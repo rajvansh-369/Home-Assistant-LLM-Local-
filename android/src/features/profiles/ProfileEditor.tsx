@@ -232,7 +232,7 @@ export function ProfileEditor({ id }: { id: number | null }) {
     Alert.alert(copy.delete(saved.name), copy.deleteConfirm(saved.name), [
       { text: copy.cancel, style: 'cancel' },
       {
-        text: copy.delete(saved.name),
+        text: copy.deleteButton,
         style: 'destructive',
         onPress: () => {
           deleteHouseholdProfile(id)

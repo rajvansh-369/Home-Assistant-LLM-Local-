@@ -71,7 +71,7 @@ test('Delete all of my chats empties Laravel and this phone', async () => {
 
   const label = copy.deleteChats('Test Owner');
   await fireEvent.press(screen.getByRole('button', { name: label }));
-  await choose(label);
+  await choose(copy.deleteButton);
 
   await waitFor(() => expect(screen.getByText(copy.deleteChatsDone)).toBeTruthy(), wait);
   expect(useChatStore.getState().chats).toEqual({});
@@ -88,7 +88,7 @@ test('an older Laravel says the server needs an update; nothing is deleted here'
 
   const label = copy.deleteChats('Test Owner');
   await fireEvent.press(screen.getByRole('button', { name: label }));
-  await choose(label);
+  await choose(copy.deleteButton);
 
   await waitFor(() => expect(screen.getByText(copy.deleteChatsOld)).toBeTruthy(), wait);
   expect(Object.keys(useChatStore.getState().chats)).toHaveLength(1);

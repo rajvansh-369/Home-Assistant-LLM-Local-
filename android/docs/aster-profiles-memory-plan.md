@@ -235,15 +235,17 @@ Each phase ends with typecheck, lint and Jest passing, and a commit.
 
 ## 7. QA checklist
 
-- [ ] The Owner sees 2.3 from 5.1 with every profile; Member and Restricted don't see the row.
-- [ ] Adding a Member with a PIN shows it on 2.1 Who's using; unlocking it works.
-- [ ] Changing a profile's role, answer style, web lookups and auto-lock reaches Laravel; the next
+- [x] The Owner sees 2.3 from 5.1 with every profile; Member and Restricted don't see the row.
+- [x] Adding a Member with a PIN shows it on 2.1 Who's using; unlocking it works.
+- [x] Changing a profile's role, answer style, web lookups and auto-lock reaches Laravel; the next
       unlock of that profile follows them (llm_token `web` claim).
-- [ ] A PIN change is refused for a wrong format and works for the new PIN at the next unlock.
-- [ ] Deleting a profile removes it from 2.1 and 2.3; its open session on this phone ends.
-- [ ] 5.2 at home lists notes, forgets one, adds one and forgets everything; away it shows the note.
-- [ ] Turning memory off reaches Laravel and a new llm_token says `memory: false`.
-- [ ] The activity log shows the phone's events (arrived home, spoken alert, reminder) with no
+- [x] A PIN change is refused for a wrong format and works for the new PIN at the next unlock.
+- [x] Deleting a profile removes it from 2.1 and 2.3; its open session on this phone ends.
+- [x] 5.2 at home lists notes, forgets one, adds one and forgets everything; away it shows the note.
+      *(Device: add / forget with Mark-L; away and Forget everything in Jest, see the status doc.)*
+- [x] Turning memory off reaches Laravel and a new llm_token says `memory: false`.
+- [x] The activity log shows the phone's events (arrived home, spoken alert, reminder) with no
       message text.
-- [ ] Controls behind B1–B6 stay hidden against today's Laravel and appear once it has them.
-- [ ] Typecheck, lint and Jest pass; the flows work on the emulator against Laravel.
+- [x] Controls behind B1–B6 stay hidden against today's Laravel and appear once it has them.
+      *(Laravel has them since 1 Oct 2026; the fallbacks are in Jest.)*
+- [x] Typecheck, lint and Jest pass; the flows work on the emulator against Laravel.

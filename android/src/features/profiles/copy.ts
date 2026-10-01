@@ -83,7 +83,10 @@ export const profileEditor = {
   canUse: (name: string) => `${name || 'They'} can use`, // "They" (proposed)
   chat: 'Chat with Aster',
   history: 'Keep chat history',
-  historyDetail: (name: string) => `Saved on your server, only in ${name || 'their'}'s profile`,
+  historyDetail: (name: string) =>
+    name
+      ? `Saved on your server, only in ${name}'s profile`
+      : 'Saved on your server, only in their profile', // second (proposed)
   messages: "Read this phone's messages",
   messagesDetail: 'WhatsApp, SMS, Google Chat',
   ownerOnly: 'Owner only',
@@ -114,6 +117,8 @@ export const profileEditor = {
   delete: (name: string) => `Delete ${name} and their chats`, // canvas "her" becomes "their"
   deleteConfirm: (name: string) =>
     `${name}'s chats and reminders are deleted from your server. Their memory on your home computer stays.`, // (proposed)
+  /** The confirm dialog's button. (proposed) */
+  deleteButton: 'Delete',
   cancel: 'Cancel', // (proposed)
   saved: 'Saved.', // (proposed)
   saveFailed: "Couldn't save. Check your connection and try again.", // (proposed)
