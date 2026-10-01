@@ -202,7 +202,7 @@ followed by `POST /llm-token`, because the `memory` claim is fixed when the toke
 | Phase | Builds | Result |
 |---|---|---|
 | P1 | Plan; API calls (real and mock) for profiles, /me, activity; zypherLL memory client | Unit-tested calls |
-| P2 | 2.3 Profiles and 5.1's Profiles row | The Owner sees the household |
+| P2 | 2.3 Profiles and 5.1's Profiles row; 2.1 hides Guest while guest sessions are off | The Owner sees the household (rows open 2.4 and "Add a profile" appears in P3, with the route) |
 | P3 | 2.4 Edit profile: add, edit, PIN, delete | The Owner manages profiles |
 | P4 | 5.2 Memory and activity, 5.1's Memory and activity row | Memory and the log on the phone |
 | P5 | 5.1 Privacy: Auto-lock, Your data; the backend gaps B1–B6 switched on as Laravel adds them | 5.1 as drawn |

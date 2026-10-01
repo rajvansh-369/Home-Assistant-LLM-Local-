@@ -62,7 +62,8 @@ export default function WhoIsUsing() {
 
   const profiles = sortProfiles(cached);
   const people = profiles.filter((p) => p.role !== 'guest');
-  const guest = profiles.find((p) => p.role === 'guest');
+  // The Owner can turn guest sessions off on 2.3; Laravel then refuses them.
+  const guest = profiles.find((p) => p.role === 'guest' && p.chat_enabled !== false);
   const cards: (ProfileSummary | 'guest')[] = guest ? [...people, 'guest'] : people;
 
   return (

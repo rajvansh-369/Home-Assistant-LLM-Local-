@@ -8,7 +8,8 @@ import type { Profile } from '@/services/api/types';
 
 export const PROFILES_STORAGE_KEY = 'aster.profiles';
 
-export type ProfileSummary = Pick<Profile, 'id' | 'name' | 'color' | 'role'>;
+/** `chat_enabled` false on Guest means guest sessions are off (profiles plan §2, B2). */
+export type ProfileSummary = Pick<Profile, 'id' | 'name' | 'color' | 'role' | 'chat_enabled'>;
 
 type ProfilesStore = {
   profiles: ProfileSummary[];

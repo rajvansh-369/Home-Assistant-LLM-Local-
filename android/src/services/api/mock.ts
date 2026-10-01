@@ -188,11 +188,12 @@ function requireProfile(state: MockState, token: string): number {
   return state.tokenProfiles[token] ?? 0;
 }
 
-const publicProfile = ({ id, name, color, role }: MockProfile): Profile => ({
+const publicProfile = ({ id, name, color, role, chat_enabled }: MockProfile): Profile => ({
   id,
   name,
   color,
   role,
+  chat_enabled: chat_enabled ?? true,
 });
 
 /** The full profile, as unlock and PATCH return it, with Laravel's column defaults. */
@@ -563,7 +564,13 @@ export const mockApi: AsterApi = {
       if (profile.role === 'guest') throw invalid('pin', 'Guest has no PIN.');
       profile.pinHash = scramble(body.pin);
     }
+    if (profile.role === 'owner' && body.chat_enabled === false) {
+      throw invalid('chat_enabled', "The Owner's chat can't be turned off.");
+    }
+    const chatWasOn = profile.chat_enabled !== false;
     applyProfileFields(profile, body);
+    // As Laravel: chat off ends the profile's sessions.
+    if (chatWasOn && profile.chat_enabled === false) endSessions(state, id);
     await save(state);
     return fullProfile(profile);
   },
@@ -624,6 +631,7 @@ export const mockApi: AsterApi = {
     requireDevice(state, deviceToken);
     const guest = state.profiles.find((p) => p.role === 'guest');
     if (!guest) throw new ApiError(404, 'This household has no Guest profile yet.');
+    if (guest.chat_enabled === false) throw new ApiError(403, 'Guest sessions are turned off.');
     const session = openSession(state, guest);
     await save(state);
     return session;
@@ -656,6 +664,11 @@ export const mockApi: AsterApi = {
     const state = await load();
     const profile = requireNotGuest(state, profileToken);
     validateProfile(body);
+    for (const field of ['chat_enabled', 'history_enabled'] as const) {
+      // What a profile may use is the Owner's call (as Laravel).
+      if (body[field] !== undefined)
+        throw invalid(field, `The ${field.replace('_', ' ')} field is prohibited.`);
+    }
     if (body.pin !== undefined) {
       if (body.current_pin === undefined) {
         throw invalid('current_pin', 'The current pin field is required when pin is present.');

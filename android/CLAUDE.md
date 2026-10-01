@@ -14,8 +14,9 @@ It runs as a development build (`npx expo run:android`), never Expo Go. Dark the
 
 Plans and source of truth: `docs/aster-first-run-plan.md` (first run, phases in §8),
 `docs/aster-home-chat-plan.md` (home mode and chat, phases H1–H7),
-`docs/aster-reminders-location-plan.md` (reminders and location, phases R1–R6) and
-`docs/aster-messages-alerts-plan.md` (messages and spoken alerts, phases M1–M6).
+`docs/aster-reminders-location-plan.md` (reminders and location, phases R1–R6),
+`docs/aster-messages-alerts-plan.md` (messages and spoken alerts, phases M1–M6) and
+`docs/aster-profiles-memory-plan.md` (profiles, memory and activity, phases P1–P6).
 Status: `docs/*-status.md`.
 
 ## Commands
@@ -46,6 +47,7 @@ src/app/                     routes (expo-router); only screens and _layout file
   location.tsx               5.3 Location (Owner only)
   thread/[key].tsx           4.2 Thread (a captured chat; aster://thread/{key})
   alerts.tsx, vip/[id].tsx   4.3 Spoken alerts and the VIP editor (Owner only)
+  profiles.tsx               2.3 Profiles (Owner only)
   dev/gallery.tsx            component gallery, dev builds only
 src/theme/                   colors, typography, spacing, map style
 src/components/              shared components (plan §3)

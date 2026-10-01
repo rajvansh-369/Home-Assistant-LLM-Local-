@@ -28,7 +28,14 @@ export async function loadProfiles(): Promise<ProfilesResult> {
   try {
     const listed = await withDeviceToken((token) => api.listProfiles(server, token));
     const profiles = sortProfiles(
-      listed.map(({ id, name, color, role }) => ({ id, name, color, role })),
+      listed.map(({ id, name, color, role, chat_enabled }) => ({
+        id,
+        name,
+        color,
+        role,
+        // Laravel before 1 Oct 2026 leaves it out: treat as on.
+        ...(chat_enabled === false ? { chat_enabled } : {}),
+      })),
     );
     useProfilesStore.getState().set({ profiles });
     return { profiles, fresh: true };

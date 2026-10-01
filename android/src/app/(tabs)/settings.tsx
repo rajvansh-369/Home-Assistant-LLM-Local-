@@ -13,6 +13,7 @@ import {
   House,
   HouseWifi,
   Lock,
+  Users,
   Volume2,
   Zap,
 } from 'lucide-react-native';
@@ -40,6 +41,7 @@ import { setHideOnLockScreen, useAlertsStore } from '@/features/messages/alerts'
 import { DevFacts } from '@/features/settings/DevFacts';
 import { lockSession } from '@/features/profiles/actions';
 import { whoIsUsing } from '@/features/profiles/copy';
+import { useProfilesStore } from '@/features/profiles/store';
 import { chooseLlmEngine } from '@/features/settings/actions';
 import { settings as copy } from '@/features/settings/copy';
 import type { LlmEngine } from '@/services/api';
@@ -103,6 +105,7 @@ function AlertsAndPrivacy() {
   const settings = useAlertsStore((state) => state.settings);
   const vips = useAlertsStore((state) => state.vips.filter((vip) => vip.enabled).length);
   const hide = useAlertsStore((state) => state.hideOnLockScreen);
+  const profiles = useProfilesStore((state) => state.profiles.length);
   const unrestricted = useUnrestricted();
   return (
     <>
@@ -136,6 +139,12 @@ function AlertsAndPrivacy() {
           {copy.privacy}
         </Text>
         <ToggleCard>
+          <LinkRow
+            icon={Users}
+            title={copy.profiles}
+            value={profiles > 0 ? String(profiles) : undefined}
+            onPress={() => router.push('/profiles')}
+          />
           <ToggleRow
             icon={EyeOff}
             iconTone="neutral"

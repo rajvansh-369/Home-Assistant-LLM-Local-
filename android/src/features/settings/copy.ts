@@ -30,5 +30,7 @@ export const settings = {
   unrestricted: 'Battery usage: Unrestricted',
   optimized: 'Battery usage: Optimized', // (proposed)
   privacy: 'Privacy',
+  /** Owner only; the count is every profile, Guest included, as drawn. */
+  profiles: 'Profiles',
   hideText: 'Hide message text on lock screen',
 } as const;

@@ -31,3 +31,37 @@ export const guest = {
   opening: 'Opening a Guest session…', // (proposed)
   failed: "Can't open a Guest session. Check your connection and try again.", // (proposed)
 } as const;
+
+/** 2.3 Profiles (docs/aster-profiles-memory-plan.md §4). Canvas strings unless marked. */
+export const profilesScreen = {
+  title: 'Profiles',
+  intro: 'Only the Owner can add, change or remove profiles.',
+  you: 'you',
+  /** The Owner's line; "fingerprint" only when it is on for this phone. */
+  ownerDetail: (fingerprint: boolean) =>
+    fingerprint ? 'PIN + fingerprint · Reads phone messages' : 'PIN · Reads phone messages', // second (proposed)
+  /** Member and Restricted: "PIN · Chat · History kept". Voice isn't built, so no "and voice". */
+  detail: (parts: { chat?: boolean; history?: boolean }) =>
+    [
+      'PIN',
+      parts.chat === undefined ? null : parts.chat ? 'Chat' : 'No chat', // (proposed)
+      parts.history === undefined ? null : parts.history ? 'History kept' : 'No history', // "No history" (proposed)
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  guestDetail: 'No PIN · Chat only · Wiped when it ends',
+  allowGuest: 'Allow guest sessions',
+  add: 'Add a profile',
+  privacy: 'How profiles stay private',
+  privacyLines: [
+    'Chats and reminders are saved under each profile on your server, and open only with its PIN.',
+    'Memory stays on your home computer, in a separate folder for each profile.',
+    "Only the Owner can read this phone's messages and see its location history.",
+  ],
+  autoLock: (minutes: number) =>
+    `Aster locks after ${minutes} ${minutes === 1 ? 'minute' : 'minutes'} in the background and asks again.`,
+  /** When the Owner's "Lock when I leave" is off. (proposed) */
+  noAutoLock: 'Aster locks when you tap Lock, and asks again.',
+  offline: "Can't reach your server. Showing the last list this phone saw.", // (proposed)
+  saveFailed: "Couldn't save. Check your connection and try again.", // (proposed)
+} as const;
