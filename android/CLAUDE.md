@@ -17,8 +17,9 @@ It runs as a development build (`npx expo run:android`), never Expo Go. Dark the
 Plans and source of truth: `docs/aster-first-run-plan.md` (first run, phases in §8),
 `docs/aster-home-chat-plan.md` (home mode and chat, phases H1–H7),
 `docs/aster-reminders-location-plan.md` (reminders and location, phases R1–R6),
-`docs/aster-messages-alerts-plan.md` (messages and spoken alerts, phases M1–M6) and
-`docs/aster-profiles-memory-plan.md` (profiles, memory and activity, phases P1–P6).
+`docs/aster-messages-alerts-plan.md` (messages and spoken alerts, phases M1–M6),
+`docs/aster-profiles-memory-plan.md` (profiles, memory and activity, phases P1–P6) and
+`docs/aster-voice-plan.md` (voice and the wake word, phases V1–V6; planned).
 Status: `docs/*-status.md`.
 
 ## Commands
