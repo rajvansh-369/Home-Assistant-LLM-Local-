@@ -104,6 +104,7 @@ use it with `?thread={key}`).
 | File | Holds |
 |---|---|
 | `SpeechInput.kt` *(new)* | `SpeechRecognizer` (on-device recognizer on Android 12+ when available, else the default with `EXTRA_PREFER_OFFLINE`), partial and final results, errors, silence end |
+| `SpeechText.kt` *(new, V1)* | pure rules JUnit tests: recognizer error codes to the app's kinds, the best result, speech rate range |
 | `Speaker.kt` (exists) | adds: chosen voice, speech rate, a queue of sentences, `onDone` per utterance, stop |
 | `WakeWord.kt` *(new)* | openWakeWord's pipeline on ONNX Runtime: 16 kHz mono 80 ms frames → melspectrogram model → embedding model → "hey aster" classifier; score threshold and a 2 s refractory |
 | `WakeWordService.kt` *(new)* | foreground service, type `microphone`; owns `AudioRecord`; the ongoing notification; pause / resume for a turn; "Pause 1 hour" |
@@ -115,8 +116,9 @@ APK growth to a few MB). Manifest (config plugin): `FOREGROUND_SERVICE_MICROPHON
 `RECORD_AUDIO` (asked at 1.5 already), the service with `foregroundServiceType="microphone"`,
 `USE_FULL_SCREEN_INTENT` for the wake word with the screen off.
 
-JS API: `startListening(options)`, `stopListening()`, `cancelListening()`,
-`speakQueued(text, id)`, `stopSpeaking()`, `listVoices()`, `setVoiceSettings(json)`,
+JS API (as built in V1): `speechAvailability()`, `startListening(language, maxMs)` (returns the
+listen's session), `stopListening()`, `cancelListening()`, `speakQueued(text, id)`,
+`stopSpeaking()`, `listVoices()`, `setVoiceSettings(voice, rate)`; to come in V4:
 `startWakeWord(config)`, `stopWakeWord()`, `pauseWakeWord(minutes)`, `isWakeWordRunning()`.
 
 ### JS

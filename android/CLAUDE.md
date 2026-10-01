@@ -63,6 +63,7 @@ src/features/reminders/      reminders store, queue, sync, alarms, Coming up, ed
 src/features/location/       settings, tracking, points, device uploads, area, 5.3
 src/features/messages/       captured threads, alert settings and VIPs, catch-up, drafts, 4.x
 src/features/memory/         5.2: zypherLL notes and learned answers, the activity log
+src/features/voice/          3.6 Voice: who may talk, speech in / out, sentences, per-phone settings
 src/services/api/            client (real Laravel), types, mock
 src/services/llm/            health.ts, chat.ts (streaming via expo/fetch), sse.ts, memory.ts
 src/services/permissions/    one entry per Permissions row
@@ -70,7 +71,8 @@ src/services/secure.ts       expo-secure-store wrapper
 src/services/notifications.ts expo-notifications: reminder channel, category, alarms
 src/tasks/                   geofence, location updates, notification actions (headless too)
 modules/aster-system/        local Expo module (Kotlin): special access, message capture, the
-                             encrypted message store and the spoken-alert engine (JUnit tests in
+                             encrypted message store, the spoken-alert engine and speech in / out
+                             for voice (JUnit tests in
                              android/src/test: gradlew :aster-system:testDebugUnitTest)
 plugins/                     config plugins (with-home-llm-cleartext.js)
 __tests__/                   jest tests (never inside src/app)

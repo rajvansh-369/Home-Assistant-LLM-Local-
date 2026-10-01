@@ -43,8 +43,15 @@ jest.mock('./modules/aster-system', () => {
     atHome: false,
     llmAccess: null,
     activity: [],
+    // Voice: listens started, sentences queued, the voice settings, and what listVoices answers.
+    listens: [],
+    queued: [],
+    voiceSettings: null,
+    voices: [],
+    speech: { available: true, onDevice: true },
   });
   const state = fresh();
+  let session = 0;
   return {
     __esModule: true,
     default: {
@@ -53,9 +60,11 @@ jest.mock('./modules/aster-system', () => {
         Object.assign(state, fresh());
         listeners.clear();
       },
-      __emit(event) {
-        (listeners.get(event) ?? []).forEach((listener) => listener());
+      __emit(event, payload) {
+        (listeners.get(event) ?? []).forEach((listener) => listener(payload));
       },
+      /** The session of the newest startListening. */
+      __session: () => session,
       isNotificationListenerEnabled: jest.fn(() => false),
       openNotificationListenerSettings: jest.fn(() => true),
       isIgnoringBatteryOptimizations: jest.fn(() => false),
@@ -91,6 +100,21 @@ jest.mock('./modules/aster-system', () => {
         return true;
       }),
       stopSpeaking: jest.fn(),
+      speechAvailability: jest.fn(() => ({ ...state.speech })),
+      startListening: jest.fn((language, maxMs) => {
+        session += 1;
+        state.listens.push({ session, language, maxMs });
+        return session;
+      }),
+      stopListening: jest.fn(),
+      cancelListening: jest.fn(),
+      speakQueued: jest.fn((text, id) => {
+        state.queued.push({ text, id });
+      }),
+      setVoiceSettings: jest.fn((voice, rate) => {
+        state.voiceSettings = { voice, rate };
+      }),
+      listVoices: jest.fn(async () => [...state.voices]),
       takeActivity: jest.fn(() => {
         const out = JSON.stringify(state.activity);
         state.activity = [];

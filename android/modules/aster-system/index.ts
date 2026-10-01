@@ -1,5 +1,5 @@
 // Aster's local Expo module (Kotlin, Android only). See plan §7, docs/aster-messages-alerts-plan.md
-// §2 and android/src/main/java.
+// §2, docs/aster-voice-plan.md §2 and android/src/main/java.
 import { requireOptionalNativeModule } from 'expo';
 
 export type MessageSource = 'whatsapp' | 'google_chat' | 'sms';
@@ -44,11 +44,27 @@ export type ReplyResult = 'sent' | 'no-action';
 
 export type Subscription = { remove(): void };
 
+/** Why a listen ended without words. `cancelled` follows stop / cancel. */
+export type SpeechErrorKind =
+  'no-speech' | 'permission' | 'busy' | 'network' | 'language' | 'audio' | 'cancelled' | 'failed';
+
+/** A voice of the phone's TextToSpeech that works offline. */
+export type DeviceVoice = { name: string; locale: string; quality: number };
+
 type AsterSystemEvents = {
   /** Messages were captured, read or alerted on. */
   onMessagesChanged: () => void;
   /** An activity event is waiting in `takeActivity`. */
   onActivity: () => void;
+  /** The recognizer is ready (`listening`), hears speech (`speaking`) or heard the end (`ended`). */
+  onSpeechState: (event: { session: number; state: 'listening' | 'speaking' | 'ended' }) => void;
+  /** What has been heard so far. */
+  onSpeechPartial: (event: { session: number; text: string }) => void;
+  /** The listen's final words. */
+  onSpeechResult: (event: { session: number; text: string }) => void;
+  onSpeechError: (event: { session: number; kind: SpeechErrorKind }) => void;
+  /** A `speakQueued` sentence was said (or couldn't be). */
+  onSpeakDone: (event: { id: string; spoken: boolean }) => void;
 };
 
 type AsterSystemModule = {
@@ -85,6 +101,24 @@ type AsterSystemModule = {
   /** The queued activity events as a JSON array; the queue is emptied. */
   takeActivity(): string;
 
+  /** A recognizer exists, and whether it works without the network. */
+  speechAvailability(): { available: boolean; onDevice: boolean };
+  /**
+   * Starts listening (one at a time); returns the listen's session for its events. `language` is a
+   * BCP 47 tag or null for the phone's; `maxMs` caps a listen that never ends (1–60 s).
+   */
+  startListening(language: string | null, maxMs: number): number;
+  /** Ends listening; the final result still comes. */
+  stopListening(): void;
+  /** Ends listening with no result. */
+  cancelListening(): void;
+  /** Queues one sentence; `onSpeakDone` with `id` follows. */
+  speakQueued(text: string, id: string): void;
+  /** The voice (null: the phone's default) and speed (0.5–2) for what is spoken next. */
+  setVoiceSettings(voice: string | null, rate: number): void;
+  /** The phone's offline voices. */
+  listVoices(): Promise<DeviceVoice[]>;
+
   addListener<E extends keyof AsterSystemEvents>(
     event: E,
     listener: AsterSystemEvents[E],
@@ -119,6 +153,13 @@ const unavailable: AsterSystemModule = {
   speak: async () => false,
   stopSpeaking: () => {},
   takeActivity: () => '[]',
+  speechAvailability: () => ({ available: false, onDevice: false }),
+  startListening: () => 0,
+  stopListening: () => {},
+  cancelListening: () => {},
+  speakQueued: () => {},
+  setVoiceSettings: () => {},
+  listVoices: async () => [],
   addListener: () => ({ remove() {} }),
 };
 

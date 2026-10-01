@@ -20,7 +20,8 @@ import expo.modules.kotlin.modules.ModuleDefinition
 /**
  * Special access that has no runtime prompt (plan §7): notification access and battery. And the
  * captured messages and spoken alerts (docs/aster-messages-alerts-plan.md §2 Native): threads,
- * Send, the rules and the activity events JS collects.
+ * Send, the rules and the activity events JS collects. And speech in and out for 3.6 Voice
+ * (docs/aster-voice-plan.md §2).
  */
 class AsterSystemModule : Module() {
   private val context: Context
@@ -32,10 +33,18 @@ class AsterSystemModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("AsterSystem")
 
-    Events("onMessagesChanged", "onActivity")
+    Events(
+      "onMessagesChanged",
+      "onActivity",
+      "onSpeechState",
+      "onSpeechPartial",
+      "onSpeechResult",
+      "onSpeechError",
+      "onSpeakDone"
+    )
 
     OnCreate {
-      AsterEvents.sink = { name -> sendEvent(name, Bundle.EMPTY) }
+      AsterEvents.sink = { name, payload -> sendEvent(name, payload) }
     }
 
     OnDestroy {
@@ -132,6 +141,36 @@ class AsterSystemModule : Module() {
 
     Function("stopSpeaking") {
       Speaker.stop()
+    }
+
+    // Voice (docs/aster-voice-plan.md §2 Native) -------------------------------------------------
+
+    Function("speechAvailability") {
+      mapOf("available" to SpeechInput.available(context), "onDevice" to SpeechInput.onDevice(context))
+    }
+
+    Function("startListening") { language: String?, maxMs: Double ->
+      SpeechInput.start(context, language, maxMs.toLong().coerceIn(1_000L, 60_000L))
+    }
+
+    Function("stopListening") {
+      SpeechInput.stop()
+    }
+
+    Function("cancelListening") {
+      SpeechInput.cancel()
+    }
+
+    Function("speakQueued") { text: String, id: String ->
+      Speaker.speakQueued(context, text, id)
+    }
+
+    Function("setVoiceSettings") { voice: String?, rate: Double ->
+      Speaker.configure(voice, rate)
+    }
+
+    AsyncFunction("listVoices") { promise: Promise ->
+      Speaker.voices(context) { voices -> promise.resolve(voices) }
     }
 
     Function("takeActivity") {

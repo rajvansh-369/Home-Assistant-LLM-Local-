@@ -82,6 +82,7 @@ export const profileEditor = {
   roleHelp: 'Restricted turns off web lookups, reminders and message actions.',
   canUse: (name: string) => `${name || 'They'} can use`, // "They" (proposed)
   chat: 'Chat with Aster',
+  voice: 'Voice and wake word',
   history: 'Keep chat history',
   historyDetail: (name: string) =>
     name

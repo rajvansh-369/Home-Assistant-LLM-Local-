@@ -3,6 +3,7 @@ package expo.modules.astersystem
 import android.app.Notification
 import android.app.PendingIntent
 import android.os.Build
+import android.os.Bundle
 import android.provider.Telephony
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
@@ -29,10 +30,12 @@ internal object Worker {
 
 /** Tells JS (when it runs) that something changed. The module sets the sink. */
 internal object AsterEvents {
-  @Volatile var sink: ((String) -> Unit)? = null
+  /** Set while the JS module is alive: sends an event with its payload. */
+  @Volatile var sink: ((String, Bundle) -> Unit)? = null
 
-  fun messagesChanged() = sink?.invoke("onMessagesChanged")
-  fun activity() = sink?.invoke("onActivity")
+  fun messagesChanged() = emit("onMessagesChanged", Bundle.EMPTY)
+  fun activity() = emit("onActivity", Bundle.EMPTY)
+  fun emit(name: String, payload: Bundle) = sink?.invoke(name, payload)
 }
 
 /**

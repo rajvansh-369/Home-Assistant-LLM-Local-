@@ -78,10 +78,7 @@ test('editing saves each change at once; a PIN change works at the next unlock',
   await waitFor(() => expect(screen.getByLabelText(copy.chat)).toBeTruthy(), wait);
 
   await fireEvent.press(screen.getByLabelText('Restricted'));
-  await waitFor(
-    () => expect(useManageStore.getState().details[id].role).toBe('restricted'),
-    wait,
-  );
+  await waitFor(() => expect(useManageStore.getState().details[id].role).toBe('restricted'), wait);
   expect(screen.getByText(copy.webRestricted)).toBeTruthy();
   await fireEvent.press(screen.getByLabelText('Off'));
   await waitFor(
@@ -93,6 +90,18 @@ test('editing saves each change at once; a PIN change works at the next unlock',
   await fireEvent.press(screen.getByLabelText(copy.pinChange));
   await waitFor(() => expect(screen.getByText(copy.pinSaved)).toBeTruthy(), wait);
   await unlockProfile(id, '999999');
+});
+
+test('"Voice and wake word" saves at once', async () => {
+  const id = memberId();
+  await render(<ProfileEditor id={id} />);
+  await waitFor(() => expect(screen.getByLabelText(copy.voice)).toBeTruthy(), wait);
+  await fireEvent.press(screen.getByLabelText(copy.voice));
+  await waitFor(
+    () => expect(useManageStore.getState().details[id].voice_enabled).toBe(false),
+    wait,
+  );
+  expect((await mockApi.getProfile(server, ownerToken(), id)).voice_enabled).toBe(false);
 });
 
 test('a refused change is put back with a note', async () => {

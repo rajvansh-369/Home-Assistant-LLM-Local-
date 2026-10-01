@@ -11,6 +11,13 @@
     <package android:name="com.google.android.apps.messaging" />
     <package android:name="com.samsung.android.messaging" />
     <package android:name="com.android.messaging" />
+    <!-- 3.6 Voice (docs/aster-voice-plan.md §4): the speech recognizer and TextToSpeech engines. -->
+    <intent>
+      <action android:name="android.speech.RecognitionService" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.TTS_SERVICE" />
+    </intent>
   </queries>
 
   <application>

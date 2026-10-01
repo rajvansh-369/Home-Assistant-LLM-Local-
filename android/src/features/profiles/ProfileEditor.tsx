@@ -4,7 +4,7 @@
 // sends `POST /profiles` once. The pickers are segmented controls (proposed: the canvas draws rows
 // that open pickers), and the PIN is 1.3's PIN field.
 import { router } from 'expo-router';
-import { Check, Inbox, MessageCircle, NotebookText, Trash2 } from 'lucide-react-native';
+import { Check, Inbox, MessageCircle, Mic, NotebookText, Trash2 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -70,6 +70,7 @@ type Values = {
   auto_lock_minutes: number | null;
   /** Missing when Laravel doesn't have the switch: the row is hidden. */
   chat_enabled?: boolean;
+  voice_enabled?: boolean;
   history_enabled?: boolean;
 };
 
@@ -81,6 +82,7 @@ const NEW_PROFILE: Values = {
   web_mode: 'auto',
   auto_lock_minutes: AUTO_LOCK_MINUTES,
   chat_enabled: true,
+  voice_enabled: true,
   history_enabled: true,
 };
 
@@ -98,6 +100,7 @@ function valuesOf(profile: Profile): Values {
     web_mode: profile.web_mode ?? 'auto',
     auto_lock_minutes: profile.auto_lock_minutes ?? null,
     chat_enabled: profile.chat_enabled,
+    voice_enabled: profile.voice_enabled,
     history_enabled: profile.history_enabled,
   };
 }
@@ -206,6 +209,7 @@ export function ProfileEditor({ id }: { id: number | null }) {
       sampling: draft.sampling,
       web_mode: draft.web_mode,
       chat_enabled: draft.chat_enabled,
+      voice_enabled: draft.voice_enabled,
       history_enabled: draft.history_enabled,
     };
     setBusy(true);
@@ -334,6 +338,15 @@ export function ProfileEditor({ id }: { id: number | null }) {
                 title={copy.chat}
                 value={values.chat_enabled}
                 onValueChange={(on) => void change({ chat_enabled: on })}
+              />
+            ) : null}
+            {values.voice_enabled !== undefined ? (
+              <ToggleRow
+                icon={Mic}
+                iconTone="neutral"
+                title={copy.voice}
+                value={values.voice_enabled}
+                onValueChange={(on) => void change({ voice_enabled: on })}
               />
             ) : null}
             {values.history_enabled !== undefined ? (
