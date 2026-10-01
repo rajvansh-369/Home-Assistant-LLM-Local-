@@ -48,6 +48,7 @@ src/app/                     routes (expo-router); only screens and _layout file
   thread/[key].tsx           4.2 Thread (a captured chat; aster://thread/{key})
   alerts.tsx, vip/[id].tsx   4.3 Spoken alerts and the VIP editor (Owner only)
   profiles.tsx, profile/[id].tsx  2.3 Profiles and 2.4 Edit profile (Owner only)
+  memory.tsx                 5.2 Memory and activity (not Guest)
   dev/gallery.tsx            component gallery, dev builds only
 src/theme/                   colors, typography, spacing, map style
 src/components/              shared components (plan §3)
@@ -58,8 +59,9 @@ src/features/chat/           chat cache, upload queue, sync, prompt, streaming t
 src/features/reminders/      reminders store, queue, sync, alarms, Coming up, editor
 src/features/location/       settings, tracking, points, device uploads, area, 5.3
 src/features/messages/       captured threads, alert settings and VIPs, catch-up, drafts, 4.x
+src/features/memory/         5.2: zypherLL notes and learned answers, the activity log
 src/services/api/            client (real Laravel), types, mock
-src/services/llm/            health.ts, chat.ts (streaming via expo/fetch), sse.ts
+src/services/llm/            health.ts, chat.ts (streaming via expo/fetch), sse.ts, memory.ts
 src/services/permissions/    one entry per Permissions row
 src/services/secure.ts       expo-secure-store wrapper
 src/services/notifications.ts expo-notifications: reminder channel, category, alarms
@@ -76,7 +78,7 @@ docs/                        plan, design images, screenshots, status
 
 - Colours, fonts and sizes come only from `src/theme`.
 - Screen text comes only from the features' `copy.ts` files (first-run, profiles, home, chat,
-  settings, reminders, location, messages). The native alert engine's words come from
+  settings, reminders, location, messages, memory). The native alert engine's words come from
   `features/messages/copy.ts` too (handed over with the rules).
 - Captured messages never leave the phone except to the home PC's local model; never log them.
 - Canvas sample data (Rohan, Sunrise Residency, …) is never a default value.

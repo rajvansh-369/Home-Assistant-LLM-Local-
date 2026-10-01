@@ -33,4 +33,6 @@ export const settings = {
   /** Owner only; the count is every profile, Guest included, as drawn. */
   profiles: 'Profiles',
   hideText: 'Hide message text on lock screen',
+  /** Every profile but Guest. */
+  memory: 'Memory and activity',
 } as const;

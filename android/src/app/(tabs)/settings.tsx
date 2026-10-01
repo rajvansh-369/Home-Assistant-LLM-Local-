@@ -2,10 +2,12 @@
 // choose who answers chats. Local is Zephyr on the home computer; Mark-L (named in the admin panel)
 // is Gemini through the same computer. The choice applies on this phone at once and reaches Laravel
 // now if unlocked, else at the next unlock. The Owner also sees Home and location, which opens 5.3
-// (reminders plan §3), Alerts and background (4.3 and battery use) and Privacy's "Hide message text
-// on lock screen" (docs/aster-messages-alerts-plan.md §3 5.1).
+// (reminders plan §3), Alerts and background (4.3 and battery use) and Privacy's Profiles (2.3) and
+// "Hide message text on lock screen" (docs/aster-messages-alerts-plan.md §3 5.1). Every profile
+// but Guest has Privacy's "Memory and activity" (5.2, docs/aster-profiles-memory-plan.md §4).
 import { router } from 'expo-router';
 import {
+  Brain,
   Cloud,
   Cpu,
   EyeOff,
@@ -101,50 +103,57 @@ function useUnrestricted(): boolean {
 }
 
 /** 5.1 Alerts and background, and Privacy, Owner only. */
-function AlertsAndPrivacy() {
+/** 5.1 Alerts and background, Owner only. */
+function AlertsAndBackground() {
   const settings = useAlertsStore((state) => state.settings);
   const vips = useAlertsStore((state) => state.vips.filter((vip) => vip.enabled).length);
-  const hide = useAlertsStore((state) => state.hideOnLockScreen);
-  const profiles = useProfilesStore((state) => state.profiles.length);
   const unrestricted = useUnrestricted();
   return (
-    <>
-      <View style={styles.section}>
-        <Text variant="label" tone="secondary" accessibilityRole="header">
-          {copy.alertsSection}
-        </Text>
-        <ToggleCard>
-          <LinkRow
-            icon={Volume2}
-            title={copy.spokenAlerts}
-            subtitle={
-              settings.enabled
-                ? copy.spokenDetail(vips, settings.missed_after_minutes)
-                : copy.spokenOff
-            }
-            onPress={() => router.push('/alerts')}
-          />
-          <LinkRow
-            icon={Zap}
-            title={copy.background}
-            subtitle={unrestricted ? copy.unrestricted : copy.optimized}
-            onPress={
-              unrestricted ? undefined : () => AsterSystem.requestIgnoreBatteryOptimizations()
-            }
-          />
-        </ToggleCard>
-      </View>
-      <View style={styles.section}>
-        <Text variant="label" tone="secondary" accessibilityRole="header">
-          {copy.privacy}
-        </Text>
-        <ToggleCard>
+    <View style={styles.section}>
+      <Text variant="label" tone="secondary" accessibilityRole="header">
+        {copy.alertsSection}
+      </Text>
+      <ToggleCard>
+        <LinkRow
+          icon={Volume2}
+          title={copy.spokenAlerts}
+          subtitle={
+            settings.enabled
+              ? copy.spokenDetail(vips, settings.missed_after_minutes)
+              : copy.spokenOff
+          }
+          onPress={() => router.push('/alerts')}
+        />
+        <LinkRow
+          icon={Zap}
+          title={copy.background}
+          subtitle={unrestricted ? copy.unrestricted : copy.optimized}
+          onPress={unrestricted ? undefined : () => AsterSystem.requestIgnoreBatteryOptimizations()}
+        />
+      </ToggleCard>
+    </View>
+  );
+}
+
+/** 5.1 Privacy: Profiles and the lock-screen choice for the Owner; Memory and activity for all. */
+function Privacy({ owner }: { owner: boolean }) {
+  const hide = useAlertsStore((state) => state.hideOnLockScreen);
+  const profiles = useProfilesStore((state) => state.profiles.length);
+  return (
+    <View style={styles.section}>
+      <Text variant="label" tone="secondary" accessibilityRole="header">
+        {copy.privacy}
+      </Text>
+      <ToggleCard>
+        {owner ? (
           <LinkRow
             icon={Users}
             title={copy.profiles}
             value={profiles > 0 ? String(profiles) : undefined}
             onPress={() => router.push('/profiles')}
           />
+        ) : null}
+        {owner ? (
           <ToggleRow
             icon={EyeOff}
             iconTone="neutral"
@@ -152,9 +161,10 @@ function AlertsAndPrivacy() {
             value={hide}
             onValueChange={(value) => void setHideOnLockScreen(value)}
           />
-        </ToggleCard>
-      </View>
-    </>
+        ) : null}
+        <LinkRow icon={Brain} title={copy.memory} onPress={() => router.push('/memory')} />
+      </ToggleCard>
+    </View>
   );
 }
 
@@ -230,7 +240,8 @@ export default function Settings() {
       {status ? <StatusLine status={status} /> : null}
       <InfoCallout icon={HouseWifi} text={copy.homeWifi} />
       {profile?.role === 'owner' ? <HomeAndLocation /> : null}
-      {profile?.role === 'owner' ? <AlertsAndPrivacy /> : null}
+      {profile?.role === 'owner' ? <AlertsAndBackground /> : null}
+      {profile && profile.role !== 'guest' ? <Privacy owner={profile.role === 'owner'} /> : null}
       {__DEV__ ? <DevFacts /> : null}
     </Screen>
   );

@@ -173,8 +173,8 @@ followed by `POST /llm-token`, because the `memory` claim is fixed when the toke
 - "Remember things about me" / "Kept on your home computer, only for {name}" switch
   (`memory_enabled`; works away too, since it is Laravel).
 - At home with the model ready:
-  - "Notes about you": each note's text with a "Forget this" button; "Add a note" opens a one-line
-    sheet *(proposed)*. Empty: "No notes yet. Aster adds them when you tell it about yourself."
+  - "Notes about you": each note's text with a "Forget this" button; "Add a note" opens a field
+    and "Save note" in place *(proposed; as built in P4, no sheet)*. Empty: "No notes yet. Aster adds them when you tell it about yourself."
     *(proposed)*
   - "Learned answers": "{n} answers learned from your chats" / "{rated} rated · rate answers in
     chat to rank them"; "Forget everything" with a confirm dialog (`DELETE /v1/memory?selector=all`).
