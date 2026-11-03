@@ -19,7 +19,7 @@ export type StatusTone = 'ready' | 'busy' | 'off';
 const DOT = { ready: colors.accent, busy: colors.warning, off: colors.textMuted } as const;
 
 /** The canvas pulse: grows to 2.6× and fades out by 70 % of 2.2 s, then waits. */
-function PulseDot({ tone }: { tone: StatusTone }) {
+export function PulseDot({ tone }: { tone: StatusTone }) {
   const reduced = useReducedMotion();
   const progress = useSharedValue(0);
   const pulsing = tone !== 'off' && !reduced;

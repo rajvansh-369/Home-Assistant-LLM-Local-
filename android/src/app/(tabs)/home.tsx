@@ -5,7 +5,15 @@
 // §3). The Owner also sees "Listening · 3 VIPs", "Missed while you were away" at home and the VIP
 // card away (docs/aster-messages-alerts-plan.md §3).
 import { router } from 'expo-router';
-import { AlertTriangle, Clock, Lock, MapPin, MessageCircle, WifiOff } from 'lucide-react-native';
+import {
+  AlertTriangle,
+  Clock,
+  Lock,
+  MapPin,
+  MessageCircle,
+  Mic,
+  WifiOff,
+} from 'lucide-react-native';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -18,8 +26,19 @@ import { useHomeModeStore } from '@/features/home-mode/store';
 import { AwayVipCard, ListeningChip, MissedCard } from '@/features/messages/HomeCards';
 import { lockSession } from '@/features/profiles/actions';
 import { ComingUp } from '@/features/reminders/ComingUp';
+import { useVoiceAccess } from '@/features/voice/access';
+import { voice as voiceCopy } from '@/features/voice/copy';
 import { hasMapsKey } from '@/services/buildConfig';
-import { colors, iconSizes, profileColorKey, radii, sizes, spacing, strokes } from '@/theme';
+import {
+  colors,
+  iconSizes,
+  orbColors,
+  profileColorKey,
+  radii,
+  sizes,
+  spacing,
+  strokes,
+} from '@/theme';
 
 function startChat(question?: string) {
   router.push({
@@ -76,6 +95,7 @@ export default function Home() {
   const profile = useFirstRunStore((state) => state.session?.profile);
   const mode = useHomeModeStore((state) => state.mode);
   const atHome = isAtHome(mode);
+  const voice = useVoiceAccess();
   const now = new Date();
 
   return (
@@ -165,6 +185,22 @@ export default function Home() {
               {copy.askAnything}
             </Text>
           </Pressable>
+          {voice.allowed ? (
+            <Pressable
+              onPress={() => router.push('/voice')}
+              disabled={!voice.ready}
+              accessibilityRole="button"
+              accessibilityLabel={voiceCopy.talkToAster}
+              accessibilityState={{ disabled: !voice.ready }}
+              style={({ pressed }) => [
+                styles.mic,
+                pressed && styles.micPressed,
+                !voice.ready && styles.micDisabled,
+              ]}
+            >
+              <Mic size={iconSizes.homeMic} color={colors.bg} strokeWidth={2} />
+            </Pressable>
+          ) : null}
         </View>
       ) : (
         <Composer
@@ -213,8 +249,16 @@ const styles = StyleSheet.create({
   },
   awayText: { paddingTop: 14, paddingHorizontal: 16, paddingBottom: 16, gap: 6 },
   awayTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  entryRow: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 14 },
+  entryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 14,
+  },
   entry: {
+    flex: 1,
     height: sizes.composerEntry,
     borderRadius: radii.pill,
     backgroundColor: colors.surface2,
@@ -226,4 +270,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   entryPressed: { backgroundColor: colors.track },
+  mic: {
+    width: sizes.homeMic,
+    height: sizes.homeMic,
+    borderRadius: radii.pill,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: `0 0 24px ${orbColors.brandGlow}`,
+  },
+  micPressed: { backgroundColor: colors.accentPressed },
+  micDisabled: { opacity: 0.4 },
 });

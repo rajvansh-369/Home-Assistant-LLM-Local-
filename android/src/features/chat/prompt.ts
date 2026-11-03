@@ -13,10 +13,16 @@ export const OOM_MAX_TOKENS = 1024;
 
 export type Turn = { role: 'user' | 'assistant'; content: string };
 
+/** Added for a turn spoken in 3.6 Voice (docs/aster-voice-plan.md §4). (proposed) */
+export const SPOKEN_LINE = 'Answer in two or three short spoken sentences.';
+/** A spoken answer's length cap (voice plan §4). */
+export const SPOKEN_MAX_TOKENS = 200;
+
 export function buildMessages({
   personality,
   area,
   context,
+  spoken = false,
   history,
   question,
   limit = CONTEXT_MESSAGES,
@@ -26,11 +32,18 @@ export function buildMessages({
   area?: string | null;
   /** What the app adds, e.g. the unread messages for "Ask about it" (messages plan §6). */
   context?: string | null;
+  /** A voice turn: asks for a short answer that reads well aloud. */
+  spoken?: boolean;
   history: Turn[];
   question: string;
   limit?: number;
 }): ChatMessage[] {
-  const lines = [personality?.trim(), area?.trim(), context?.trim()].filter(Boolean);
+  const lines = [
+    personality?.trim(),
+    area?.trim(),
+    context?.trim(),
+    spoken ? SPOKEN_LINE : null,
+  ].filter(Boolean);
   const system = lines.length > 0 ? [{ role: 'system' as const, content: lines.join('\n\n') }] : [];
   const recent = history.filter((turn) => turn.content.trim() !== '').slice(-limit);
   return [...system, ...recent, { role: 'user', content: question }];

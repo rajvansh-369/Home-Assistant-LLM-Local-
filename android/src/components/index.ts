@@ -30,7 +30,7 @@ export { Segmented } from './Segmented';
 export type { SegmentedOption } from './Segmented';
 export { SmallPill } from './SmallPill';
 export { SourceBadge } from './SourceBadge';
-export { StatusChip } from './StatusChip';
+export { PulseDot, StatusChip } from './StatusChip';
 export type { StatusTone } from './StatusChip';
 export { BackButton, ProgressSegments, StepHeader } from './StepHeader';
 export { SuggestionChip } from './SuggestionChip';

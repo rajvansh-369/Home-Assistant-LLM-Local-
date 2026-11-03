@@ -24,15 +24,18 @@ const coreStops = [
 type AsterOrbProps = {
   /** Box size, at most 190. Welcome fits it to the free height. Parts scale with it. */
   size?: number;
-  /** Gallery only: force the static (reduced-motion) look. */
+  /** The static (reduced-motion) look: the gallery, and 3.6 while paused. */
   still?: boolean;
+  /** `voice`: 3.6's larger orb (230 box, 106 core); `size` is ignored. */
+  variant?: 'welcome' | 'voice';
 };
 
-export function AsterOrb({ size = sizes.orb, still = false }: AsterOrbProps) {
-  const box = Math.min(size, sizes.orb);
-  const scale = box / sizes.orb;
-  const core = sizes.orbCore * scale;
-  const inset = sizes.orbInnerInset * scale;
+export function AsterOrb({ size = sizes.orb, still = false, variant = 'welcome' }: AsterOrbProps) {
+  const isVoice = variant === 'voice';
+  const box = isVoice ? sizes.voiceOrb : Math.min(size, sizes.orb);
+  const scale = isVoice ? 1 : box / sizes.orb;
+  const core = isVoice ? sizes.voiceOrbCore : sizes.orbCore * scale;
+  const inset = isVoice ? sizes.voiceOrbInset : sizes.orbInnerInset * scale;
 
   const reduceMotion = useReducedMotion();
   const animate = !reduceMotion && !still;
@@ -88,7 +91,9 @@ export function AsterOrb({ size = sizes.orb, still = false }: AsterOrbProps) {
       <View style={[styles.layer, styles.outerRing, circle(box)]} />
       <View style={[styles.layer, styles.innerRing, circle(box - inset * 2)]} />
       {animate ? <Animated.View style={[styles.layer, styles.pulseRing, circle(core), ringStyle]} /> : null}
-      <Animated.View style={[styles.layer, styles.glow, circle(core), coreStyle]}>
+      <Animated.View
+        style={[styles.layer, isVoice ? styles.voiceGlow : styles.glow, circle(core), coreStyle]}
+      >
         <OrbSphere size={core} cx={0.34} cy={0.3} stops={coreStops} />
       </Animated.View>
     </View>
@@ -102,4 +107,5 @@ const styles = StyleSheet.create({
   innerRing: { borderWidth: 1, borderColor: orbColors.innerRing },
   pulseRing: { borderWidth: sizes.orbPulseBorder, borderColor: orbColors.pulseRing },
   glow: { boxShadow: `0 0 57px ${orbColors.coreGlow}` },
+  voiceGlow: { boxShadow: `0 0 69px ${orbColors.coreGlow}` },
 });

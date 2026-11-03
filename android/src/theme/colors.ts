@@ -58,6 +58,8 @@ export const orbColors = {
   pulseRing: 'rgba(110,236,193,0.5)',
   coreGlow: 'rgba(110,236,193,0.42)',
   brandGlow: 'rgba(110,236,193,0.35)',
+  /** 3.6's mic button. */
+  micGlow: 'rgba(110,236,193,0.4)',
 } as const;
 
 // 1.4 map palette and geofence.

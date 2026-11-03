@@ -125,8 +125,8 @@ listen's session), `stopListening()`, `cancelListening()`, `speakQueued(text, id
 
 | Path | Holds |
 |---|---|
-| `src/features/voice/` | `settings.ts` (wake word on, voice, rate; per phone, AsyncStorage), `turn.ts` (the VoiceTurn state machine), `intents.ts` (reminder / read messages / reply parsing), `sentences.ts` (cut a stream into speakable sentences), `wake.ts` (when the service may run), `VoiceScreen.tsx`, `copy.ts` |
-| `src/features/chat/` | voice turns use the same chat cache and queue; `context: ["voice"]` on their messages |
+| `src/features/voice/` | `settings.ts` (wake word on, voice, rate; per phone, AsyncStorage), `turn.ts` (the VoiceTurn state machine), `intents.ts` (reminder / read messages / reply parsing), `sentences.ts` (cut a stream into speakable sentences), `wake.ts` (when the service may run), `VoiceScreen.tsx`, `copy.ts`; as built in V2 also `mic.ts` (asks for the microphone with 1.5's flow when it was skipped) |
+| `src/features/chat/` | voice turns use the same chat cache and queue; `context: ["voice"]` on their messages. As built in V2: `useChat` takes `voice` (the spoken system line, `max_tokens` 200, the flag) and `onText`, and `send` resolves with the finished turn |
 | `src/components/` | the large orb with rings (3.6), a `MicButton` (3.1, 3.4) |
 
 ---
@@ -252,6 +252,18 @@ ones do; a read-out logs `spoken_alert`-style `voice_read` *(proposed type)* wit
 | V4 | The "hey aster" model (training script, `hey_aster.onnx`), the Kotlin openWakeWord pipeline, the foreground service and the ongoing notification | "Hey Aster" at home, screen off too |
 | V5 | 5.1 Voice section and the "Voice and speech" sheet, 3.2 copy, read aloud in 3.4, activity events | Voice settings as drawn |
 | V6 | Device QA on a phone (not the emulator: no real mic or wake word there), battery check, status doc | §10 ticked or explained |
+
+V2 as built (differences from §3 and §4, to confirm):
+
+- 3.6's footnote ("Say 'Hey Aster' any time…") is left out until the wake word exists (V4).
+- The follow-up listen ends on the recognizer's own silence timeout (about 5 s on most phones),
+  not a fixed 8 s; a follow-up nobody answers just pauses, with no "I didn't catch that."
+- The mic while Aster is thinking or speaking stops the answer (saved as stopped) and listens.
+- 3.4's "Talk instead" is on saved chats only; private chats and "Ask about it" have no mic.
+- 3.1's mic is dimmed and disabled, like the suggestions, while the model isn't ready.
+- A refused microphone shows "Aster needs the microphone. Allow it in Settings." *(proposed)*,
+  with "Open settings" when it was refused for good.
+- Errors (quota, model loading, …) are shown under the answer and spoken, then 3.6 pauses.
 
 Each phase ends with typecheck, lint, Jest (and JUnit for native rules) passing, and a commit.
 V1 and V4 need a new dev build (`gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a` for

@@ -34,6 +34,8 @@ type ChatViewProps = {
   onMissing?: () => void;
   /** 4.1's "Ask about it": the unread messages as a system message (private, local engine). */
   context?: string | null;
+  /** 3.4's "Talk instead": opens 3.6 continuing this chat (null before the first question). */
+  onTalk?: (chatUuid: string | null) => void;
 };
 
 const dayKey = (iso: string) => new Date(iso).toDateString();
@@ -52,6 +54,7 @@ export function ChatView({
   placeholder,
   onMissing,
   context = null,
+  onTalk,
 }: ChatViewProps) {
   const chat = useChat(mode, chatUuid, { context });
   const homeMode = useHomeModeStore((state) => state.mode);
@@ -82,12 +85,12 @@ export function ChatView({
   useEffect(() => {
     if (!initialQuestion || sentInitial.current || unavailable) return;
     sentInitial.current = true;
-    chat.send(initialQuestion);
+    void chat.send(initialQuestion);
   }, [chat, initialQuestion, unavailable]);
 
   function submit() {
     if (!draft.trim() || unavailable) return;
-    chat.send(draft);
+    void chat.send(draft);
     setDraft('');
   }
 
@@ -158,6 +161,7 @@ export function ChatView({
           placeholder={placeholder}
           unavailable={unavailable}
           web={chat.web}
+          onTalk={onTalk ? () => onTalk(chat.chatUuid) : undefined}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -1,8 +1,9 @@
-import { ArrowUp, Globe, House, Square } from 'lucide-react-native';
+import { ArrowUp, Globe, House, Mic, Square } from 'lucide-react-native';
 import { forwardRef } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { chat as copy } from '@/features/chat/copy';
+import { voice as voiceCopy } from '@/features/voice/copy';
 import {
   colors,
   iconSizes,
@@ -28,6 +29,8 @@ type ComposerProps = {
   unavailable?: string | null;
   /** The per-message web switch (3.5); left out for Restricted and Guest. */
   web?: { on: boolean; onToggle: () => void };
+  /** 3.4's "Talk instead": the mic inside the field, opening 3.6 (voice plan §3). */
+  onTalk?: () => void;
 };
 
 /** The 3.4 composer: web chip, message field and Send (Stop while streaming). */
@@ -41,6 +44,7 @@ export const Composer = forwardRef<TextInput, ComposerProps>(function Composer(
     placeholder = copy.placeholder,
     unavailable,
     web,
+    onTalk,
   },
   ref,
 ) {
@@ -84,7 +88,7 @@ export const Composer = forwardRef<TextInput, ComposerProps>(function Composer(
           </Text>
         </Pressable>
       ) : null}
-      <View style={styles.field}>
+      <View style={[styles.field, onTalk && styles.fieldWithTalk]}>
         <TextInput
           ref={ref}
           value={value}
@@ -92,13 +96,25 @@ export const Composer = forwardRef<TextInput, ComposerProps>(function Composer(
           placeholder={placeholder}
           placeholderTextColor={colors.textMuted}
           accessibilityLabel={placeholder}
-          style={styles.input}
+          style={[styles.input, onTalk && styles.inputWithTalk]}
           multiline
           maxFontSizeMultiplier={maxFontSizeMultiplier}
           submitBehavior="submit"
           returnKeyType="send"
           onSubmitEditing={canSend ? onSend : undefined}
         />
+        {onTalk ? (
+          <Pressable
+            onPress={onTalk}
+            disabled={streaming}
+            accessibilityRole="button"
+            accessibilityLabel={voiceCopy.talkInstead}
+            accessibilityState={{ disabled: streaming }}
+            style={[styles.talk, streaming && styles.sendDisabled]}
+          >
+            <Mic size={iconSizes.back} color={colors.textSecondary} strokeWidth={strokes.icon} />
+          </Pressable>
+        ) : null}
       </View>
       {streaming && onStop ? (
         <Pressable
@@ -167,6 +183,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingLeft: 16,
     paddingRight: 12,
+  },
+  inputWithTalk: { flex: 1, minWidth: 0 },
+  fieldWithTalk: { flexDirection: 'row', alignItems: 'flex-end', paddingRight: 2 },
+  talk: {
+    width: sizes.iconButton,
+    height: sizes.iconButton,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 1,
   },
   input: {
     ...typography.body,

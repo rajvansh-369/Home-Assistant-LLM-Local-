@@ -15,6 +15,7 @@ import { ChatView } from '@/features/chat/ChatView';
 import { useAskAboutContext } from '@/features/messages/catchup';
 import { messages as messagesCopy } from '@/features/messages/copy';
 import { SessionGate } from '@/features/profiles/SessionGate';
+import { useVoiceAccess } from '@/features/voice/access';
 
 function goBack() {
   if (router.canGoBack()) router.back();
@@ -42,6 +43,13 @@ export default function Chat() {
   const context = useAskAboutContext(aboutMessages);
   const chatUuid = id === 'new' || isPrivate ? null : id;
   const onMissing = useCallback(() => goBack(), []);
+  const voice = useVoiceAccess();
+  // Private chats stay out of voice for now: a voice turn is always a saved chat (voice plan §4).
+  const onTalk = useCallback(
+    (current: string | null) =>
+      router.push(current ? { pathname: '/voice', params: { chat: current } } : '/voice'),
+    [],
+  );
 
   return (
     <SessionGate>
@@ -51,6 +59,7 @@ export default function Chat() {
         initialQuestion={q}
         onMissing={onMissing}
         context={context}
+        onTalk={voice.allowed && !isPrivate ? onTalk : undefined}
         banner={
           isPrivate ? (
             <InfoCallout

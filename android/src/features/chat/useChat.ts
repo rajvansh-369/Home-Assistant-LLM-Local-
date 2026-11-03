@@ -19,13 +19,21 @@ import {
 } from './actions';
 import { activeEngine, askZypher, rateAnswer } from './ask';
 import { chat as copy } from './copy';
-import { buildMessages, continueMessages, type Turn } from './prompt';
+import {
+  buildMessages,
+  continueMessages,
+  SPOKEN_MAX_TOKENS,
+  type Turn,
+} from './prompt';
 import { useChatStore, type LocalMessage } from './store';
 import { loadMessages } from './sync';
 
 export type ChatMode = 'saved' | 'private' | 'guest';
 
 export type LiveState = { streaming: boolean; status: string | null };
+
+/** How a turn ended: the whole answer, and the error shown under it when it broke off. */
+export type TurnOutcome = { text: string; error: string | null; cancelled: boolean };
 
 const NO_MESSAGES: LocalMessage[] = [];
 
@@ -72,10 +80,21 @@ export type ChatOptions = {
    * always goes to the local engine.
    */
   context?: string | null;
+  /**
+   * 3.6 Voice (docs/aster-voice-plan.md §4): questions carry the `voice` context flag, and answers
+   * are asked to be short and spoken.
+   */
+  voice?: boolean;
+  /** Each piece of answer text as it streams in (3.6 speaks it). */
+  onText?: (chunk: string) => void;
 };
 
 export function useChat(mode: ChatMode, initialUuid: string | null, options: ChatOptions = {}) {
-  const { context = null } = options;
+  const { context = null, voice = false } = options;
+  const onText = useRef(options.onText);
+  useEffect(() => {
+    onText.current = options.onText;
+  });
   const [chatUuid, setChatUuid] = useState<string | null>(initialUuid);
   const [local, setLocal] = useState<LocalMessage[]>([]);
   const [live, setLive] = useState<Record<string, LiveState>>({});
@@ -132,7 +151,7 @@ export function useChat(mode: ChatMode, initialUuid: string | null, options: Cha
       request: ChatMessage[],
       upload: string[] | null,
       base: string,
-    ) => {
+    ): Promise<TurnOutcome> => {
       const abort = new AbortController();
       controller.current = abort;
       const busy = (() => {
@@ -154,6 +173,7 @@ export function useChat(mode: ChatMode, initialUuid: string | null, options: Cha
           web: webAllowed && webOn ? 'auto' : false,
           memory: mode === 'saved' ? undefined : false,
           engine,
+          maxTokens: voice ? SPOKEN_MAX_TOKENS : undefined,
           signal: abort.signal,
           onEvent: (event) => {
             if (event.type === 'status') {
@@ -162,6 +182,7 @@ export function useChat(mode: ChatMode, initialUuid: string | null, options: Cha
             } else if (event.type === 'text') {
               text += event.text;
               patch(chat, replyId, { content: text });
+              onText.current?.(event.text);
               setLive((state) => ({ ...state, [replyId]: { streaming: true, status: null } }));
             }
           },
@@ -185,31 +206,31 @@ export function useChat(mode: ChatMode, initialUuid: string | null, options: Cha
           if (upload) finishTurn(chat, upload);
           else updateUploaded(chat, replyId, { content, finish_reason: result.finishReason });
         }
+        return { text: content, error: null, cancelled: result.finishReason === 'cancelled' };
       } catch (error) {
         // `text` already holds everything that streamed in before the error.
         const partial = text;
-        patch(chat, replyId, {
-          content: partial,
-          finish_reason: 'error',
-          error: errorText(error, engineName),
-        });
+        const shown = errorText(error, engineName);
+        patch(chat, replyId, { content: partial, finish_reason: 'error', error: shown });
         // A broken answer with some text is still worth keeping on Laravel.
         if (mode === 'saved' && chat && partial.trim() !== '') {
           if (upload) finishTurn(chat, upload);
           else updateUploaded(chat, replyId, { content: partial, finish_reason: 'error' });
         }
+        return { text: partial, error: shown, cancelled: false };
       } finally {
         if (controller.current === abort) controller.current = null;
         setLive((state) => ({ ...state, [replyId]: { streaming: false, status: null } }));
       }
     },
-    [context, mode, patch, webAllowed, webOn],
+    [context, mode, patch, voice, webAllowed, webOn],
   );
 
+  /** Sends a question; resolves when its answer has finished (null if nothing was sent). */
   const send = useCallback(
-    (raw: string) => {
+    (raw: string): Promise<TurnOutcome | null> => {
       const question = raw.trim();
-      if (!question || controller.current) return;
+      if (!question || controller.current) return Promise.resolve(null);
       let chat = chatUuid;
       if (mode === 'saved' && !chat) {
         chat = createChat(question);
@@ -221,15 +242,17 @@ export function useChat(mode: ChatMode, initialUuid: string | null, options: Cha
         personality: profile?.personality,
         area,
         context,
+        spoken: voice,
         history: turnsBefore(latest.current, latest.current.length),
         question,
       });
-      const user = { ...newMessage('user', question), ...(area ? { context: ['area'] } : {}) };
+      const flags = [...(voice ? ['voice'] : []), ...(area ? ['area'] : [])];
+      const user = { ...newMessage('user', question), ...(flags.length ? { context: flags } : {}) };
       const reply = newMessage('assistant', '');
       add(chat, [user, reply]);
-      void run(chat, reply.client_uuid, request, [user.client_uuid, reply.client_uuid], '');
+      return run(chat, reply.client_uuid, request, [user.client_uuid, reply.client_uuid], '');
     },
-    [add, chatUuid, context, mode, profile?.personality, run],
+    [add, chatUuid, context, mode, profile?.personality, run, voice],
   );
 
   const stop = useCallback(() => controller.current?.abort(), []);

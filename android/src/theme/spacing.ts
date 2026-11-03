@@ -88,6 +88,14 @@ export const sizes = {
   orbInnerInset: 25,
   orbCore: 87,
   orbPulseBorder: 2,
+  // 3.6 Voice (docs/aster-voice-plan.md §3): the larger orb, the mic and its side buttons.
+  voiceOrb: 230,
+  voiceOrbInset: 30,
+  voiceOrbCore: 106,
+  voiceMic: 84,
+  voiceSideButton: 56,
+  /** 3.1's "Talk to Aster" beside "Ask Aster anything". */
+  homeMic: 56,
   brandOrb: 22,
   // 2.2 Unlock (§4.6).
   badgeHeight: 20,
@@ -196,6 +204,10 @@ export const iconSizes = {
   /** 4.1 section star, 4.2 marker and spoken lines. */
   marker: 13,
   cardButton: 18,
+  /** 3.6's mic (and pause) and its side buttons; 3.1's mic. */
+  voiceMic: 32,
+  voiceSide: 24,
+  homeMic: 24,
 } as const;
 
 export const strokes = {

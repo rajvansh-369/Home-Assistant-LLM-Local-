@@ -88,6 +88,13 @@ export const typography = {
   cardLabel: style(fonts.body700, 14, 20),
   /** "Read aloud at 8:02 PM" and 4.2's "Aster read these aloud…": 12, 600. */
   marker: style(fonts.body600, 12, 16),
+  // Voice (docs/aster-voice-plan.md §3).
+  /** 3.6 "VOICE": mono 12, 600, 0.08em, caps. */
+  voiceTitle: style(fonts.mono600, 12, 16, 0.96, { textTransform: 'uppercase' }),
+  /** 3.6 what you said: display 25, 600, line 1.2, -0.01em. */
+  voiceHeard: style(fonts.display600, 25, 30, -0.25),
+  /** 3.6 the answer: 16 on a 1.5 line. */
+  voiceAnswer: style(fonts.body400, 16, 24),
 } as const satisfies Record<string, TextVariantStyle>;
 
 export type TextVariant = keyof typeof typography;
