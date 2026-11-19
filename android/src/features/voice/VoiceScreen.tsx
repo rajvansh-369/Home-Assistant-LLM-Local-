@@ -1,19 +1,21 @@
 // 3.6 Voice (docs/aster-voice-plan.md §3): the state line, the orb, what you said in large type,
 // the answer under it (also spoken), and the bottom row: Switch to typing, the mic, Mute. Opened by
-// 3.1's mic and 3.4's "Talk instead"; it starts listening at once when voice can answer.
-import { Keyboard, Mic, Pause, Volume2, VolumeX, X } from 'lucide-react-native';
-import { useEffect } from 'react';
+// 3.1's mic and 3.4's "Talk instead"; it starts listening at once when voice can answer. V3: the
+// chips under the answer (Say '{draft}', Send, Not now, Edit), the reminder card, and Reply by voice
+// (4.4), which opens it for one captured chat.
+import { Bell, Keyboard, Mic, Pause, Volume2, VolumeX, X } from 'lucide-react-native';
+import { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AsterOrb, PulseDot, Text, TextLink } from '@/components';
+import { AsterOrb, PulseDot, SuggestionChip, Text, TextLink } from '@/components';
 import { useFirstRunStore } from '@/features/first-run/store';
 import { colors, iconSizes, orbColors, radii, sizes, spacing, strokes } from '@/theme';
 
 import { useVoiceAccess } from './access';
 import { voice as copy } from './copy';
 import { openAppSettings } from './mic';
-import { useVoiceTurn, type VoicePhase } from './turn';
+import { useVoiceTurn, type VoicePhase, type VoiceReminderCard } from './turn';
 
 type VoiceScreenProps = {
   /** A saved chat to continue; null starts a new one. */
@@ -21,7 +23,33 @@ type VoiceScreenProps = {
   onClose: () => void;
   /** Opens 3.4 with this conversation (null: no question asked yet). */
   onSwitchToTyping: (chatUuid: string | null) => void;
+  /** Reply by voice: the captured chat to reply to. */
+  threadKey?: string | null;
+  /** Opens the reminder editor for a reminder made by voice. */
+  onEditReminder: (clientUuid: string) => void;
+  /** Reply by voice when voice can't answer: 4.2 for the chat instead. */
+  onOpenThread: (threadKey: string) => void;
 };
+
+function ReminderCard({ card }: { card: VoiceReminderCard }) {
+  return (
+    <View
+      style={styles.card}
+      accessible
+      accessibilityLabel={copy.reminderCard(card.title, card.when)}
+    >
+      <Bell size={iconSizes.voiceSide} color={colors.accent} strokeWidth={strokes.icon} />
+      <View style={styles.cardText}>
+        <Text variant="cardTitle" numberOfLines={2}>
+          {card.title}
+        </Text>
+        <Text variant="monoSmall" tone="muted">
+          {card.when}
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 function StateLine({ phase, ready }: { phase: VoicePhase; ready: boolean }) {
   if (!ready) {
@@ -74,18 +102,37 @@ function SideButton({
   );
 }
 
-export function VoiceScreen({ chatUuid, onClose, onSwitchToTyping }: VoiceScreenProps) {
+export function VoiceScreen({
+  chatUuid,
+  onClose,
+  onSwitchToTyping,
+  threadKey = null,
+  onEditReminder,
+  onOpenThread,
+}: VoiceScreenProps) {
   const { ready } = useVoiceAccess();
   const name = useFirstRunStore((state) => state.session?.profile.name ?? '');
   const turn = useVoiceTurn({ chatUuid, ready });
   const listening = turn.phase === 'listening';
 
-  // Opening 3.6 is the request to talk: listen at once.
+  // Opening 3.6 is the request to talk: listen at once. Reply by voice waits for voice to be ready
+  // (the home check may still be running after a tap on the notification), then reads the chat.
+  const opened = useRef(false);
   useEffect(() => {
-    if (ready) void turn.start();
-    // Only on opening; later starts come from the mic.
+    if (opened.current) return;
+    if (!threadKey) {
+      opened.current = true;
+      if (ready) void turn.start();
+      return;
+    }
+    if (!ready) return;
+    opened.current = true;
+    void turn.replyTo(threadKey).then((replying) => {
+      if (!replying) void turn.start();
+    });
+    // Once, when it can; later starts come from the mic.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ready]);
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom', 'left', 'right']}>
@@ -125,6 +172,23 @@ export function VoiceScreen({ chatUuid, onClose, onSwitchToTyping }: VoiceScreen
             <Text variant="voiceAnswer" tone="secondary" style={styles.center}>
               {turn.answer}
             </Text>
+          ) : null}
+          {turn.card ? <ReminderCard card={turn.card} /> : null}
+          {turn.chips.length > 0 ? (
+            <View style={styles.chips}>
+              {turn.chips.map((chip) => (
+                <SuggestionChip
+                  key={chip.kind}
+                  label={chip.label}
+                  onPress={() =>
+                    chip.kind === 'edit' ? onEditReminder(chip.reminder) : turn.choose(chip)
+                  }
+                />
+              ))}
+            </View>
+          ) : null}
+          {!ready && threadKey ? (
+            <TextLink label={copy.openChat} onPress={() => onOpenThread(threadKey)} />
           ) : null}
           {turn.notice ? (
             <View style={styles.notice} accessibilityLiveRegion="polite">
@@ -204,6 +268,19 @@ const styles = StyleSheet.create({
   words: { paddingTop: 26, gap: 16, alignItems: 'center' },
   center: { textAlign: 'center' },
   notice: { alignItems: 'center', gap: 4 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
+  card: {
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 16,
+    borderRadius: radii.listCard,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  cardText: { flex: 1, minWidth: 0, gap: 2 },
   controls: {
     marginTop: 18,
     flexDirection: 'row',

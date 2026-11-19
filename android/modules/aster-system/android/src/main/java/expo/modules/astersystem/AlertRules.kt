@@ -21,7 +21,7 @@ internal data class AlertCopy(
     "google_chat" to "Google Chat",
     "sms" to "SMS"
   ),
-  val reply: String = "Reply",
+  val reply: String = "Reply by voice",
   val remind: String = "Remind in 30 min",
   val open: String = "Open",
   val channel: String = "Missed messages",

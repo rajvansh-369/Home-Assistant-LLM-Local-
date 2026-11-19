@@ -1,5 +1,7 @@
 // 3.6 Voice (docs/aster-voice-plan.md §3). `chat` continues a saved chat (3.4's "Talk instead",
 // which then gets its screen back on "Switch to typing"); without it the first question starts one.
+// `thread` is the missed-message notification's Reply by voice (aster://voice?thread={key}); a
+// profile without voice gets 4.2 for that chat instead.
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useCallback } from 'react';
 
@@ -12,10 +14,19 @@ function close() {
   else router.replace('/home');
 }
 
+function editReminder(clientUuid: string) {
+  router.push({ pathname: '/reminder/[id]', params: { id: clientUuid } });
+}
+
+function openThread(key: string) {
+  router.replace({ pathname: '/thread/[key]', params: { key } });
+}
+
 function VoiceRoute() {
-  const { chat } = useLocalSearchParams<{ chat?: string }>();
+  const { chat, thread } = useLocalSearchParams<{ chat?: string; thread?: string }>();
   const { allowed } = useVoiceAccess();
   const fromChat = chat != null && chat !== '';
+  const threadKey = thread != null && thread !== '' ? thread : null;
 
   const switchToTyping = useCallback(
     (current: string | null) => {
@@ -28,12 +39,21 @@ function VoiceRoute() {
     [fromChat],
   );
 
-  if (!allowed) return <Redirect href="/home" />;
+  if (!allowed) {
+    return threadKey ? (
+      <Redirect href={`/thread/${threadKey}`} />
+    ) : (
+      <Redirect href="/home" />
+    );
+  }
   return (
     <VoiceScreen
       chatUuid={fromChat ? chat : null}
       onClose={close}
       onSwitchToTyping={switchToTyping}
+      threadKey={threadKey}
+      onEditReminder={editReminder}
+      onOpenThread={openThread}
     />
   );
 }

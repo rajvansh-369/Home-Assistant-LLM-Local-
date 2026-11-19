@@ -265,6 +265,31 @@ V2 as built (differences from §3 and §4, to confirm):
   with "Open settings" when it was refused for good.
 - Errors (quota, model loading, …) are shown under the answer and spoken, then 3.6 pauses.
 
+V3 as built (differences from §3 and §5, to confirm):
+
+- Intents are parsed on the phone in `intents.ts` (pure rules, unit-tested) and done in `doing.ts`;
+  they never reach the chat or Laravel's conversations, so a voice session's saved chat holds only
+  the questions the model answered. Reminders still upload through the reminders queue.
+- "Remind me to {X}" with no time answers "When should I remind you? …" *(proposed)* and saves
+  nothing. "tomorrow at {h}" without AM/PM is 7–11 AM, else 12–6 PM; "tonight" alone is 9 PM;
+  "tomorrow morning" is 9 AM *(proposed rules)*. Titles keep the recognizer's capitals.
+- The reminder card shows the title and its "Coming up" label with one chip, "Edit" (opens the
+  reminder editor). Spoken: "Done. I'll remind you at 9:00 PM." / "…tomorrow at 9:00 AM." /
+  "…on Friday at …" / "…when you get home." *(proposed variants)*.
+- Reading missed messages out marks their chats read (as opening 4.2 does). "…from {name}" matches
+  a VIP's name, the chat's title or a sender, word by word. More than 3 are summed up by the local
+  engine (the catch-up prompt); if the model doesn't answer they are read out in full instead.
+- "Reply …" / "Say …" is an intent only after a read-out of a single chat or Reply by voice;
+  otherwise it is a chat question. The draft is confirmed with "Send" / "Yes" or the Send chip;
+  "Not now" / "No" drops it and pauses; any other question drops it silently.
+- Reply by voice (4.4): the native notification's action is "Reply by voice" and opens
+  `aster://voice?thread={key}`. 3.6 waits for voice to be ready, reads that chat's unread messages
+  out, offers "Say '{draft}'" + "Not now" when the local model drafts one, and listens. Away (or
+  the model not ready) it shows "Voice works when you're home." with "Open the chat"
+  *(proposed)* to 4.2; a profile without voice is sent straight to 4.2.
+- `voice_read` activity is left for V5 (with the other activity events); `reply_sent` is logged by
+  `sendReply` as for typed replies. No Laravel or admin-panel change was needed.
+
 Each phase ends with typecheck, lint, Jest (and JUnit for native rules) passing, and a commit.
 V1 and V4 need a new dev build (`gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a` for
 the phone).

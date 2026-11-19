@@ -34,4 +34,34 @@ export const voice = {
   talkToAster: 'Talk to Aster',
   /** 3.4's mic in the composer. */
   talkInstead: 'Talk instead',
+
+  // V3: things Aster does by voice (plan §5). All (proposed) except "Done. I'll remind you at…".
+  /** "at 9:00 PM", "tomorrow at 9:00 AM", "on Friday at 9:00 AM", "when you get home". */
+  reminderSaved: (when: string) => `Done. I’ll remind you ${when}.`,
+  remindAt: (time: string) => `at ${time}`,
+  remindTomorrow: (time: string) => `tomorrow at ${time}`,
+  remindOn: (day: string, time: string) => `on ${day} at ${time}`,
+  remindHome: 'when you get home',
+  days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+  reminderWhen: 'When should I remind you? Say a time, like “at 9”, or “when I get home”.',
+  remindersOff: 'Reminders are off for this profile.',
+  reminderFailed: 'Couldn’t save that reminder. Try again.',
+  messagesOwnerOnly: 'Missed messages are only read out for the Owner.',
+  noMessages: 'No missed messages.',
+  noMessagesFrom: (name: string) => `No missed messages from ${name}.`,
+  confirmReply: (text: string, name: string) => `Send “${text}” to ${name}?`,
+  replySent: (name: string) => `Sent to ${name}.`,
+  replyNotSent: 'Okay, not sent.',
+  replyGone: (source: string) => `The ${source} notification is gone, so I can’t reply from here.`,
+  replyFailed: 'Couldn’t send it. Try again.',
+  /** Reply by voice away from home: the chat on screen instead. */
+  openChat: 'Open the chat',
+  stopped: 'Okay.',
+  /** Chips under the answer. */
+  say: (text: string) => `Say ‘${text}’`,
+  send: 'Send',
+  notNow: 'Not now',
+  edit: 'Edit',
+  /** The reminder card's TalkBack name. */
+  reminderCard: (title: string, when: string) => `Reminder: ${title}, ${when}`,
 } as const;

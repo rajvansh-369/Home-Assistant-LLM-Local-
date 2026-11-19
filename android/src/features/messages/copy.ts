@@ -204,7 +204,7 @@ export const spoken = {
   message: 'message',
   messages: 'messages',
   sources,
-  reply: 'Reply', // (proposed: "Reply by voice" waits for 3.6 Voice)
+  reply: 'Reply by voice',
   remind: 'Remind in 30 min',
   open: 'Open',
   channel: 'Missed messages', // (proposed)

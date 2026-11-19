@@ -13,8 +13,9 @@ import android.provider.Telephony
 
 /**
  * 4.4's missed-message notification (docs/aster-messages-alerts-plan.md §3 4.4): "Mom · 2 missed
- * WhatsApp messages" with the quoted messages, Reply (4.2), Remind in 30 min and Open (the source
- * app). Silent: the voice is the alert, and a held one waits quietly. With "Hide message text on
+ * WhatsApp messages" with the quoted messages, Reply by voice (3.6 for the thread, which falls back
+ * to 4.2 when voice can't answer; docs/aster-voice-plan.md §3 4.4), Remind in 30 min and Open (the
+ * source app). Silent: the voice is the alert, and a held one waits quietly. With "Hide message text on
  * lock screen" the lock screen shows only the title.
  */
 internal object AlertNotifier {
@@ -56,6 +57,17 @@ internal object AlertNotifier {
       .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     return PendingIntent.getActivity(
       context, requestCode(threadKey, action), intent,
+      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+  }
+
+  /** Opens 3.6 Voice to reply to the thread (aster://voice?thread={key}). */
+  private fun voiceIntent(context: Context, threadKey: String): PendingIntent {
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("aster://voice?thread=${Uri.encode(threadKey)}"))
+      .setPackage(context.packageName)
+      .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    return PendingIntent.getActivity(
+      context, requestCode(threadKey, 1), intent,
       PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
   }
@@ -127,7 +139,7 @@ internal object AlertNotifier {
       .setWhen(System.currentTimeMillis())
       .setCategory(Notification.CATEGORY_REMINDER)
       .setContentIntent(threadIntent(context, threadKey, 0))
-      .addAction(Notification.Action.Builder(null, copy.reply, threadIntent(context, threadKey, 1)).build())
+      .addAction(Notification.Action.Builder(null, copy.reply, voiceIntent(context, threadKey)).build())
       .addAction(Notification.Action.Builder(null, copy.remind, remindIntent(context, threadKey)).build())
       .apply {
         openIntent(context, threadKey, source)?.let {

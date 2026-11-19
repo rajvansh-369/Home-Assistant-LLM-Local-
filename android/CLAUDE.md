@@ -19,7 +19,7 @@ Plans and source of truth: `docs/aster-first-run-plan.md` (first run, phases in 
 `docs/aster-reminders-location-plan.md` (reminders and location, phases R1–R6),
 `docs/aster-messages-alerts-plan.md` (messages and spoken alerts, phases M1–M6),
 `docs/aster-profiles-memory-plan.md` (profiles, memory and activity, phases P1–P6) and
-`docs/aster-voice-plan.md` (voice and the wake word, phases V1–V6; planned).
+`docs/aster-voice-plan.md` (voice and the wake word, phases V1–V6; V1–V3 built).
 Status: `docs/*-status.md`.
 
 ## Commands
@@ -46,7 +46,7 @@ src/app/                     routes (expo-router); only screens and _layout file
   guest.tsx                  2.5 Guest chat
   (tabs)/                    home (3.1/3.2), chats (3.3), messages (4.1, Owner), settings (5.1)
   chat/[id].tsx              3.4 Chat (`new`, `private` or a chat's client_uuid)
-  voice.tsx                  3.6 Voice (`chat` continues a saved chat)
+  voice.tsx                  3.6 Voice (`chat` continues a saved chat; `thread` is Reply by voice)
   reminder/[id].tsx          add / edit a reminder (`new` or its client_uuid)
   location.tsx               5.3 Location (Owner only)
   thread/[key].tsx           4.2 Thread (a captured chat; aster://thread/{key})
@@ -65,7 +65,8 @@ src/features/location/       settings, tracking, points, device uploads, area, 5
 src/features/messages/       captured threads, alert settings and VIPs, catch-up, drafts, 4.x
 src/features/memory/         5.2: zypherLL notes and learned answers, the activity log
 src/features/voice/          3.6 Voice: who may talk, speech in / out, sentences, per-phone settings,
-                             the voice turn (listen, ask, speak, follow-up) and VoiceScreen
+                             the voice turn (listen, ask, speak, follow-up), intents (reminders,
+                             reading missed messages, replies) and VoiceScreen
 src/services/api/            client (real Laravel), types, mock
 src/services/llm/            health.ts, chat.ts (streaming via expo/fetch), sse.ts, memory.ts
 src/services/permissions/    one entry per Permissions row
