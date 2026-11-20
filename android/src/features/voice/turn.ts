@@ -364,7 +364,7 @@ export function useVoiceTurn({ chatUuid, ready }: VoiceTurnOptions) {
       if (error === 'no-speech') setNotice({ text: copy.noSpeech });
       else if (error === 'permission') setNotice({ text: copy.micBlocked, settings: true });
       else if (error === 'busy' || error === 'audio') setNotice({ text: copy.micBusy });
-      else if (error === 'language') setNotice({ text: copy.noRecognizer });
+      else if (error === 'language') setNotice({ text: copy.noLanguage });
       else setNotice({ text: copy.failed });
     },
     [ask, ready, silence],

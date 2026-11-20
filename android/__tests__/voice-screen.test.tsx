@@ -232,6 +232,14 @@ test('no speech says so; a refused microphone points to settings', async () => {
   });
   expect(await screen.findByText(copy.micBlocked, {}, wait)).toBeTruthy();
   expect(screen.getByRole('button', { name: copy.openSettings })).toBeTruthy();
+
+  // No speech pack for the phone's language yet (V6, found on the emulator).
+  await fireEvent.press(screen.getByRole('button', { name: copy.startListening }));
+  await waitFor(() => expect(system.__state.listens).toHaveLength(3), wait);
+  await act(async () => {
+    system.__emit('onSpeechError', { session: session(), kind: 'language' });
+  });
+  expect(await screen.findByText(copy.noLanguage, {}, wait)).toBeTruthy();
 });
 
 test('away from home 3.6 says voice works at home and never listens', async () => {

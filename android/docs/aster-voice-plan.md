@@ -347,6 +347,15 @@ V5 as built (differences from §3 and §5, to confirm):
   (`reminder_fired` comes when they ring). Laravel's `ActivityType` enum gains `voice_read` for
   the admin panel's filter; 5.2 shows it with a mic.
 
+V6 as built (see `docs/voice-status.md`):
+
+- Checked on the emulator, not yet on a phone (none was connected): §10's phone-only items (a
+  spoken turn, "Hey Jarvis", screen off, battery) stay open there.
+- Fixed from the check: 5.1 says "Needs the microphone to listen" with "Allow the microphone"
+  *(proposed)* when the switch is on without the permission; a recognizer without the language's
+  speech pack falls back from on-device to the phone's default recognizer, then asks Android to
+  download it and 3.6 says so *(proposed)*.
+
 Each phase ends with typecheck, lint, Jest (and JUnit for native rules) passing, and a commit.
 V1 and V4 need a new dev build (`gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a` for
 the phone).

@@ -53,7 +53,9 @@ import { chooseLlmEngine, deleteAllMyChats, setAutoLock } from '@/features/setti
 import { settings as copy } from '@/features/settings/copy';
 import { voiceAllowed } from '@/features/voice/access';
 import { voice as voiceCopy } from '@/features/voice/copy';
+import { ensureMicrophone, microphoneAllowed, openAppSettings } from '@/features/voice/mic';
 import { useVoiceSettings } from '@/features/voice/settings';
+import { syncWakeWord } from '@/features/voice/wake';
 import { recognitionLabel, useDeviceVoices, voiceLabel } from '@/features/voice/voices';
 import type { LlmEngine } from '@/services/api';
 import { colors, profileColorKey, radii, spacing } from '@/theme';
@@ -105,8 +107,17 @@ function VoiceSection() {
   const set = useVoiceSettings((state) => state.set);
   const { voices } = useDeviceVoices();
   const rows = voiceCopy.settings;
-  // A build without the "hey aster" model can't listen (V4); say so rather than look broken.
+  const micAllowed = useMicrophoneAllowed();
+  // A build without the "hey aster" model can't listen (V4), nor can it without the microphone;
+  // say so rather than look on and do nothing.
   const missing = AsterSystem.wakeWordState().error === 'models';
+  const needsMic = wakeWord && !missing && micAllowed === false;
+
+  async function allowMic() {
+    const access = await ensureMicrophone();
+    if (access === 'blocked') openAppSettings();
+    else if (access === 'allowed') syncWakeWord();
+  }
   return (
     <View style={styles.section}>
       <Text variant="label" tone="secondary" accessibilityRole="header">
@@ -117,7 +128,9 @@ function VoiceSection() {
           icon={Mic}
           iconTone="neutral"
           title={rows.wakeWord}
-          subtitle={missing ? rows.wakeWordMissing : rows.wakeWordDetail}
+          subtitle={
+            missing ? rows.wakeWordMissing : needsMic ? rows.wakeWordNoMic : rows.wakeWordDetail
+          }
           value={wakeWord}
           onValueChange={(value) => set({ wakeWord: value })}
         />
@@ -128,8 +141,34 @@ function VoiceSection() {
           onPress={() => router.push('/voice-settings')}
         />
       </ToggleCard>
+      {needsMic ? (
+        <View style={styles.pill}>
+          <SmallPill label={rows.allowMic} icon={Mic} onPress={() => void allowMic()} />
+        </View>
+      ) : null}
     </View>
   );
+}
+
+/** The microphone is allowed (null until known), read again whenever the app comes back. */
+function useMicrophoneAllowed(): boolean | null {
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+  useEffect(() => {
+    let live = true;
+    const read = () =>
+      void microphoneAllowed().then((ok) => {
+        if (live) setAllowed(ok);
+      });
+    read();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') read();
+    });
+    return () => {
+      live = false;
+      subscription.remove();
+    };
+  }, []);
+  return allowed;
 }
 
 /** Battery use is "Unrestricted", read again whenever the app comes back. */
@@ -362,5 +401,6 @@ const styles = StyleSheet.create({
   },
   profileText: { flex: 1, minWidth: 0 },
   section: { gap: 4 },
+  pill: { flexDirection: 'row', paddingTop: 6 },
   choices: { gap: spacing.permissionRowsApart },
 });

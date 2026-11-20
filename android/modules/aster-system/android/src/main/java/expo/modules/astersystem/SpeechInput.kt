@@ -25,9 +25,17 @@ internal object SpeechInput {
   /** Some recognizer exists on this phone. */
   fun available(context: Context): Boolean = SpeechRecognizer.isRecognitionAvailable(context)
 
+  /**
+   * The on-device recognizer failed for want of a language pack in this process; listens use the
+   * default recognizer from then on.
+   */
+  @Volatile private var onDeviceUnusable = false
+
   /** The phone can recognise without the network. */
   fun onDevice(context: Context): Boolean =
-    Build.VERSION.SDK_INT >= 31 && SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
+    !onDeviceUnusable &&
+      Build.VERSION.SDK_INT >= 31 &&
+      SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
 
   /**
    * Starts listening. `language` is a BCP 47 tag (null: the phone's); `maxMs` ends a listen that
@@ -36,32 +44,57 @@ internal object SpeechInput {
    */
   fun start(context: Context, language: String?, maxMs: Long): Int {
     val id = ++session
+    val app = context.applicationContext
     main.post {
-      release()
-      val app = context.applicationContext
-      val engine = if (onDevice(app)) {
-        SpeechRecognizer.createOnDeviceSpeechRecognizer(app)
-      } else {
-        SpeechRecognizer.createSpeechRecognizer(app)
-      }
-      recognizer = engine
-      engine.setRecognitionListener(Listener(id))
-      val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-        .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-        .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-        .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
-        .putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
-        .putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, app.packageName)
-      if (language != null) intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, language)
-      try {
-        engine.startListening(intent)
-        main.postDelayed({ if (session == id) recognizer?.stopListening() }, maxMs)
-      } catch (e: Exception) {
-        emitError(id, "failed")
-        release()
-      }
+      launch(app, id, language, onDevice(app))
+      main.postDelayed({ if (session == id) recognizer?.stopListening() }, maxMs)
     }
     return id
+  }
+
+  /** One recognizer for listen `id`, on the device or the phone's default. Main thread only. */
+  private fun launch(app: Context, id: Int, language: String?, useOnDevice: Boolean) {
+    release()
+    val engine = if (useOnDevice) {
+      SpeechRecognizer.createOnDeviceSpeechRecognizer(app)
+    } else {
+      SpeechRecognizer.createSpeechRecognizer(app)
+    }
+    recognizer = engine
+    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+      .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+      .putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+      .putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+      .putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+      .putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, app.packageName)
+    if (language != null) intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, language)
+    engine.setRecognitionListener(
+      Listener(
+        id,
+        onDevice = useOnDevice,
+        retryOffDevice = {
+          // No language pack on the device: the same listen again with the default recognizer.
+          onDeviceUnusable = true
+          launch(app, id, language, useOnDevice = false)
+        },
+        languageMissing = {
+          // Ask Android to fetch the pack, so a later listen can work (the user is told so).
+          if (Build.VERSION.SDK_INT >= 33) {
+            try {
+              engine.triggerModelDownload(intent)
+            } catch (e: Exception) {
+              // Not every recognizer can download; the error still reaches JS.
+            }
+          }
+        },
+      ),
+    )
+    try {
+      engine.startListening(intent)
+    } catch (e: Exception) {
+      emitError(id, "failed")
+      release()
+    }
   }
 
   /** Stops listening and keeps what was heard (a final result follows). */
@@ -85,7 +118,12 @@ internal object SpeechInput {
 
   private fun emitError(id: Int, kind: String) = emit("onSpeechError", id) { putString("kind", kind) }
 
-  private class Listener(private val id: Int) : RecognitionListener {
+  private class Listener(
+    private val id: Int,
+    private val onDevice: Boolean,
+    private val retryOffDevice: () -> Unit,
+    private val languageMissing: () -> Unit,
+  ) : RecognitionListener {
     private fun current() = id == session
 
     override fun onReadyForSpeech(params: Bundle?) {
@@ -115,6 +153,11 @@ internal object SpeechInput {
 
     override fun onError(error: Int) {
       if (!current()) return
+      if (SpeechText.retryOffDevice(error, onDevice)) {
+        main.post { if (current()) retryOffDevice() }
+        return
+      }
+      if (SpeechText.errorKind(error) == "language") languageMissing()
       emitError(id, SpeechText.errorKind(error))
       main.post { if (current()) release() }
     }

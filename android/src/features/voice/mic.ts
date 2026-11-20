@@ -22,6 +22,15 @@ export async function ensureMicrophone(): Promise<MicAccess> {
   }
 }
 
+/** The microphone is allowed now. Never throws. */
+export async function microphoneAllowed(): Promise<boolean> {
+  try {
+    return (await microphone.check()) === 'allowed';
+  } catch {
+    return true;
+  }
+}
+
 export function openAppSettings() {
   void Linking.openSettings().catch(() => {});
 }

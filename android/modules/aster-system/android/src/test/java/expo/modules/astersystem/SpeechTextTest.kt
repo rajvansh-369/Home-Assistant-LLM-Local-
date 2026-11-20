@@ -17,6 +17,14 @@ class SpeechTextTest {
   }
 
   @Test
+  fun `a missing language pack on the device is tried again off it, once`() {
+    assertEquals(true, SpeechText.retryOffDevice(13, onDevice = true))
+    assertEquals(true, SpeechText.retryOffDevice(12, onDevice = true))
+    assertEquals(false, SpeechText.retryOffDevice(13, onDevice = false))
+    assertEquals(false, SpeechText.retryOffDevice(7, onDevice = true))
+  }
+
+  @Test
   fun `the best result is the first non-blank one, tidied`() {
     assertEquals("remind me at nine", SpeechText.best(listOf("  ", " remind  me\tat nine ", "other")))
     assertEquals("", SpeechText.best(null))

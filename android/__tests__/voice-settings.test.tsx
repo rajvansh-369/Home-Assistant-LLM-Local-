@@ -3,6 +3,7 @@
 // Jest mock.
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
+import { PermissionsAndroid } from 'react-native';
 
 import AsterSystem, { type CapturedThread, type DeviceVoice } from '../modules/aster-system';
 
@@ -55,6 +56,7 @@ beforeEach(async () => {
   system.__reset();
   resetVoiceCache();
   jest.mocked(router.push).mockClear();
+  jest.spyOn(PermissionsAndroid, 'check').mockResolvedValue(true);
   await resetFirstRun();
   await signIn({ server: 'https://aster.test', email: 'owner@example.test', password: 'pw' });
   await unlockOwner('123456');
@@ -123,6 +125,13 @@ describe('5.1 Voice', () => {
       await screen.findByText('English (India) 1 · 1.2× · recognition by Google'),
     ).toBeTruthy();
     expect(screen.getByText(s.wakeWordMissing)).toBeTruthy();
+  });
+
+  test('says when the switch is on but the microphone isn’t allowed', async () => {
+    jest.mocked(PermissionsAndroid.check).mockResolvedValue(false);
+    await render(<Settings />);
+    expect(await screen.findByText(s.wakeWordNoMic)).toBeTruthy();
+    expect(screen.getByRole('button', { name: s.allowMic })).toBeTruthy();
   });
 
   test('hidden for a profile without voice', async () => {

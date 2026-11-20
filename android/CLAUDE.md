@@ -19,7 +19,7 @@ Plans and source of truth: `docs/aster-first-run-plan.md` (first run, phases in 
 `docs/aster-reminders-location-plan.md` (reminders and location, phases R1–R6),
 `docs/aster-messages-alerts-plan.md` (messages and spoken alerts, phases M1–M6),
 `docs/aster-profiles-memory-plan.md` (profiles, memory and activity, phases P1–P6) and
-`docs/aster-voice-plan.md` (voice and the wake word, phases V1–V6; V1–V5 built; `tools/wakeword/` trains "hey aster").
+`docs/aster-voice-plan.md` (voice and the wake word, phases V1–V6; V1–V5 built, V6 checked on the emulator (phone check open, `docs/voice-status.md`); `tools/wakeword/` trains "hey aster").
 Status: `docs/*-status.md`.
 
 ## Commands

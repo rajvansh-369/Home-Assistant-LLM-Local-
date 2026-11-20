@@ -30,6 +30,8 @@ export const voice = {
   micBusy: 'The microphone is busy. Try again in a moment.',
   /** (proposed) */
   noRecognizer: 'Speech recognition isn’t available on this phone.',
+  /** (proposed) The recognizer has no pack for the phone's language; Android was asked for it. */
+  noLanguage: 'Speech recognition for your language isn’t on this phone yet. Android is downloading it; try again in a few minutes.',
   /** (proposed) */
   failed: 'Voice didn’t work this time. Tap the mic to try again.',
   /** (proposed) */
@@ -96,6 +98,10 @@ export const voice = {
     wakeWordDetail: 'At home, even with the screen off',
     /** (proposed) A build without the "hey aster" model. */
     wakeWordMissing: 'Not in this version of Aster yet',
+    /** (proposed) The switch is on but the microphone isn't allowed. */
+    wakeWordNoMic: 'Needs the microphone to listen',
+    /** (proposed) */
+    allowMic: 'Allow the microphone',
     voiceAndSpeech: 'Voice and speech',
     /** "Device voice · 1.0× · recognition on this phone" (canvas). */
     summary: (voice: string, rate: number, recognition: string) =>

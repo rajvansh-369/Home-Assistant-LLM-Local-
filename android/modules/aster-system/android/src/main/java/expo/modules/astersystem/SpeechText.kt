@@ -21,6 +21,12 @@ internal object SpeechText {
     else -> "failed"
   }
 
+  /**
+   * The on-device recognizer can't do this language (its pack isn't installed: codes 12, 13), so
+   * the listen is tried again with the phone's default recognizer.
+   */
+  fun retryOffDevice(code: Int, onDevice: Boolean): Boolean = onDevice && (code == 12 || code == 13)
+
   /** The best of the recognizer's alternatives: the first non-blank one, trimmed and collapsed. */
   fun best(results: List<String>?): String =
     results.orEmpty().map { it.trim().replace(Regex("\\s+"), " ") }.firstOrNull { it.isNotEmpty() }
