@@ -112,6 +112,8 @@ llm/models/
 *.pt
 *.pth
 *.onnx
+# ...except the wake word models the Android app ships (docs/aster-voice-plan.md §6)
+!android/modules/aster-system/android/src/*/assets/wakeword/*.onnx
 *.npy
 # scratch test page
 llm/test.html

@@ -15,7 +15,9 @@ import { colors, iconSizes, orbColors, radii, sizes, spacing, strokes } from '@/
 import { useVoiceAccess } from './access';
 import { voice as copy } from './copy';
 import { openAppSettings } from './mic';
+import { useVoiceSettings } from './settings';
 import { useVoiceTurn, type VoicePhase, type VoiceReminderCard } from './turn';
+import { holdWakeWord } from './wake';
 
 type VoiceScreenProps = {
   /** A saved chat to continue; null starts a new one. */
@@ -114,6 +116,13 @@ export function VoiceScreen({
   const name = useFirstRunStore((state) => state.session?.profile.name ?? '');
   const turn = useVoiceTurn({ chatUuid, ready });
   const listening = turn.phase === 'listening';
+  const wakeWord = useVoiceSettings((state) => state.wakeWord);
+
+  // 3.6 has the microphone while it is open; the wake word listens again once it closes.
+  useEffect(() => {
+    holdWakeWord(true);
+    return () => holdWakeWord(false);
+  }, []);
 
   // Opening 3.6 is the request to talk: listen at once. Reply by voice waits for voice to be ready
   // (the home check may still be running after a tap on the notification), then reads the chat.
@@ -202,6 +211,11 @@ export function VoiceScreen({
           ) : null}
         </ScrollView>
 
+        {wakeWord && ready ? (
+          <Text variant="hint" tone="muted" style={[styles.center, styles.footnote]}>
+            {copy.wakeFootnote}
+          </Text>
+        ) : null}
         <View style={styles.controls}>
           <SideButton
             icon={Keyboard}
@@ -268,6 +282,7 @@ const styles = StyleSheet.create({
   words: { paddingTop: 26, gap: 16, alignItems: 'center' },
   center: { textAlign: 'center' },
   notice: { alignItems: 'center', gap: 4 },
+  footnote: { marginTop: 12 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
   card: {
     alignSelf: 'stretch',

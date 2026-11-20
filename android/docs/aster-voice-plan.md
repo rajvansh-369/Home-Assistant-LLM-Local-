@@ -290,6 +290,35 @@ V3 as built (differences from §3 and §5, to confirm):
 - `voice_read` activity is left for V5 (with the other activity events); `reply_sent` is logged by
   `sendReply` as for typed replies. No Laravel or admin-panel change was needed.
 
+V4 as built (differences from §2, §6 and §7, to confirm):
+
+- Native files: `WakeRules.kt` (the streaming pipeline as `WakeDetector` behind a `WakeModels`
+  interface, JUnit-tested with stand-in models, and the lock rule), `WakeWord.kt` (ONNX Runtime
+  1.20.0), `WakeWordService.kt`. The JS API is `startWakeWord(configJson)` (also hands new rules to
+  a running service), `stopWakeWord()`, `pauseWakeWord(minutes)`, `resumeWakeWord()`,
+  `holdWakeWord(hold)` and `wakeWordState()` (instead of `isWakeWordRunning`), with `onWakeWord`.
+- `hey_aster.onnx` is not trained yet: `tools/wakeword/` has the config, `train.sh`, the
+  augmentation download and `score.py` (the phone's exact steps in Python). Debug builds carry
+  openWakeWord's "hey jarvis" in the module's `src/debug/assets` (CC BY-NC-SA, never released);
+  release builds have no keyword model until ours exists, so the service doesn't start there.
+  The pipeline was checked in Python on synthetic speech: "Hey Jarvis" 0.998, other speech 0.0.
+- It runs while the profile is unlocked with voice, the 5.1 switch is on (default on; the switch
+  itself comes in V5) and home mode is at home (any at-home state, not only "model ready", so a
+  model reload doesn't stop a service that can't restart from the background). Leaving home also
+  stops it natively from `setAtHome(false)`, which the headless geofence task calls.
+- Locking: the service gets the session's token expiry and "Lock when I leave" minutes and locks
+  itself in the background, keeping its notification with "Locked. Open Aster to listen.";
+  locking in the app (or sign-out) stops it.
+- Heard with Aster in front: an `onWakeWord` event opens `/voice?wake=1`. Otherwise a high-priority
+  notification "Hey Aster" / "Tap to talk to Aster." *(proposed)* with a full-screen intent (opens
+  3.6 over the lock screen when the screen is off; a heads-up otherwise). A short system chime
+  plays first. The microphone stays released for 30 s unless 3.6 takes it.
+- 3.6 holds the microphone while open (the service records nothing) and gives it back on close.
+  Paused shows "Paused until {time}" *(proposed)* with "Resume" *(proposed)* in place of
+  "Pause 1 hour". No recording during a call.
+- 3.6's footnote "Say 'Hey Aster' any time, even with the screen off." shows while the wake word
+  setting is on.
+
 Each phase ends with typecheck, lint, Jest (and JUnit for native rules) passing, and a commit.
 V1 and V4 need a new dev build (`gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a` for
 the phone).

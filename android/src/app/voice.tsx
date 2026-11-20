@@ -1,7 +1,8 @@
 // 3.6 Voice (docs/aster-voice-plan.md §3). `chat` continues a saved chat (3.4's "Talk instead",
 // which then gets its screen back on "Switch to typing"); without it the first question starts one.
 // `thread` is the missed-message notification's Reply by voice (aster://voice?thread={key}); a
-// profile without voice gets 4.2 for that chat instead.
+// profile without voice gets 4.2 for that chat instead. `wake` (aster://voice?wake=1) is "Hey Aster":
+// 3.6 listens at once, as it does whenever it opens.
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useCallback } from 'react';
 

@@ -19,7 +19,7 @@ Plans and source of truth: `docs/aster-first-run-plan.md` (first run, phases in 
 `docs/aster-reminders-location-plan.md` (reminders and location, phases R1–R6),
 `docs/aster-messages-alerts-plan.md` (messages and spoken alerts, phases M1–M6),
 `docs/aster-profiles-memory-plan.md` (profiles, memory and activity, phases P1–P6) and
-`docs/aster-voice-plan.md` (voice and the wake word, phases V1–V6; V1–V3 built).
+`docs/aster-voice-plan.md` (voice and the wake word, phases V1–V6; V1–V4 built; `tools/wakeword/` trains "hey aster").
 Status: `docs/*-status.md`.
 
 ## Commands
@@ -66,7 +66,8 @@ src/features/messages/       captured threads, alert settings and VIPs, catch-up
 src/features/memory/         5.2: zypherLL notes and learned answers, the activity log
 src/features/voice/          3.6 Voice: who may talk, speech in / out, sentences, per-phone settings,
                              the voice turn (listen, ask, speak, follow-up), intents (reminders,
-                             reading missed messages, replies) and VoiceScreen
+                             reading missed messages, replies), the wake word controller (wake.ts)
+                             and VoiceScreen
 src/services/api/            client (real Laravel), types, mock
 src/services/llm/            health.ts, chat.ts (streaming via expo/fetch), sse.ts, memory.ts
 src/services/permissions/    one entry per Permissions row
@@ -74,8 +75,9 @@ src/services/secure.ts       expo-secure-store wrapper
 src/services/notifications.ts expo-notifications: reminder channel, category, alarms
 src/tasks/                   geofence, location updates, notification actions (headless too)
 modules/aster-system/        local Expo module (Kotlin): special access, message capture, the
-                             encrypted message store, the spoken-alert engine and speech in / out
-                             for voice (JUnit tests in
+                             encrypted message store, the spoken-alert engine, speech in / out for
+                             voice and the "Hey Aster" wake word service (ONNX models in
+                             src/*/assets/wakeword) (JUnit tests in
                              android/src/test: gradlew :aster-system:testDebugUnitTest)
 plugins/                     config plugins (with-home-llm-cleartext.js)
 __tests__/                   jest tests (never inside src/app)

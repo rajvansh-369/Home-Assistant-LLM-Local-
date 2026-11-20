@@ -62,6 +62,29 @@ export const voice = {
   send: 'Send',
   notNow: 'Not now',
   edit: 'Edit',
+  /** 3.6's footnote while the wake word is on (canvas). */
+  wakeFootnote: 'Say ‘Hey Aster’ any time, even with the screen off.',
+
+  /** V4: the wake word's ongoing notification and the "heard" heads-up (plan §3 4.4). */
+  wake: {
+    /** (proposed) */
+    channel: 'Listening at home',
+    listeningFor: (count: number) => `At home · listening for ${count} ${count === 1 ? 'VIP' : 'VIPs'}`,
+    /** (proposed) */
+    listening: 'At home · listening',
+    body: 'Model ready · location on',
+    pause: 'Pause 1 hour',
+    /** (proposed) */
+    resume: 'Resume',
+    settings: 'Settings',
+    /** (proposed) {time} is filled in on the phone. */
+    paused: 'Paused until {time}',
+    /** (proposed) */
+    locked: 'Locked. Open Aster to listen.',
+    heardTitle: 'Hey Aster',
+    /** (proposed) */
+    heardBody: 'Tap to talk to Aster.',
+  },
   /** The reminder card's TalkBack name. */
   reminderCard: (title: string, when: string) => `Reminder: ${title}, ${when}`,
 } as const;

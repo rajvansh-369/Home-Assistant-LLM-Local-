@@ -20,6 +20,7 @@ import { handleNoticeResponse } from '@/features/messages/notify';
 import { useAutoLock } from '@/features/profiles/useAutoLock';
 import { installReminders } from '@/features/reminders/install';
 import { useRemindersStore } from '@/features/reminders/store';
+import { installWakeWord } from '@/features/voice/wake';
 import { syncHomeGeofence } from '@/services/geofence';
 // Defines the background tasks at module scope, so they exist when Android wakes the app (plan §7,
 // reminders plan §6).
@@ -30,6 +31,11 @@ import { colors } from '@/theme/colors';
 import { fontAssets } from '@/theme/fonts';
 
 SplashScreen.preventAutoHideAsync();
+
+/** "Hey Aster" with Aster in front: 3.6, listening. */
+function openVoice() {
+  router.push({ pathname: '/voice', params: { wake: '1' } });
+}
 
 /** A tap on a reminder's notification opens it, when its profile is the one unlocked. */
 function openReminder(clientUuid: string) {
@@ -65,6 +71,7 @@ export default function RootLayout() {
         installReminders(openReminder, openNotice);
         installLocation();
         installMessages();
+        installWakeWord(openVoice);
       });
   }, []);
 

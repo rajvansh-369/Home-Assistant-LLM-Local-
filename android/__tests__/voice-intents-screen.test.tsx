@@ -310,3 +310,12 @@ test('Reply by voice for a profile without voice goes to 4.2 instead', async () 
   expect(screen.getByText(`redirect:/thread/${ASHA}`)).toBeTruthy();
   expect(system.__state.listens).toHaveLength(0);
 });
+
+test('3.6 holds the wake word’s microphone while open and says "Hey Aster" works (V4)', async () => {
+  const view = await render(<Voice />);
+  await screen.findByText(copy.listening, {}, wait);
+  expect(AsterSystem.holdWakeWord).toHaveBeenLastCalledWith(true);
+  expect(screen.getByText(copy.wakeFootnote)).toBeTruthy();
+  await act(async () => view.unmount());
+  expect(AsterSystem.holdWakeWord).toHaveBeenLastCalledWith(false);
+});

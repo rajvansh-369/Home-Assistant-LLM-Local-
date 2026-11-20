@@ -65,6 +65,22 @@ type AsterSystemEvents = {
   onSpeechError: (event: { session: number; kind: SpeechErrorKind }) => void;
   /** A `speakQueued` sentence was said (or couldn't be). */
   onSpeakDone: (event: { id: string; spoken: boolean }) => void;
+  /** "Hey Aster" was heard while Aster was in front (otherwise the service opens 3.6 itself). */
+  onWakeWord: () => void;
+};
+
+/** The wake word service as it is (docs/aster-voice-plan.md §6). */
+export type WakeWordState = {
+  running: boolean;
+  /** Recording now (not paused, locked, on a call or held by a voice turn). */
+  listening: boolean;
+  /** Epoch ms "Pause 1 hour" ends; 0 when not paused. */
+  pausedUntil: number;
+  locked: boolean;
+  /** Why the last start failed: no microphone permission, not in front, no models. */
+  error: 'permission' | 'foreground' | 'models' | null;
+  /** The classifier loaded: "hey_aster", or "hey_jarvis_v0.1" in debug builds until it exists. */
+  keyword: string | null;
 };
 
 type AsterSystemModule = {
@@ -119,6 +135,19 @@ type AsterSystemModule = {
   /** The phone's offline voices. */
   listVoices(): Promise<DeviceVoice[]>;
 
+  /**
+   * Starts the wake word service, or hands new rules to the running one (JSON: the notification's
+   * words, `accent`, `lockAt` epoch ms, `autoLockMinutes`). False when it couldn't start.
+   */
+  startWakeWord(config: string): boolean;
+  stopWakeWord(): void;
+  /** "Pause 1 hour" (any minutes, 1–1440). */
+  pauseWakeWord(minutes: number): void;
+  resumeWakeWord(): void;
+  /** A voice turn takes the microphone (true) or gives it back (false). */
+  holdWakeWord(hold: boolean): void;
+  wakeWordState(): WakeWordState;
+
   addListener<E extends keyof AsterSystemEvents>(
     event: E,
     listener: AsterSystemEvents[E],
@@ -160,6 +189,19 @@ const unavailable: AsterSystemModule = {
   speakQueued: () => {},
   setVoiceSettings: () => {},
   listVoices: async () => [],
+  startWakeWord: () => false,
+  stopWakeWord: () => {},
+  pauseWakeWord: () => {},
+  resumeWakeWord: () => {},
+  holdWakeWord: () => {},
+  wakeWordState: () => ({
+    running: false,
+    listening: false,
+    pausedUntil: 0,
+    locked: false,
+    error: null,
+    keyword: null,
+  }),
   addListener: () => ({ remove() {} }),
 };
 

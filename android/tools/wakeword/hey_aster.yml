@@ -1,0 +1,52 @@
+# openWakeWord training config for "hey aster" (docs/aster-voice-plan.md §6).
+# Run from this folder with ./train.sh (see README.md). Paths are relative to work/.
+
+model_name: hey_aster
+target_phrase:
+  - "hey aster"
+# Phrases that sound close and must NOT fire.
+custom_negative_phrases:
+  - "hey astro"
+  - "hey master"
+  - "hey sister"
+  - "aster"
+  - "a stir"
+  - "hey after"
+  - "hey ask her"
+  - "easter"
+  - "hey there"
+
+# Synthetic positives from Piper (en_US and en_IN-style voices via the generator's speaker mix).
+n_samples: 50000
+n_samples_val: 5000
+tts_batch_size: 50
+augmentation_batch_size: 16
+augmentation_rounds: 1
+piper_sample_generator_path: "./piper-sample-generator"
+output_dir: "./output"
+
+# Augmentation: room impulse responses and background noise (downloaded by train.sh).
+rir_paths:
+  - "./mit_rirs"
+background_paths:
+  - "./audioset_16k"
+  - "./fma"
+background_paths_duplication_rate:
+  - 1
+  - 1
+
+# Negatives: openWakeWord's precomputed features (ACAV100M), plus its validation set for
+# false positives per hour.
+false_positive_validation_data_path: "./validation_set_features.npy"
+feature_data_files:
+  "ACAV100M_sample": "./openwakeword_features_ACAV100M_2000_hrs_16bit.npy"
+batch_n_per_class:
+  "ACAV100M_sample": 1024
+  "adversarial_negative": 50
+  "positive": 50
+
+model_type: "dnn"
+layer_size: 32
+steps: 50000
+max_negative_weight: 1500
+target_false_positives_per_hour: 0.2

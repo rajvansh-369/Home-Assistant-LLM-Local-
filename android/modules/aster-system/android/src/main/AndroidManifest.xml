@@ -2,6 +2,14 @@
   <!-- "Run in background": the system dialog that sets battery use to Unrestricted. -->
   <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
+  <!-- "Hey Aster" (docs/aster-voice-plan.md §6, §7): the microphone foreground service, and 3.6
+       over the lock screen when the wake word is heard with the screen off. RECORD_AUDIO is asked
+       at 1.5. -->
+  <uses-permission android:name="android.permission.RECORD_AUDIO" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+  <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+
   <!-- "Open" on the missed-message notification and 4.2 launch these apps (Android 11+ needs them
        listed). docs/aster-messages-alerts-plan.md §4. -->
   <queries>
@@ -31,6 +39,12 @@
         <action android:name="android.service.notification.NotificationListenerService" />
       </intent-filter>
     </service>
+
+    <!-- The wake word's listening service. -->
+    <service
+      android:name="expo.modules.astersystem.WakeWordService"
+      android:exported="false"
+      android:foregroundServiceType="microphone" />
 
     <!-- Missed and remind timers, and "Remind in 30 min" (§7). Only Aster sends to it. -->
     <receiver

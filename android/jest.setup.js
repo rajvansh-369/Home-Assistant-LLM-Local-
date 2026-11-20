@@ -49,6 +49,16 @@ jest.mock('./modules/aster-system', () => {
     voiceSettings: null,
     voices: [],
     speech: { available: true, onDevice: true },
+    // The wake word service: its config (parsed), whether a start succeeds, holds and pauses.
+    wake: {
+      running: false,
+      config: null,
+      starts: 0,
+      startResult: true,
+      held: false,
+      pausedUntil: 0,
+      error: null,
+    },
   });
   const state = fresh();
   let session = 0;
@@ -115,6 +125,39 @@ jest.mock('./modules/aster-system', () => {
         state.voiceSettings = { voice, rate };
       }),
       listVoices: jest.fn(async () => [...state.voices]),
+      startWakeWord: jest.fn((json) => {
+        state.wake.config = JSON.parse(json);
+        if (!state.wake.startResult) {
+          state.wake.error = 'foreground';
+          return false;
+        }
+        if (!state.wake.running) state.wake.starts += 1;
+        state.wake.running = true;
+        state.wake.error = null;
+        return true;
+      }),
+      stopWakeWord: jest.fn(() => {
+        state.wake.running = false;
+        state.wake.held = false;
+        state.wake.pausedUntil = 0;
+      }),
+      pauseWakeWord: jest.fn((minutes) => {
+        state.wake.pausedUntil = Date.now() + minutes * 60_000;
+      }),
+      resumeWakeWord: jest.fn(() => {
+        state.wake.pausedUntil = 0;
+      }),
+      holdWakeWord: jest.fn((hold) => {
+        state.wake.held = hold;
+      }),
+      wakeWordState: jest.fn(() => ({
+        running: state.wake.running,
+        listening: state.wake.running && !state.wake.held && state.wake.pausedUntil === 0,
+        pausedUntil: state.wake.pausedUntil,
+        locked: false,
+        error: state.wake.error,
+        keyword: state.wake.running ? 'hey_aster' : null,
+      })),
       takeActivity: jest.fn(() => {
         const out = JSON.stringify(state.activity);
         state.activity = [];

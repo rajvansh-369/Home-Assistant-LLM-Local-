@@ -60,6 +60,8 @@ internal object AlertEngine {
 
   fun setAtHome(context: Context, atHome: Boolean) {
     prefs(context).edit().putBoolean(AT_HOME, atHome).apply()
+    // "Hey Aster" is home-only (voice plan §6); the geofence task may run with no JS screen.
+    if (!atHome) WakeWordService.stop(context)
   }
 
   fun atHome(context: Context): Boolean = prefs(context).getBoolean(AT_HOME, false)

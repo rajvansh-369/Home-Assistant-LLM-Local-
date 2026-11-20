@@ -40,7 +40,8 @@ class AsterSystemModule : Module() {
       "onSpeechPartial",
       "onSpeechResult",
       "onSpeechError",
-      "onSpeakDone"
+      "onSpeakDone",
+      "onWakeWord"
     )
 
     OnCreate {
@@ -171,6 +172,32 @@ class AsterSystemModule : Module() {
 
     AsyncFunction("listVoices") { promise: Promise ->
       Speaker.voices(context) { voices -> promise.resolve(voices) }
+    }
+
+    // The wake word (docs/aster-voice-plan.md §6, §7) ------------------------------------------
+
+    Function("startWakeWord") { config: String ->
+      WakeWordService.start(context, config)
+    }
+
+    Function("stopWakeWord") {
+      WakeWordService.stop(context)
+    }
+
+    Function("pauseWakeWord") { minutes: Int ->
+      WakeWordService.pause(minutes)
+    }
+
+    Function("resumeWakeWord") {
+      WakeWordService.resume()
+    }
+
+    Function("holdWakeWord") { hold: Boolean ->
+      WakeWordService.hold(context, hold)
+    }
+
+    Function("wakeWordState") {
+      WakeWordService.state()
     }
 
     Function("takeActivity") {
