@@ -47,6 +47,9 @@ export const chat = {
   ratedBad: 'Rated bad · won’t be recalled',
   continue: 'Continue', // (proposed)
   stopped: 'Stopped.', // (proposed)
+  /** An answer to a voice turn, replayed (docs/aster-voice-plan.md §3 3.4). */
+  readAloud: 'Read aloud', // (proposed)
+  stopReading: 'Stop reading', // (proposed)
   source: (n: number, title: string) => `Source ${n}: ${title}`, // (proposed, TalkBack)
   unavailable: {
     away: 'Chat is available at home',

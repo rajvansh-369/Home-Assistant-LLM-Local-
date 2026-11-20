@@ -1,7 +1,17 @@
 // 3.4 / 3.5 an answer (docs/aster-home-chat-plan.md §4.7): the orb, a status chip while it
 // streams ("Searching the web", "Used 2 memories"), the text, and when it ends the web sources,
-// "Live answer…", the rating thumbs, Continue, or the error that cut it short.
-import { ExternalLink, Globe, Play, Search, ThumbsDown, ThumbsUp } from 'lucide-react-native';
+// "Live answer…", the rating thumbs, Continue, "Read aloud" for a voice turn's answer, or the
+// error that cut it short.
+import {
+  ExternalLink,
+  Globe,
+  Play,
+  Search,
+  Square,
+  ThumbsDown,
+  ThumbsUp,
+  Volume2,
+} from 'lucide-react-native';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, View } from 'react-native';
 
 import { chat as copy } from '@/features/chat/copy';
@@ -27,6 +37,9 @@ type AssistantMessageProps = {
   onContinue?: () => void;
   stopped?: boolean;
   error?: string | null;
+  /** An answer to a voice turn: "Read aloud" replays it, "Stop reading" while it is read. */
+  onReadAloud?: () => void;
+  reading?: boolean;
 };
 
 function domainOf(url: string): string {
@@ -112,6 +125,8 @@ export function AssistantMessage({
   onContinue,
   stopped = false,
   error,
+  onReadAloud,
+  reading = false,
 }: AssistantMessageProps) {
   const waiting = streaming && content === '';
   return (
@@ -165,7 +180,7 @@ export function AssistantMessage({
           </Text>
         ) : null}
 
-        {!streaming && (onRate || onContinue) ? (
+        {!streaming && (onRate || onContinue || onReadAloud) ? (
           <View style={styles.actions}>
             {onRate ? (
               <>
@@ -184,6 +199,13 @@ export function AssistantMessage({
             ) : null}
             {onContinue ? (
               <SmallPill label={copy.continue} icon={Play} onPress={onContinue} />
+            ) : null}
+            {onReadAloud ? (
+              <SmallPill
+                label={reading ? copy.stopReading : copy.readAloud}
+                icon={reading ? Square : Volume2}
+                onPress={onReadAloud}
+              />
             ) : null}
           </View>
         ) : null}

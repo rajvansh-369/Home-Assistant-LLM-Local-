@@ -5,6 +5,8 @@
 // (reminders plan §3), Alerts and background (4.3 and battery use) and Privacy's Profiles (2.3) and
 // "Hide message text on lock screen" (docs/aster-messages-alerts-plan.md §3 5.1). Every profile
 // but Guest has Privacy's "Memory and activity" (5.2, docs/aster-profiles-memory-plan.md §4).
+// Profiles that may use voice see Voice: the wake word switch and "Voice and speech"
+// (docs/aster-voice-plan.md §3 5.1).
 import { router } from 'expo-router';
 import {
   Brain,
@@ -16,6 +18,7 @@ import {
   House,
   HouseWifi,
   Lock,
+  Mic,
   Trash2,
   Users,
   Volume2,
@@ -48,6 +51,10 @@ import { whoIsUsing } from '@/features/profiles/copy';
 import { useProfilesStore } from '@/features/profiles/store';
 import { chooseLlmEngine, deleteAllMyChats, setAutoLock } from '@/features/settings/actions';
 import { settings as copy } from '@/features/settings/copy';
+import { voiceAllowed } from '@/features/voice/access';
+import { voice as voiceCopy } from '@/features/voice/copy';
+import { useVoiceSettings } from '@/features/voice/settings';
+import { recognitionLabel, useDeviceVoices, voiceLabel } from '@/features/voice/voices';
 import type { LlmEngine } from '@/services/api';
 import { colors, profileColorKey, radii, spacing } from '@/theme';
 
@@ -90,6 +97,41 @@ function HomeAndLocation() {
   );
 }
 
+/** 5.1 Voice, profiles that may use voice (docs/aster-voice-plan.md §3 5.1). */
+function VoiceSection() {
+  const wakeWord = useVoiceSettings((state) => state.wakeWord);
+  const voice = useVoiceSettings((state) => state.voice);
+  const rate = useVoiceSettings((state) => state.rate);
+  const set = useVoiceSettings((state) => state.set);
+  const { voices } = useDeviceVoices();
+  const rows = voiceCopy.settings;
+  // A build without the "hey aster" model can't listen (V4); say so rather than look broken.
+  const missing = AsterSystem.wakeWordState().error === 'models';
+  return (
+    <View style={styles.section}>
+      <Text variant="label" tone="secondary" accessibilityRole="header">
+        {rows.section}
+      </Text>
+      <ToggleCard>
+        <ToggleRow
+          icon={Mic}
+          iconTone="neutral"
+          title={rows.wakeWord}
+          subtitle={missing ? rows.wakeWordMissing : rows.wakeWordDetail}
+          value={wakeWord}
+          onValueChange={(value) => set({ wakeWord: value })}
+        />
+        <LinkRow
+          icon={Volume2}
+          title={rows.voiceAndSpeech}
+          subtitle={rows.summary(voiceLabel(voice, voices), rate, recognitionLabel())}
+          onPress={() => router.push('/voice-settings')}
+        />
+      </ToggleCard>
+    </View>
+  );
+}
+
 /** Battery use is "Unrestricted", read again whenever the app comes back. */
 function useUnrestricted(): boolean {
   const [unrestricted, setUnrestricted] = useState(() =>
@@ -104,7 +146,6 @@ function useUnrestricted(): boolean {
   return unrestricted;
 }
 
-/** 5.1 Alerts and background, and Privacy, Owner only. */
 /** 5.1 Alerts and background, Owner only. */
 function AlertsAndBackground() {
   const settings = useAlertsStore((state) => state.settings);
@@ -299,6 +340,7 @@ export default function Settings() {
       {status ? <StatusLine status={status} /> : null}
       <InfoCallout icon={HouseWifi} text={copy.homeWifi} />
       {profile?.role === 'owner' ? <HomeAndLocation /> : null}
+      {voiceAllowed(profile) ? <VoiceSection /> : null}
       {profile?.role === 'owner' ? <AlertsAndBackground /> : null}
       {profile && profile.role !== 'guest' ? <Privacy owner={profile.role === 'owner'} /> : null}
       {profile && profile.role !== 'guest' ? <YourData name={profile.name} /> : null}

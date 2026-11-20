@@ -3,6 +3,7 @@
 // notification. Who may do what is checked here too. Messages never leave the phone from here and
 // are never logged; reading them out marks their chats read.
 import { useFirstRunStore } from '@/features/first-run/store';
+import { queueEvents } from '@/features/location/uploads';
 import { sendReply, type SendResult } from '@/features/messages/actions';
 import { ensureAlertsLoaded, useAlertsStore } from '@/features/messages/alerts';
 import { CATCH_UP_MESSAGES, readOutText, unreadMessages, type UnreadItem } from '@/features/messages/catchup';
@@ -10,7 +11,8 @@ import { sources } from '@/features/messages/copy';
 import { markThreadRead, refreshThreads, useThreadsStore } from '@/features/messages/threads';
 import { threadVip } from '@/features/messages/vip';
 import { addReminder, canUseReminders } from '@/features/reminders/actions';
-import { clock12, daysFrom, dueLabel } from '@/features/reminders/format';
+import { uuidV4 } from '@/services/uuid';
+import { apiTime, clock12, daysFrom, dueLabel } from '@/features/reminders/format';
 import { reminders as reminderCopy } from '@/features/reminders/copy';
 
 import AsterSystem, { type CapturedThread } from '../../../modules/aster-system';
@@ -92,9 +94,25 @@ export async function findMissed(name: string | null): Promise<MissedMessages> {
 export const readOut = (items: UnreadItem[]) =>
   readOutText(items, useAlertsStore.getState().vips);
 
-/** They have been heard: their chats are read now. */
-export async function markHeard(items: UnreadItem[]) {
-  for (const key of new Set(items.map((item) => item.thread.key))) await markThreadRead(key);
+/**
+ * They have been heard: their chats are read now, and Laravel's activity log gets `voice_read` with
+ * the counts (and a VIP's name when they were all one VIP's), never the text (plan §5).
+ */
+export async function markHeard(items: UnreadItem[], summed = false) {
+  const threads = [...new Map(items.map((item) => [item.thread.key, item.thread])).values()];
+  for (const thread of threads) await markThreadRead(thread.key);
+  if (items.length === 0) return;
+  const vip = threads.length === 1 ? threadVip(threads[0], useAlertsStore.getState().vips) : null;
+  void queueEvents([
+    {
+      client_uuid: uuidV4(),
+      profile_id: useFirstRunStore.getState().session?.profile.id ?? null,
+      type: 'voice_read',
+      summary: copy.activity.readOut(items.length, vip?.name ?? null),
+      meta: { messages: items.length, chats: threads.length, summed },
+      occurred_at: apiTime(new Date()),
+    },
+  ]).catch(() => {});
 }
 
 /** Reply by voice: the thread, its unread messages and the recent ones for a draft. */

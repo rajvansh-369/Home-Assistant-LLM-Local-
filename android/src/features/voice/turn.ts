@@ -207,7 +207,7 @@ export function useVoiceTurn({ chatUuid, ready }: VoiceTurnOptions) {
           // A cached summary never streamed: say all of it.
           if (seen === 0) sentences.push(summary).forEach(say);
           sentences.flush().forEach(say);
-          await markHeard(items);
+          await markHeard(items, true);
           await afterSpeaking(gen, true);
           return;
         }

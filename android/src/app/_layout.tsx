@@ -106,6 +106,7 @@ export default function RootLayout() {
             <Stack.Screen name="location" />
             <Stack.Screen name="thread/[key]" />
             <Stack.Screen name="alerts" />
+            <Stack.Screen name="voice-settings" />
             <Stack.Screen name="vip/[id]" />
             <Stack.Screen name="dev/gallery" />
           </Stack>

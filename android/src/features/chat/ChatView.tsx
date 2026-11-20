@@ -12,6 +12,7 @@ import { useFirstRunStore } from '@/features/first-run/store';
 import { home as homeCopy } from '@/features/home/copy';
 import { modelLabel } from '@/features/home-mode/mode';
 import { useHomeModeStore } from '@/features/home-mode/store';
+import { readAloud, stopReading, useReadAloud } from '@/features/voice/readAloud';
 import { colors, spacing } from '@/theme';
 
 import { activeEngine } from './ask';
@@ -64,6 +65,10 @@ export function ChatView({
   const [draft, setDraft] = useState('');
   const list = useRef<FlatList<LocalMessage>>(null);
   const sentInitial = useRef(false);
+  const reading = useReadAloud((state) => state.reading);
+
+  // Leaving the chat stops a read-out.
+  useEffect(() => () => stopReading(), []);
 
   const unavailable =
     homeMode.kind === 'ready'
@@ -125,6 +130,10 @@ export function ChatView({
             const state = chat.live[item.client_uuid];
             const streaming = state?.streaming ?? false;
             const isLast = item.client_uuid === lastAssistant?.client_uuid;
+            // An answer to a question asked in 3.6 Voice (the `voice` flag) can be read again.
+            const spoken =
+              previous?.role === 'user' && (previous.context ?? []).includes('voice') && !!item.content;
+            const isReading = reading === item.client_uuid;
             return (
               <View style={styles.item}>
                 {divider}
@@ -147,6 +156,13 @@ export function ChatView({
                       ? () => chat.continueAnswer(item.client_uuid)
                       : undefined
                   }
+                  onReadAloud={
+                    spoken
+                      ? () =>
+                          isReading ? stopReading() : readAloud(item.client_uuid, item.content)
+                      : undefined
+                  }
+                  reading={isReading}
                 />
               </View>
             );

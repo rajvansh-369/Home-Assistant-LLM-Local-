@@ -60,7 +60,7 @@ function Banner({ mode }: { mode: HomeMode }) {
   return null;
 }
 
-function AwayCard({ mode }: { mode: HomeMode }) {
+function AwayCard({ mode, voice }: { mode: HomeMode; voice: boolean }) {
   const home = useFirstRunStore((state) => state.home);
   const away = mode.kind === 'away' ? mode : null;
   const km = away?.distanceM != null ? (away.distanceM / 1000).toFixed(1) : null;
@@ -84,7 +84,7 @@ function AwayCard({ mode }: { mode: HomeMode }) {
           </Text>
         </View>
         <Text variant="bodySmall" tone="secondary">
-          {copy.away.body}
+          {voice ? copy.away.body : copy.away.bodyNoVoice}
         </Text>
       </View>
     </View>
@@ -142,7 +142,7 @@ export default function Home() {
           </>
         ) : (
           <>
-            <AwayCard mode={mode} />
+            <AwayCard mode={mode} voice={voice.allowed} />
             <AwayVipCard />
           </>
         )}

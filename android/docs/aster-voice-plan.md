@@ -319,6 +319,34 @@ V4 as built (differences from §2, §6 and §7, to confirm):
 - 3.6's footnote "Say 'Hey Aster' any time, even with the screen off." shows while the wake word
   setting is on.
 
+V5 as built (differences from §3 and §5, to confirm):
+
+- 5.1's Voice section sits between "Home and location" and "Alerts and background", as drawn, for
+  every profile that may use voice (`voiceAllowed`: not Guest, `voice_enabled` and chat on). "Wake
+  word 'Hey Aster'" is the per-phone switch (wake.ts starts or stops the service at once); a build
+  without the "hey aster" model says "Not in this version of Aster yet" *(proposed)* under it.
+  "Voice and speech" shows "{voice} · {speed} · {recognition}", e.g. "Device voice · 1.0× ·
+  recognition on this phone", or "…recognition by Google" *(proposed)* when the phone has no
+  on-device recognizer.
+- "Voice and speech" is a screen (`/voice-settings`, like 4.3), not a sheet: the app has no sheet
+  pattern yet. It lists "Phone default" and the phone's offline English and Hindi voices, named by
+  language and numbered within it ("English (India) 1", "Hindi 1"; Android's own names mean
+  nothing to people), the phone's region first; speed 0.8× / 1.0× / 1.2×; "Test" says "Hi, I'm
+  Aster. This is how I sound." *(proposed)*; and "Recognition: on this phone" / "Recognition:
+  Google" / not available.
+- 3.2: profiles that may use voice get the canvas's "Chat and voice switch on when you get home. …";
+  the others keep "Chat switches on …" (the canvas line names voice they don't have). The mic stays
+  hidden away (decision 8), not drawn disabled as on the canvas.
+- 3.4: an answer whose question was asked in 3.6 (the `voice` flag) has "Read aloud" *(proposed)*,
+  "Stop reading" while it is read; one answer at a time, with 5.1's voice and speed; leaving the
+  chat stops it. Answers are not read aloud by themselves in 3.4.
+- Activity: reading missed messages out (a read-out, a summary of many, or Reply by voice's
+  read-out) logs `voice_read` with "Read out {n} missed messages" *(proposed)*, "… from {VIP}" when
+  they were all one VIP's (a non-VIP stays unnamed, as for `reply_sent`) and meta `messages`,
+  `chats`, `summed`; never the text. Voice reminders log nothing new: typed reminders don't either
+  (`reminder_fired` comes when they ring). Laravel's `ActivityType` enum gains `voice_read` for
+  the admin panel's filter; 5.2 shows it with a mic.
+
 Each phase ends with typecheck, lint, Jest (and JUnit for native rules) passing, and a commit.
 V1 and V4 need a new dev build (`gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a` for
 the phone).

@@ -11,6 +11,7 @@ import {
   House,
   Inbox,
   LogOut,
+  Mic,
   NotebookText,
   Plus,
   Send,
@@ -62,6 +63,7 @@ const ICONS: Record<string, LucideIcon> = {
   server_problem: ServerCrash,
   reply_sent: Send,
   memory_used: Inbox,
+  voice_read: Mic,
 };
 
 function goBack() {

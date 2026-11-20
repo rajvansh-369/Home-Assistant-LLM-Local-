@@ -15,4 +15,5 @@ enum ActivityType: string
     case LeftHome = 'left_home';
     case ServerProblem = 'server_problem';
     case ReplySent = 'reply_sent';
+    case VoiceRead = 'voice_read';
 }

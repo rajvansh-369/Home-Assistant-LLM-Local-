@@ -36,8 +36,11 @@ export const home = {
   away: {
     distance: (km: string) => `Away from home · ${km} km`,
     noDistance: 'Away from home', // (proposed)
-    /** The canvas also names voice, which isn't built yet. */
-    body: 'Chat switches on when you get home. Reminders, message capture and location keep working.',
+    /** Canvas, for profiles that may use voice (docs/aster-voice-plan.md §3 3.2). */
+    body: 'Chat and voice switch on when you get home. Reminders, message capture and location keep working.',
+    /** Without voice: the canvas line without it. */
+    bodyNoVoice:
+      'Chat switches on when you get home. Reminders, message capture and location keep working.',
     chatAtHome: 'Chat is available at home',
     mapLabel: (km: string) => `Map showing you ${km} km from home`,
     mapLabelNoDistance: 'Map showing your home area', // (proposed)

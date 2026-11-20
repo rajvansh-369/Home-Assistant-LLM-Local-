@@ -305,7 +305,7 @@ export type ActivityEventBody = {
   profile_id?: number | null;
   /**
    * Lowercase letters and underscores, at most 40: arrived_home, left_home, reminder_fired,
-   * spoken_alert, reply_sent, server_problem.
+   * spoken_alert, reply_sent, server_problem, voice_read.
    */
   type: string;
   /** At most 200 characters. */

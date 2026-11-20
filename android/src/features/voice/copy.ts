@@ -1,5 +1,9 @@
 // 3.6 Voice strings (docs/aster-voice-plan.md §3). Canvas strings are exact; the rest are marked
 // (proposed) in the plan.
+
+/** "1.0×" */
+const speed = (rate: number) => `${rate.toFixed(1)}×`;
+
 export const voice = {
   title: 'Voice',
   close: 'Close voice',
@@ -84,6 +88,52 @@ export const voice = {
     heardTitle: 'Hey Aster',
     /** (proposed) */
     heardBody: 'Tap to talk to Aster.',
+  },
+  /** V5: 5.1's Voice section (canvas) and the "Voice and speech" screen (proposed). */
+  settings: {
+    section: 'Voice',
+    wakeWord: 'Wake word “Hey Aster”',
+    wakeWordDetail: 'At home, even with the screen off',
+    /** (proposed) A build without the "hey aster" model. */
+    wakeWordMissing: 'Not in this version of Aster yet',
+    voiceAndSpeech: 'Voice and speech',
+    /** "Device voice · 1.0× · recognition on this phone" (canvas). */
+    summary: (voice: string, rate: number, recognition: string) =>
+      `${voice} · ${speed(rate)} · ${recognition}`,
+    deviceVoice: 'Device voice',
+    recognitionHere: 'recognition on this phone',
+    /** (proposed) */
+    recognitionGoogle: 'recognition by Google',
+    /** (proposed) */
+    recognitionNone: 'no speech recognition',
+    // The screen (all proposed).
+    voiceLabel: 'Voice',
+    /** The phone's default voice, first in the list. */
+    phoneDefault: 'Phone default',
+    /** "English (India) 2": a voice of the phone, numbered within its language. */
+    voiceName: (language: string, n: number) => `${language} ${n}`,
+    languages: {
+      'en-IN': 'English (India)',
+      'en-US': 'English (US)',
+      'en-GB': 'English (UK)',
+      'en-AU': 'English (Australia)',
+      'hi-IN': 'Hindi',
+    } as Record<string, string>,
+    otherEnglish: (region: string) => `English (${region})`,
+    noVoices: 'Only the phone’s default voice is installed.',
+    speedLabel: 'Speed',
+    speed,
+    test: 'Test',
+    testSentence: 'Hi, I’m Aster. This is how I sound.',
+    recognitionLabel: 'Recognition',
+    recognitionHereFull: 'Recognition: on this phone',
+    recognitionGoogleFull: 'Recognition: Google',
+    recognitionNoneFull: 'Speech recognition isn’t available on this phone.',
+  },
+  /** Laravel's activity log after a read-out: counts, never the text. (proposed) */
+  activity: {
+    readOut: (count: number, name: string | null) =>
+      `Read out ${count} missed ${count === 1 ? 'message' : 'messages'}${name ? ` from ${name}` : ''}`,
   },
   /** The reminder card's TalkBack name. */
   reminderCard: (title: string, when: string) => `Reminder: ${title}, ${when}`,
